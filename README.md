@@ -23,6 +23,24 @@ personal tools that only need to work well for us.
 - Storage: Supabase Storage
 - Target platform: Android first, iOS later
 
+## Current App Skeleton
+
+The repository now contains an Android-first Flutter skeleton with:
+
+- Material 3 app shell
+- Bottom navigation for Home, Timeline, Anniversaries, Wishlist, and Profile
+- Local placeholder content for the first prototype
+- Supabase Flutter dependency prepared for Phase 3 integration
+- Widget tests for the app shell navigation
+
+Run locally:
+
+```powershell
+flutter pub get
+flutter test
+flutter run
+```
+
 ## First Prototype
 
 The first prototype should prove the basic app foundation:

@@ -2,9 +2,7 @@
 
 [English](README.md)
 
-Between Us 是一款以隐私优先为原则、为情侣两个人使用而设计的移动 App。
-目标是构建一个用于日常生活、回忆、计划和小型个人工具的共享空间，并且这些
-功能只需要真正适合我们自己使用。
+Between Us 是一款以隐私优先为原则、为情侣两个人使用而设计的移动 App。目标是构建一个用于日常生活、回忆、计划和小型个人工具的共享空间，并且这些功能只需要真正适合我们自己使用。
 
 ## 项目目标
 
@@ -22,6 +20,24 @@ Between Us 是一款以隐私优先为原则、为情侣两个人使用而设计
 - 身份认证：Supabase Auth
 - 存储：Supabase Storage
 - 目标平台：Android 优先，之后支持 iOS
+
+## 当前 App 骨架
+
+仓库现在包含一个 Android 优先的 Flutter 骨架：
+
+- Material 3 App shell
+- Home、Timeline、Anniversaries、Wishlist、Profile 底部导航
+- 第一版原型的本地占位内容
+- 已加入 Supabase Flutter 依赖，后续用于 Phase 3 集成
+- 已添加 App shell 导航的 widget tests
+
+本地运行：
+
+```powershell
+flutter pub get
+flutter test
+flutter run
+```
 
 ## 第一版原型
 
