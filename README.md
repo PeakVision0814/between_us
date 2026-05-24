@@ -1,5 +1,7 @@
 # Between Us
 
+[简体中文](README.zh-CN.md)
+
 Between Us is a private-first mobile app for two people in a relationship. The
 goal is to build a shared space for everyday life, memories, plans, and small
 personal tools that only need to work well for us.
