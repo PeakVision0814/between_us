@@ -1,4 +1,4 @@
-import 'package:between_us/main.dart';
+import 'package:between_us/app/between_us_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
