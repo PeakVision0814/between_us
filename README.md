@@ -1,18 +1,19 @@
 # Between Us
 
-[简体中文](README.zh-CN.md)
+[Chinese (Simplified)](README.zh-CN.md)
 
-Between Us is a private-first mobile app for two people in a relationship. The
-goal is to build a shared space for everyday life, memories, plans, and small
-personal tools that only need to work well for us.
+Between Us is a private-first mobile app for two people in a relationship.
+The product focus is intentionally narrow: give a couple one calm place to
+leave today's note or memory and keep important dates visible often enough to
+become part of daily life.
 
-## Project Goals
+## Product Focus
 
 - Build a real mobile app, not a web wrapper.
-- Keep the app focused on two-person private use.
-- Start with a small, stable couple app foundation.
-- Add features gradually based on real daily needs.
-- Keep data ownership, privacy, and maintainability in mind from the beginning.
+- Keep the MVP centered on one daily loop: note, memory, and dates.
+- Validate retention before adding extra modules.
+- Treat privacy, ownership, and deletion rules as product requirements.
+- Defer lower-signal ideas until the shared foundation proves useful.
 
 ## Planned Tech Stack
 
@@ -23,15 +24,16 @@ personal tools that only need to work well for us.
 - Storage: Supabase Storage
 - Target platform: Android first, iOS later
 
-## Current App Skeleton
+## Current Prototype
 
-The repository now contains an Android-first Flutter skeleton with:
+The repository currently contains an Android-first Flutter prototype with:
 
 - Material 3 app shell
-- Bottom navigation for Home, Timeline, Anniversaries, Wishlist, and Profile
-- Local placeholder content for the first prototype
-- Supabase Flutter dependency prepared for Phase 3 integration
-- Widget tests for the app shell navigation
+- Focused primary navigation for `Home`, `Timeline`, and `Dates`
+- Local-only sample content for the first prototype
+- Secondary placeholder pages for backlog ideas and relationship settings
+- Supabase dependency prepared, but no auth or sync in the local prototype
+- Widget tests for navigation and core entry points
 
 Run locally:
 
@@ -41,36 +43,45 @@ flutter test
 flutter run
 ```
 
-## First Prototype
+## MVP Definition
 
-The first prototype should prove the basic app foundation:
+The first prototype is complete only when it can demonstrate this local product
+loop without backend complexity:
 
-- Two users can sign in.
-- The users can share one couple space.
-- The home screen shows basic relationship information.
-- A simple timeline or daily note can be created.
-- A basic anniversary can be added and displayed.
+- Home shows the couple overview, today's note area, and the next important
+  date.
+- Timeline shows the lightweight daily record flow the app wants to encourage.
+- Dates shows core anniversaries with clear countdown value.
+- The app makes it obvious which pages belong to the MVP and which ideas are
+  still backlog.
 
-## Future Modules
+Authentication, invitations, shared sync, and Row Level Security are not part
+of the local prototype. They belong to the backend foundation milestone.
 
-- Couple timeline
-- Anniversaries
-- Daily notes
-- Wishlist
+## Backend Foundation After The Prototype
+
+Before shared data work starts, the team must define:
+
+- Who creates a couple space and how the second person is invited.
+- How couple membership is limited, revoked, or unlinked.
+- What happens to shared data after unlinking or deletion requests.
+- How export, retention, and permanent deletion are handled.
+- How notifications and previews avoid leaking private content.
+
+Those decisions now live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[docs/DATABASE.md](docs/DATABASE.md).
+
+## Backlog Modules
+
+These are explicitly outside the focused MVP until the core loop proves useful:
+
+- Gift ideas / wishlist
 - Shared photo memories
+- Reminder notifications
+- Travel plans
 - Home menu
-- Reminders and notifications
-- Personal profile and couple settings
-
-## Development Roadmap
-
-1. Create the Flutter project structure.
-2. Define the app theme, routing, and feature module layout.
-3. Implement local-only screens for the first prototype.
-4. Connect Supabase authentication.
-5. Add couple-space data model and access rules.
-6. Implement sync for timeline, notes, and anniversaries.
-7. Add the home menu module after the base app is stable.
+- Conflict cooldown
+- Personal preference notes
 
 ## License
 

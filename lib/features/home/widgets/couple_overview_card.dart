@@ -4,7 +4,12 @@ import '../../../app/app_theme.dart';
 import '../../../shared/widgets/circle_badge.dart';
 
 class CoupleOverviewCard extends StatelessWidget {
-  const CoupleOverviewCard({super.key});
+  const CoupleOverviewCard({
+    super.key,
+    required this.onOpenSettings,
+  });
+
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +35,7 @@ class CoupleOverviewCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
-                    'private beta',
+                    'local prototype',
                     style: TextStyle(
                       color: AppTheme.berry,
                       fontWeight: FontWeight.w700,
@@ -47,7 +52,21 @@ class CoupleOverviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Supabase auth and couple-space sync will connect this card to real private data in Phase 3.',
+              'Today starts with one note and the next important date. Shared accounts and sync come after this local loop feels worth keeping.',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '214 days together | Next date in 12 days',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.berry,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: onOpenSettings,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Review space rules'),
             ),
           ],
         ),

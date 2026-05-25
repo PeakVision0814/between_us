@@ -12,18 +12,25 @@ class WishlistScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AppPage(
       children: [
-        SectionHeader(title: 'Wishlist'),
+        SectionHeader(title: 'Ideas backlog'),
         FeatureTile(
           icon: Icons.restaurant_menu,
           color: AppTheme.mint,
           title: 'Home menu',
-          subtitle: 'A later module for shared food requests and status.',
+          subtitle:
+              'Kept out of the MVP until there is evidence it matters more than the daily note loop.',
         ),
         FeatureTile(
           icon: Icons.redeem_outlined,
           color: AppTheme.blush,
           title: 'Gift ideas',
-          subtitle: 'Keep small wishes in one private place.',
+          subtitle: 'Worth revisiting later, but not a reason to dilute the first prototype.',
+        ),
+        FeatureTile(
+          icon: Icons.photo_library_outlined,
+          color: AppTheme.gold,
+          title: 'Photo memories',
+          subtitle: 'A likely follow-up module once the shared habit and privacy model are trusted.',
         ),
       ],
     );

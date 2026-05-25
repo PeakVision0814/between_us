@@ -12,20 +12,27 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AppPage(
       children: [
-        SectionHeader(title: 'Profile'),
+        SectionHeader(title: 'Space settings'),
+        FeatureTile(
+          icon: Icons.group_outlined,
+          color: AppTheme.mint,
+          title: 'Invite and ownership',
+          subtitle:
+              'One person creates the couple space, one invite brings the second person in, and active membership must stop at two people.',
+        ),
         FeatureTile(
           icon: Icons.lock_outline,
           color: AppTheme.berry,
           title: 'Private by default',
           subtitle:
-              'No public profiles, feeds, or analytics-first product choices.',
+              'No public profiles, feeds, or preview-heavy notifications until both people explicitly allow them.',
         ),
         FeatureTile(
-          icon: Icons.cloud_outlined,
-          color: AppTheme.mint,
-          title: 'Supabase pending',
+          icon: Icons.delete_outline,
+          color: AppTheme.gold,
+          title: 'Unlink and delete',
           subtitle:
-              'Auth, RLS, storage, and sync will be added after the local prototype.',
+              'Unlink, export, and permanent deletion rules are design work that must be settled before backend launch.',
         ),
       ],
     );

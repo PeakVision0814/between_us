@@ -16,59 +16,74 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
 
-  static const _destinations = <AppDestination>[
-    AppDestination(
-      label: 'Home',
-      icon: Icons.favorite_border,
-      selectedIcon: Icons.favorite,
-      screen: HomeScreen(),
-    ),
-    AppDestination(
-      label: 'Timeline',
-      icon: Icons.timeline_outlined,
-      selectedIcon: Icons.timeline,
-      screen: TimelineScreen(),
-    ),
-    AppDestination(
-      label: 'Dates',
-      icon: Icons.event_outlined,
-      selectedIcon: Icons.event,
-      screen: AnniversariesScreen(),
-    ),
-    AppDestination(
-      label: 'Wishlist',
-      icon: Icons.card_giftcard_outlined,
-      selectedIcon: Icons.card_giftcard,
-      screen: WishlistScreen(),
-    ),
-    AppDestination(
-      label: 'Profile',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
-      screen: ProfileScreen(),
-    ),
-  ];
+  void _selectTab(int index) {
+    setState(() => _selectedIndex = index);
+  }
+
+  void _openSecondaryPage(
+    BuildContext context, {
+    required String title,
+    required Widget child,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: SafeArea(child: child),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final current = _destinations[_selectedIndex];
+    final destinations = <AppDestination>[
+      AppDestination(
+        label: 'Home',
+        icon: Icons.favorite_border,
+        selectedIcon: Icons.favorite,
+        screen: HomeScreen(
+          onWriteTodayNote: () => _selectTab(1),
+          onReviewDates: () => _selectTab(2),
+          onOpenBacklog: () => _openSecondaryPage(
+            context,
+            title: 'Ideas backlog',
+            child: const WishlistScreen(),
+          ),
+          onOpenSettings: () => _openSecondaryPage(
+            context,
+            title: 'Space settings',
+            child: const ProfileScreen(),
+          ),
+        ),
+      ),
+      const AppDestination(
+        label: 'Timeline',
+        icon: Icons.timeline_outlined,
+        selectedIcon: Icons.timeline,
+        screen: TimelineScreen(),
+      ),
+      const AppDestination(
+        label: 'Dates',
+        icon: Icons.event_outlined,
+        selectedIcon: Icons.event,
+        screen: AnniversariesScreen(),
+      ),
+    ];
+    final current = destinations[_selectedIndex];
 
     return Scaffold(
       appBar: AppBar(title: Text(current.label)),
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
-          children: _destinations
-              .map((destination) => destination.screen)
-              .toList(),
+          children: destinations.map((destination) => destination.screen).toList(),
         ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        destinations: _destinations
+        onDestinationSelected: _selectTab,
+        destinations: destinations
             .map(
               (destination) => NavigationDestination(
                 icon: Icon(destination.icon),

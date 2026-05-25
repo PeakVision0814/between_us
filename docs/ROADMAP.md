@@ -1,184 +1,139 @@
 # Roadmap
 
-This roadmap describes the planned development path for Between Us. It is meant
-to guide implementation decisions, keep the first version focused, and leave
-room for personal features later.
+This roadmap keeps Between Us aligned around one product question:
+will a couple return often for a shared daily note and visible important dates?
 
 ## Guiding Principles
 
-- Build the app as a real mobile app from the beginning.
-- Keep the first version small enough to finish and use.
-- Prefer stable foundations over many unfinished features.
-- Treat privacy and data ownership as product requirements.
-- Add new modules only after the couple-space foundation works.
+- Keep the MVP narrow enough to demo and narrow enough to evaluate.
+- Do not confuse placeholder breadth with product progress.
+- Define privacy boundaries before shared backend work begins.
+- Make every phase reviewable through concrete demo checklists.
+- Add extra modules only after the core loop shows real repeat use.
 
 ## Phase 0: Project Foundation
 
-Goal: prepare the repository and development environment.
+Goal: prepare the repository and local development environment.
 
 Scope:
 
-- Create public GitHub repository.
-- Add MIT License.
-- Add English and Chinese README files.
-- Add this roadmap.
-- Install and verify Flutter locally.
-- Generate the initial Flutter project structure.
-- Add a Flutter-oriented `.gitignore`.
+- Create the Flutter repository and Android-first app shell.
+- Add license, roadmap, and setup documentation.
+- Verify local Flutter tooling.
 
 Done when:
 
-- The repository has documentation, license, and roadmap.
-- `flutter doctor` can run locally.
-- The initial Flutter app can build or run on an Android device.
-- The first Flutter project commit is pushed to GitHub.
+- The repository builds on a local Android environment.
+- Core project docs exist and are readable.
+- `flutter doctor` can run successfully on contributor machines.
 
-## Phase 1: App Skeleton
+## Phase 1: Focused App Skeleton
 
-Goal: create a clean mobile app base that future modules can build on.
+Goal: establish the information architecture for the MVP only.
 
 Scope:
 
-- Define app name, package name, and basic metadata.
-- Create the top-level Flutter app structure.
-- Add app theme, colors, typography, and reusable UI tokens.
-- Add navigation and route structure.
-- Create placeholder screens for the initial modules.
+- Define app theme, route structure, and reusable UI tokens.
+- Keep primary navigation limited to `Home`, `Timeline`, and `Dates`.
+- Move backlog ideas and relationship settings to secondary pages.
 - Keep all data local and static in this phase.
-
-Initial screens:
-
-- Home
-- Timeline
-- Anniversaries
-- Wishlist
-- Profile
 
 Done when:
 
 - The app opens on a real Android device.
-- Bottom navigation or equivalent primary navigation works.
-- Each initial screen has a placeholder view.
-- The structure is clear enough to add feature code without reorganizing.
+- Primary navigation contains exactly three MVP destinations.
+- Secondary pages are reachable without competing with the MVP tabs.
+- The repo structure is clear enough to add feature code without reorganization.
 
-## Phase 2: Local Prototype
+## Phase 2: Local MVP Prototype
 
-Goal: prove the core couple-app experience without backend complexity.
-
-Scope:
-
-- Home screen shows basic couple information.
-- Timeline supports local sample entries.
-- Anniversaries support local sample items and countdown display.
-- Daily note or message area exists in the home experience.
-- Profile screen shows two-person relationship settings as static data.
-
-Done when:
-
-- The app feels like a minimal couple app, not only a technical shell.
-- A user can move between the main sections naturally.
-- The first prototype can be demonstrated without Supabase.
-
-## Phase 3: Supabase Integration
-
-Goal: connect the app to real shared data.
+Goal: prove the core couple-app loop without backend complexity.
 
 Scope:
 
-- Create Supabase project.
-- Add Supabase client configuration.
-- Add authentication.
-- Add profile model.
-- Add couple-space model.
-- Add database access rules.
-- Add environment/config handling without committing secrets.
-
-Initial tables:
-
-- profiles
-- couples
-- timeline_entries
-- anniversaries
-- notes
+- Home shows a couple overview, a clear note CTA, and the next important date.
+- Timeline shows a local daily-note or memory flow with sample entries.
+- Dates shows local anniversaries with countdown value.
+- Empty, placeholder, and backlog messaging clearly distinguish MVP from later ideas.
 
 Done when:
 
-- Two users can sign in.
-- Both users can belong to the same couple space.
-- Data is scoped by couple space.
-- No private Supabase keys or local secrets are committed.
+- A reviewer can open the app and identify the primary action within 10 seconds.
+- The `Home -> Timeline -> Dates` flow can be demoed without explanation.
+- The prototype can be shown without auth, network, or Supabase setup.
+- `flutter test` and `flutter analyze` pass locally.
 
-## Phase 4: Shared Core Features
+## Phase 3: Shared Data Architecture
 
-Goal: make the app useful for daily two-person use.
+Goal: lock product rules before writing shared backend code.
 
 Scope:
 
-- Create and read timeline entries.
-- Create and read anniversaries.
-- Create and read daily notes.
-- Show recent activity on the home screen.
-- Add basic loading, empty, and error states.
+- Write `docs/ARCHITECTURE.md` for app structure, information architecture, and privacy boundaries.
+- Write `docs/DATABASE.md` for schema direction, invite flow, RLS, unlink, export, and delete behavior.
+- Confirm how a couple space is created, joined, limited to two members, and dissolved.
+- Confirm notification and preview safety rules.
 
 Done when:
 
-- Both users can see shared timeline data.
-- Both users can see shared anniversaries and notes.
-- The app remains usable when the network is slow or data is empty.
+- Invite flow is documented end to end.
+- Data ownership and unlink/delete rules are documented end to end.
+- Planned tables and access boundaries are documented before implementation starts.
+- The team can review backend work against written privacy rules instead of assumptions.
 
-## Phase 5: Home Menu Module
+## Phase 4: Shared Alpha
 
-Goal: add the first practical life module after the base app is stable.
+Goal: connect the app to real private shared data.
 
 Scope:
 
-- Add menu item model.
-- Add order/request model.
-- Add menu list screen.
-- Add request flow for "I want this".
-- Add kitchen/task view for pending requests.
-- Add status changes such as pending, in progress, and done.
-
-Initial tables:
-
-- menu_items
-- menu_requests
+- Create the Supabase project and local configuration flow.
+- Add authentication and couple-space invitation flow.
+- Implement shared storage for timeline entries and anniversaries.
+- Enforce Row Level Security and couple-space scoping on every shared table.
+- Add loading, empty, error, and retry states for shared reads and writes.
 
 Done when:
 
-- Either person can request a dish.
-- The other person can see and update the request status.
-- Menu data belongs to the same couple space.
+- Two accounts can join the same couple space through the intended invite flow.
+- Each account can only read and write data for its own couple space.
+- Timeline entries and anniversaries sync correctly across two test devices.
+- Shared actions fail safely when the network is unavailable or authorization is missing.
 
-## Phase 6: Polish And Reliability
+## Phase 5: Reliability And Private Beta
 
-Goal: improve quality before adding more feature modules.
+Goal: validate repeat usage on real devices before expanding the product.
 
 Scope:
 
-- Improve visual design and interaction details.
-- Add form validation.
-- Add basic offline and retry behavior where needed.
-- Add crash-safe error handling.
-- Review database rules.
-- Add basic tests for important pure logic.
+- Add tests for countdown logic, invite flow rules, and key data ownership rules.
+- Improve offline behavior, retry messaging, and conflict handling for shared data.
+- Prepare Android beta distribution.
+- Run a small private beta with feedback collection.
+
+Beta checklist:
+
+- Define target devices and minimum Android versions for testing.
+- Distribute builds to at least 3 to 5 real couples or trusted testers.
+- Review feedback on frequency of note usage, clarity of dates, and privacy concerns weekly.
+- Record success signals such as weekly retention, completed note entries, and reported trust issues.
 
 Done when:
 
-- The app is comfortable enough for daily private use.
-- Common failure cases are handled.
-- Important data access rules have been reviewed.
+- Critical pure logic has automated tests.
+- Common shared-data failure cases are visible and recoverable.
+- Beta feedback produces a clear keep / change / remove decision on the MVP loop.
+- The team can name the next highest-value module with evidence, not preference.
 
-## Later Modules
+## Backlog Modules
 
-These modules should be added only after the app foundation and shared data
-model are stable:
+These stay out of active development until the beta validates the core loop:
 
+- Gift ideas / wishlist
 - Shared photo memories
-- Gift ideas
-- Random date picker
 - Reminder notifications
 - Travel plans
+- Home menu
 - Monthly memory summary
 - Conflict cooldown page
 - Personal preference notes
@@ -186,17 +141,14 @@ model are stable:
 ## Not In Scope For The First Version
 
 - Public social features
-- Content recommendation feeds
 - Multi-couple support
-- Commercial payment features
-- Complex analytics
+- Commercial payments
 - Public user profiles
-- App Store release process
+- Feed-style recommendation systems
 - iOS distribution
 
-## Documentation Backlog
+## Working Documents
 
-- `docs/SETUP.md`: local development setup
-- `docs/ARCHITECTURE.md`: app structure and major decisions
-- `docs/DATABASE.md`: Supabase schema and access rules
-- `docs/RELEASE.md`: Android build and release notes
+- [docs/SETUP.md](SETUP.md): local development setup
+- [docs/ARCHITECTURE.md](ARCHITECTURE.md): product boundaries and app structure
+- [docs/DATABASE.md](DATABASE.md): planned shared schema and access rules
