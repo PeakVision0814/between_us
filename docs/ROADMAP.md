@@ -1,154 +1,173 @@
-# Roadmap
+# 路线图
 
-This roadmap keeps Between Us aligned around one product question:
-will a couple return often for a shared daily note and visible important dates?
+这份路线图围绕一个核心产品问题展开：
+两个人会不会愿意反复回到这个安静、私密的小空间，看看最近的片刻和重要日期，
+同时又不会把它当成日记本或任务清单？
 
-## Guiding Principles
+## 指导原则
 
-- Keep the MVP narrow enough to demo and narrow enough to evaluate.
-- Do not confuse placeholder breadth with product progress.
-- Define privacy boundaries before shared backend work begins.
-- Make every phase reviewable through concrete demo checklists.
-- Add extra modules only after the core loop shows real repeat use.
+- `MVP` 必须足够聚焦，既能演示，也能真实评估。
+- 产品气质应当是低压力、轻松、自然，而不是连续打卡或写日记。
+- 首批真实用户默认使用简体中文，同时在设置里提供英文选项。
+- 主题模式属于正式产品能力，不是最后阶段的润色。
+- 不要把“页面很多”误认为“产品有进展”。
+- 在开始共享后端开发前，先把隐私边界定义清楚。
+- 每个阶段都必须有具体、可检查的验收条件。
+- 只有当核心闭环已经证明有价值后，才继续扩展其他模块。
 
-## Phase 0: Project Foundation
+## 阶段 0：项目基础
 
-Goal: prepare the repository and local development environment.
+目标：准备仓库和本地开发环境。
 
-Scope:
+范围：
 
-- Create the Flutter repository and Android-first app shell.
-- Add license, roadmap, and setup documentation.
-- Verify local Flutter tooling.
+- 创建 Flutter 仓库和 Android 优先的 App 基础壳。
+- 补齐许可证、路线图和安装说明文档。
+- 验证本地 Flutter 工具链。
 
-Done when:
+完成标准：
 
-- The repository builds on a local Android environment.
-- Core project docs exist and are readable.
-- `flutter doctor` can run successfully on contributor machines.
+- 仓库能在本地 Android 环境中构建。
+- 核心项目文档存在且可读。
+- 贡献者机器上可以成功运行 `flutter doctor`。
 
-## Phase 1: Focused App Skeleton
+## 阶段 1：聚焦型应用骨架
 
-Goal: establish the information architecture for the MVP only.
+目标：只为 `MVP` 建立信息架构。
 
-Scope:
+范围：
 
-- Define app theme, route structure, and reusable UI tokens.
-- Keep primary navigation limited to `Home`, `Timeline`, and `Dates`.
-- Move backlog ideas and relationship settings to secondary pages.
-- Keep all data local and static in this phase.
+- 定义应用主题、路由结构和可复用 UI token。
+- 将一级导航限制为 `Home`、`Moments`、`Dates`。
+- 将 backlog 想法移到二级页面。
+- 在一级导航之外引入真正的 `Settings` 页面。
+- 确保所有产品文案和设计决策都符合“低压力、非日记式”的产品气质。
+- 这一阶段的数据全部保持本地静态。
 
-Done when:
+完成标准：
 
-- The app opens on a real Android device.
-- Primary navigation contains exactly three MVP destinations.
-- Secondary pages are reachable without competing with the MVP tabs.
-- The repo structure is clear enough to add feature code without reorganization.
+- App 能在真实 Android 设备上打开。
+- 一级导航严格只有 3 个 `MVP` 入口。
+- `Settings` 可以访问，但不会和 `MVP` 主路径竞争。
+- 仓库结构已经清晰到可以继续加功能而不用重新拆目录。
 
-## Phase 2: Local MVP Prototype
+## 阶段 2：本地体验原型
 
-Goal: prove the core couple-app loop without backend complexity.
+目标：在不依赖后端的前提下，证明核心情侣使用体验成立。
 
-Scope:
+范围：
 
-- Home shows a couple overview, a clear note CTA, and the next important date.
-- Timeline shows a local daily-note or memory flow with sample entries.
-- Dates shows local anniversaries with countdown value.
-- Empty, placeholder, and backlog messaging clearly distinguish MVP from later ideas.
+- App 默认使用简体中文，并准备英文切换能力。
+- 支持 `system`、`light`、`dark` 三种主题模式。
+- `Home` 展示情侣概览、唯一主动作、最近一条片刻预览和下一个重要日期。
+- `Moments` 展示一个轻量共享片刻流，用于短消息和小片段，而不是日记流。
+- `Dates` 展示本地纪念日和倒计时价值。
+- `Settings` 提供最小个人设置：语言、主题、时区、锁屏预览。
+- 页面中的空状态、占位状态和 backlog 状态要清楚区分。
 
-Done when:
+完成标准：
 
-- A reviewer can open the app and identify the primary action within 10 seconds.
-- The `Home -> Timeline -> Dates` flow can be demoed without explanation.
-- The prototype can be shown without auth, network, or Supabase setup.
-- `flutter test` and `flutter analyze` pass locally.
+- 评审者在 10 秒内就能识别出主动作是什么。
+- `Home -> Moments -> Dates` 的体验路径无需额外解释即可演示。
+- 产品中文文案读起来像真实 App，而不是产品经理说明。
+- 系统、浅色、深色三种主题都表现正常。
+- 原型无需登录、联网或 Supabase 配置即可演示。
+- 本地 `flutter test` 和 `flutter analyze` 通过。
 
-## Phase 3: Shared Data Architecture
+## 阶段 3：共享数据架构
 
-Goal: lock product rules before writing shared backend code.
+目标：在开始写共享后端代码前，先把产品规则锁定。
 
-Scope:
+范围：
 
-- Write `docs/ARCHITECTURE.md` for app structure, information architecture, and privacy boundaries.
-- Write `docs/DATABASE.md` for schema direction, invite flow, RLS, unlink, export, and delete behavior.
-- Confirm how a couple space is created, joined, limited to two members, and dissolved.
-- Confirm notification and preview safety rules.
+- 编写 `docs/ARCHITECTURE.md`，明确应用结构、信息架构、设置行为和隐私边界。
+- 编写 `docs/DATABASE.md`，明确数据结构方向、邀请流程、RLS、解绑、导出、删除和个人偏好。
+- 确认 `couple space` 如何创建、加入、限制为两人，以及如何结束。
+- 确认通知与锁屏预览的安全规则。
+- 确认片刻内容的所有权规则：每个人只能编辑或删除自己写的内容。
+- 确认首版“今天”按设备本地时区计算。
 
-Done when:
+完成标准：
 
-- Invite flow is documented end to end.
-- Data ownership and unlink/delete rules are documented end to end.
-- Planned tables and access boundaries are documented before implementation starts.
-- The team can review backend work against written privacy rules instead of assumptions.
+- 邀请流程从头到尾都有文档。
+- 数据归属、解绑和删除规则从头到尾都有文档。
+- 设置项的归属和偏好行为从头到尾都有文档。
+- 计划中的表结构和访问边界在实现前就已写清楚。
+- 团队评审后端开发时，依据的是书面规则，而不是口头假设。
 
-## Phase 4: Shared Alpha
+## 阶段 4：共享 Alpha
 
-Goal: connect the app to real private shared data.
+目标：把 App 接上真实的私密共享数据。
 
-Scope:
+范围：
 
-- Create the Supabase project and local configuration flow.
-- Add authentication and couple-space invitation flow.
-- Implement shared storage for timeline entries and anniversaries.
-- Enforce Row Level Security and couple-space scoping on every shared table.
-- Add loading, empty, error, and retry states for shared reads and writes.
+- 创建 Supabase 项目和本地配置流程。
+- 添加认证和 `couple space` 邀请流程。
+- 实现 `moments` 和 `anniversaries` 的共享存储。
+- 实现语言、主题、时区、通知预览等个人设置的持久化。
+- 对所有共享表强制执行 `RLS` 和 `couple space` 数据隔离。
+- 为共享读写补上加载、空态、错误和重试状态。
 
-Done when:
+完成标准：
 
-- Two accounts can join the same couple space through the intended invite flow.
-- Each account can only read and write data for its own couple space.
-- Timeline entries and anniversaries sync correctly across two test devices.
-- Shared actions fail safely when the network is unavailable or authorization is missing.
+- 两个账号可以通过预期的邀请流程进入同一个 `couple space`。
+- 每个账号只能读取和写入自己的 `couple space` 数据。
+- 每个账号只能编辑或删除自己写的片刻。
+- 片刻和纪念日能在两台测试设备间正确同步。
+- 断网或无权限时，共享操作会安全失败，不会默默出错。
 
-## Phase 5: Reliability And Private Beta
+## 阶段 5：稳定性与私测 Beta
 
-Goal: validate repeat usage on real devices before expanding the product.
+目标：在扩展产品前，先验证真实设备上的重复使用价值。
 
-Scope:
+范围：
 
-- Add tests for countdown logic, invite flow rules, and key data ownership rules.
-- Improve offline behavior, retry messaging, and conflict handling for shared data.
-- Prepare Android beta distribution.
-- Run a small private beta with feedback collection.
+- 为倒计时逻辑、邀请流程规则和关键数据归属规则补测试。
+- 改善离线行为、重试提示和共享数据的冲突处理。
+- 复核中文优先文案和英文兜底文案是否自然。
+- 复核系统、浅色、深色三种主题体验是否稳定。
+- 准备 Android 私测分发。
+- 开始小范围私测并收集反馈。
 
-Beta checklist:
+Beta 检查清单：
 
-- Define target devices and minimum Android versions for testing.
-- Distribute builds to at least 3 to 5 real couples or trusted testers.
-- Review feedback on frequency of note usage, clarity of dates, and privacy concerns weekly.
-- Record success signals such as weekly retention, completed note entries, and reported trust issues.
+- 明确测试设备范围和最低 Android 版本。
+- 至少分发给 3 到 5 对真实情侣或可信测试者。
+- 每周复盘情绪感受、`Moments` 清晰度、日期价值、语言舒适度和隐私顾虑。
+- 记录周留存、自发创建片刻的频率、语言/主题使用情况，以及信任问题反馈。
 
-Done when:
+完成标准：
 
-- Critical pure logic has automated tests.
-- Common shared-data failure cases are visible and recoverable.
-- Beta feedback produces a clear keep / change / remove decision on the MVP loop.
-- The team can name the next highest-value module with evidence, not preference.
+- 关键纯逻辑已经有自动化测试。
+- 常见共享数据失败场景可见且可恢复。
+- 私测反馈能产出明确的 keep / change / remove 决策。
+- 团队能依据证据而不是个人偏好，指出下一个最值得做的模块。
 
-## Backlog Modules
+## Backlog 模块
 
-These stay out of active development until the beta validates the core loop:
+在核心闭环经过验证前，以下内容不进入活跃开发：
 
-- Gift ideas / wishlist
-- Shared photo memories
-- Reminder notifications
-- Travel plans
-- Home menu
-- Monthly memory summary
-- Conflict cooldown page
-- Personal preference notes
+- 礼物想法 / 愿望清单
+- 共享照片回忆
+- 提醒与通知
+- 旅行计划
+- 家庭菜单
+- 月度回忆总结
+- 冲突冷静页
+- 个人偏好笔记
 
-## Not In Scope For The First Version
+## 首版明确不做
 
-- Public social features
-- Multi-couple support
-- Commercial payments
-- Public user profiles
-- Feed-style recommendation systems
-- iOS distribution
+- 公开社交功能
+- 多情侣空间支持
+- 商业支付
+- 公开个人主页
+- Feed 式推荐系统
+- iOS 分发
 
-## Working Documents
+## 相关工作文档
 
-- [docs/SETUP.md](SETUP.md): local development setup
-- [docs/ARCHITECTURE.md](ARCHITECTURE.md): product boundaries and app structure
-- [docs/DATABASE.md](DATABASE.md): planned shared schema and access rules
+- [docs/SETUP.md](SETUP.md)：本地开发环境说明
+- [docs/ARCHITECTURE.md](ARCHITECTURE.md)：产品边界与应用结构
+- [docs/DATABASE.md](DATABASE.md)：共享数据结构与访问规则
+- [docs/WORKFLOW.md](WORKFLOW.md)：本仓库的开发工作流

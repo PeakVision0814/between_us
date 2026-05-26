@@ -1,90 +1,155 @@
-# Architecture
+# 架构说明
 
-This document defines the product and app structure that must stay stable
-before shared backend work begins.
+这份文档定义了在开始共享后端开发前，必须保持稳定的产品结构和应用结构。
 
-## Product Boundary
+## 产品边界
 
-The MVP answers one question: will two people return regularly for a private
-shared note and a short list of important dates?
+`MVP` 要回答的核心问题是：
+两个人会不会愿意回到这个安静、私密的小空间里，看看最近的片刻和重要日期，
+同时又不会把它当成日记本或任务？
 
-Included in the MVP:
+`MVP` 包含：
 
-- Home summary
-- Daily note or memory flow
-- Timeline review
-- Anniversary and countdown view
+- 首页总览
+- `Moments（片刻）` 流
+- 纪念日与倒计时视图
+- 最小个人设置
 
-Explicitly excluded until later:
+暂不纳入：
 
-- Wishlist and gift ideas
-- Home menu
-- Shared photo albums
-- Travel planning
-- Conflict tools
-- Broad profile customization
+- 愿望清单 / 礼物想法
+- 家庭菜单
+- 共享照片相册
+- 旅行规划
+- 冲突工具
+- 大范围个性化资料定制
 
-## Information Architecture
+## 信息架构
 
-Primary navigation:
+一级导航：
 
-- `Home`: entry point, today-oriented summary, core CTA
-- `Timeline`: lightweight shared note and memory stream
-- `Dates`: anniversaries and countdowns
+- `Home`：主状态页，带唯一主动作
+- `Moments`：轻量共享片刻流，用于短消息和小片段
+- `Dates`：纪念日与倒计时
 
-Secondary pages:
+二级页面：
 
-- `Ideas backlog`: holds non-MVP modules without promoting them to first-class navigation
-- `Space settings`: holds static relationship settings, privacy notes, and later account controls
+- `Ideas backlog`：存放不进入 `MVP` 主路径的后续模块
+- `Settings`：存放个人偏好与部分隐私控制
+- `Invite status`：在真实邀请流程上线前，可作为轻量占位页
 
-Rule:
+规则：
 
-- A screen may live in primary navigation only if it contributes directly to the MVP loop.
+- 只有直接服务于 `MVP` 核心闭环的页面，才能进入一级导航。
+- 主动作必须保持唯一且低压力，不能让用户有“要完成任务”的感觉。
 
-## App Layers
+## 应用层结构
 
-- `lib/app/`: app shell, theme, and top-level routing
-- `lib/features/home/`: today summary and CTA
-- `lib/features/timeline/`: daily note and memory review
-- `lib/features/anniversaries/`: dates and countdown presentation
-- `lib/features/profile/`: relationship settings and privacy policies
-- `lib/features/wishlist/`: backlog ideas kept out of the MVP path
-- `lib/shared/widgets/`: reusable display components
+- `lib/app/`：应用壳、主题、顶层路由
+- `lib/features/home/`：首页主状态页与主动作
+- `lib/features/timeline/`：当前代码路径，未来将对应 `Moments` 产品面
+- `lib/features/anniversaries/`：日期与倒计时展示
+- `lib/features/profile/`：当前代码路径，未来将对应 `Settings` 产品面
+- `lib/features/wishlist/`：保留给 backlog 的想法页面
+- `lib/shared/widgets/`：可复用的通用组件
 
-## Couple Space Lifecycle
+## 体验原则
 
-The shared data model is based on exactly one private couple space with exactly
-two active members.
+- 整个 App 应该给人安静、亲密、可选使用的感觉。
+- App 不应暗示用户“每天都必须发内容”。
+- App 不应出现连续打卡、漏了一天会内疚、剩余额度之类的表达。
+- 产品文案应该像真实消费级应用，而不是产品经理给团队的解释。
+- 首版默认语言是简体中文。
+- 英文作为设置中的可选语言存在。
+- 主题行为必须支持 `system`、`light`、`dark`。
 
-Lifecycle rules:
+## Couple Space 生命周期
 
-1. One signed-in user creates the couple space.
-2. That user generates an invite for the second user.
-3. The second user joins the existing couple space through that invite.
-4. Once two active members exist, no further members can join.
-5. Either member can trigger an unlink request, but destructive deletion should
-   require explicit confirmation.
+共享数据模型基于一个私密的 `couple space`，其中只允许存在 2 个活跃成员。
 
-## Privacy Rules
+生命周期规则：
 
-- Shared content is private by default and never public.
-- Lock-screen notifications must stay generic until users opt into previews.
-- Shared data access must always be scoped to the active couple space.
-- Export should be available before destructive deletion.
-- Unlinking a relationship should stop future shared access immediately, even if
-  data retention is deferred by policy.
+1. 一个已登录用户创建 `couple space`。
+2. 该用户生成邀请给另一位用户。
+3. 第二位用户通过邀请加入已有的 `couple space`。
+4. 一旦存在 2 个活跃成员，就不能再加入更多成员。
+5. 任一成员都可以发起解绑请求，但真正的删除必须需要明确确认。
 
-## Reliability Expectations
+## 首页要求
 
-These expectations begin with the first shared alpha, not as late polish:
+`Home` 是整个产品里最重要的页面，它必须是状态页，而不是欢迎页，也不是产品说明页。
 
-- Shared reads and writes need visible loading, empty, and error states.
-- Failed sync should preserve local intent and explain next steps.
-- Conflict-prone fields should prefer simple models such as append-only notes or
-  last-write metadata with audit timestamps.
+`MVP` 首页应包含：
 
-## Non-Goals
+- 情侣概览
+- 一个主动作：留一句话
+- 最近一条片刻预览
+- 下一个重要日期
+- 通往 `Moments`、`Dates`、`Settings` 的轻量入口
 
-- Support for more than one couple space per user in the MVP
-- Public discovery, content feeds, or analytics-first product loops
-- Large module expansion before retention and privacy trust are validated
+`MVP` 首页不应包含：
+
+- 解释型卡片，例如“为什么这样做”
+- 重复且彼此竞争的多个 CTA
+- 大面积 backlog 功能宣传块
+- 带有压力感的“今日任务式”文案
+
+## Moments（片刻）要求
+
+`Moments` 是一个轻量共享片刻流，不是日记本。
+
+规则：
+
+- 用户可以在想说的时候留一句话或一个小记录。
+- 产品不要求每日参与。
+- App 可以展示最近的共享片刻，但不应让用户感觉像在刷公开社交 feed。
+- 每条片刻都属于一个明确作者。
+- 用户只能编辑或删除自己写的片刻。
+
+## Dates（日期）要求
+
+`Dates` 仍然保留在一级导航中，因为它能强化共享空间价值，而且不要求重度互动。
+
+`MVP` 支持：
+
+- 一次性日期
+- 每年重复日期
+- 倒计时展示
+
+## Settings（设置）要求
+
+`Settings` 是 `MVP` 的正式组成部分，因为目前的产品方向依赖真实可用的偏好设置，
+而不是一个说明型占位页。
+
+`MVP` 设置页应包含：
+
+- 应用语言：默认 `zh-CN`，可选 `en`
+- 主题模式：`system`、`light`、`dark`
+- 时区展示或选择行为
+- 锁屏预览偏好
+
+首版不跟随系统语言自动切换。
+
+## 隐私规则
+
+- 共享内容默认私密，永不公开。
+- 锁屏通知在用户主动开启预览前，必须保持泛化。
+- 共享数据访问必须始终限定在当前活跃 `couple space` 内。
+- 永久删除前必须提供导出能力。
+- 一旦解绑，未来共享访问必须立刻停止，即使数据是否保留还要看后续策略。
+
+## 稳定性要求
+
+这些要求从共享 Alpha 开始就生效，不能被当成最后的润色项：
+
+- 所有共享读写都要有明确的加载、空态和错误状态。
+- 同步失败时，要保留本地用户意图，并明确告诉用户下一步怎么办。
+- 容易冲突的字段应优先采用简单模型，例如带审计时间戳的 append-only `moments`。
+- 在开始后端开发前，本地原型中的 `Home`、`Moments`、`Dates`、`Settings`
+  都应具备明确的空状态。
+
+## 非目标
+
+- 一个用户支持多个 `couple space`
+- 公开发现、内容 feed、以分析驱动为先的产品循环
+- 在留存与隐私信任未验证前，大规模扩展模块

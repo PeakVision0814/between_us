@@ -4,13 +4,17 @@
 
 Between Us is a private-first mobile app for two people in a relationship.
 The product focus is intentionally narrow: give a couple one calm place to
-leave today's note or memory and keep important dates visible often enough to
-become part of daily life.
+leave a short message or shared moment when they want to, while keeping
+important dates visible without turning the app into a task or diary.
 
 ## Product Focus
 
 - Build a real mobile app, not a web wrapper.
-- Keep the MVP centered on one daily loop: note, memory, and dates.
+- Keep the MVP centered on one low-pressure loop: a short shared moment and
+  visible important dates.
+- Default to Simplified Chinese for the real target users, while keeping
+  English as an optional language setting.
+- Support system, light, and dark themes as first-class product behavior.
 - Validate retention before adding extra modules.
 - Treat privacy, ownership, and deletion rules as product requirements.
 - Defer lower-signal ideas until the shared foundation proves useful.
@@ -29,7 +33,7 @@ become part of daily life.
 The repository currently contains an Android-first Flutter prototype with:
 
 - Material 3 app shell
-- Focused primary navigation for `Home`, `Timeline`, and `Dates`
+- Focused primary navigation intended for `Home`, `Moments`, and `Dates`
 - Local-only sample content for the first prototype
 - Secondary placeholder pages for backlog ideas and relationship settings
 - Supabase dependency prepared, but no auth or sync in the local prototype
@@ -48,10 +52,13 @@ flutter run
 The first prototype is complete only when it can demonstrate this local product
 loop without backend complexity:
 
-- Home shows the couple overview, today's note area, and the next important
-  date.
-- Timeline shows the lightweight daily record flow the app wants to encourage.
+- Home shows the couple overview, the latest shared moment preview, the next
+  important date, and one clear primary action.
+- Moments shows a lightweight shared stream for short messages and small
+  moments, not a diary.
 - Dates shows core anniversaries with clear countdown value.
+- Settings provides the minimum personal controls needed by the MVP: language,
+  theme, timezone, and notification preview behavior.
 - The app makes it obvious which pages belong to the MVP and which ideas are
   still backlog.
 
@@ -82,6 +89,13 @@ These are explicitly outside the focused MVP until the core loop proves useful:
 - Home menu
 - Conflict cooldown
 - Personal preference notes
+
+## Working Docs
+
+- [docs/ROADMAP.md](docs/ROADMAP.md): phase plan and delivery checkpoints
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): product structure and rules
+- [docs/DATABASE.md](docs/DATABASE.md): shared schema and access boundaries
+- [docs/WORKFLOW.md](docs/WORKFLOW.md): development workflow for this repo
 
 ## License
 
