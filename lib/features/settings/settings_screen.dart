@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
+import '../../shared/widgets/debug_refresh_diagnostics_card.dart';
 import '../../shared/widgets/section_header.dart';
 
 class UsScreen extends StatelessWidget {
@@ -176,6 +178,11 @@ class UsScreen extends StatelessWidget {
           strings.localPrototypeHint,
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (!kReleaseMode) ...[
+          const SizedBox(height: 18),
+          const SectionHeader(title: 'Debug'),
+          const DebugRefreshDiagnosticsCard(),
+        ],
       ],
     );
   }
