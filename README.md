@@ -3,15 +3,17 @@
 [Chinese (Simplified)](README.zh-CN.md)
 
 Between Us is a private-first mobile app for two people in a relationship.
-The product focus is intentionally narrow: give a couple one calm place to
-leave a short message or shared moment when they want to, while keeping
-important dates visible without turning the app into a task or diary.
+The current product direction is a lightweight shared life space: one place for
+the couple to check home status, manage a calendar, keep plans and casual
+notes, and maintain shared "we" settings.
 
 ## Product Focus
 
 - Build a real mobile app, not a web wrapper.
-- Keep the MVP centered on one low-pressure loop: a short shared moment and
-  visible important dates.
+- Keep the MVP centered on four core surfaces: `Home`, `Calendar`,
+  `Plans & Notes`, and `We`.
+- Make the product feel like a calm shared life space instead of a heavy task
+  tool or a pressure-driven diary.
 - Default to Simplified Chinese for the real target users, while keeping
   English as an optional language setting.
 - Support system, light, and dark themes as first-class product behavior.
@@ -33,9 +35,10 @@ important dates visible without turning the app into a task or diary.
 The repository currently contains an Android-first Flutter prototype with:
 
 - Material 3 app shell
-- Focused primary navigation intended for `Home`, `Moments`, and `Dates`
+- A planned primary navigation model of `Home`, `Calendar`, `Plans & Notes`,
+  and `We`
 - Local-only sample content for the first prototype
-- Secondary placeholder pages for backlog ideas and relationship settings
+- A codebase that is still migrating from the previous information architecture
 - Supabase dependency prepared, but no auth or sync in the local prototype
 - Widget tests for navigation and core entry points
 
@@ -52,13 +55,11 @@ flutter run
 The first prototype is complete only when it can demonstrate this local product
 loop without backend complexity:
 
-- Home shows the couple overview, the latest shared moment preview, the next
-  important date, and one clear primary action.
-- Moments shows a lightweight shared stream for short messages and small
-  moments, not a diary.
-- Dates shows core anniversaries with clear countdown value.
-- Settings provides the minimum personal controls needed by the MVP: language,
-  theme, timezone, and notification preview behavior.
+- Home shows the couple overview, the latest activity preview, the next
+  important date, and quick entry points.
+- Calendar shows dated content such as anniversaries, date plans, and reminders.
+- Plans & Notes shows undated plans and casual shared notes.
+- We provides personal preferences and shared couple-space settings.
 - The app makes it obvious which pages belong to the MVP and which ideas are
   still backlog.
 

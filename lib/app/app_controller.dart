@@ -14,11 +14,11 @@ enum AppThemePreference { system, light, dark }
 class AppController extends ChangeNotifier {
   AppLanguage _language = AppLanguage.zhCn;
   AppThemePreference _themePreference = AppThemePreference.system;
-  bool _lockScreenPreviewEnabled = false;
+  bool _notificationPreviewEnabled = false;
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
-  bool get lockScreenPreviewEnabled => _lockScreenPreviewEnabled;
+  bool get notificationPreviewEnabled => _notificationPreviewEnabled;
 
   Locale get locale => _language.locale;
 
@@ -44,11 +44,11 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setLockScreenPreviewEnabled(bool enabled) {
-    if (_lockScreenPreviewEnabled == enabled) {
+  void setNotificationPreviewEnabled(bool enabled) {
+    if (_notificationPreviewEnabled == enabled) {
       return;
     }
-    _lockScreenPreviewEnabled = enabled;
+    _notificationPreviewEnabled = enabled;
     notifyListeners();
   }
 }

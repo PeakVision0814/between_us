@@ -15,166 +15,296 @@ class AppStrings {
   }
 
   String get appName => 'Between Us';
+
   String get homeTab => isChinese ? '首页' : 'Home';
-  String get momentsTab => isChinese ? '片刻' : 'Moments';
-  String get datesTab => isChinese ? '日期' : 'Dates';
-  String get settingsTitle => isChinese ? '设置' : 'Settings';
-  String get settingsTooltip => settingsTitle;
-  String get homeGreeting =>
-      isChinese ? _greetingInChinese() : _greetingInEnglish();
+  String get calendarTab => isChinese ? '日历' : 'Calendar';
+  String get plansNotesTab => isChinese ? '计划笔记' : 'Plans & Notes';
+  String get usTab => isChinese ? '我们' : 'Us';
+
+  String get homeTitle =>
+      isChinese ? '今天先看看这些' : 'A few things worth checking today';
   String get homeSubtitle => isChinese
-      ? '想说的时候，留一句就好。'
-      : 'Leave a little note whenever it feels right.';
-  String get leaveOneLineLabel => isChinese ? '留一句话' : 'Leave a note';
-  String get recentMomentSection => isChinese ? '刚刚的片刻' : 'A recent moment';
+      ? '重要日子、最近动态和手边计划，都先放回同一个地方。'
+      : 'Keep your next date, latest update, and nearby plans in one shared place.';
+
+  String get overviewSection => isChinese ? '我们概览' : 'Our overview';
   String get nextDateSection => isChinese ? '下一个重要日期' : 'Next important date';
-  String get quickLinksSection => isChinese ? '顺手看看' : 'Quick look';
-  String get openMomentsLabel => isChinese ? '去片刻' : 'Open Moments';
-  String get openDatesLabel => isChinese ? '看日期' : 'View Dates';
-  String get openSettingsLabel => isChinese ? '设置' : 'Settings';
-  String get coupleHeadline => isChinese ? '小满 和 阿澈' : 'Xiaoman & Ache';
-  String get coupleStatus => isChinese ? '在一起第 214 天' : 'Day 214 together';
-  String get coupleNote => isChinese
-      ? '今晚都在，晚点一起吃面。'
-      : 'Both around tonight. Maybe noodles a little later.';
-  String get actionCardTitle =>
-      isChinese ? '现在想说点什么？' : 'Anything you want to say?';
-  String get actionCardHint => isChinese
-      ? '不用写长句，留一句就已经很好。'
-      : 'It does not need to be long. One line is already enough.';
-  String get actionCardExample => isChinese
-      ? '比如：到家记得跟我说一声，我给你留一碗汤。'
-      : 'For example: text me when you get home. I will save you a bowl of soup.';
-  String get momentsPageTitle => momentsTab;
-  String get momentsIntro => isChinese
-      ? '想到的时候留一句，翻回来看看也轻轻松松。'
-      : 'Drop a small note when it comes to mind, then come back to it later.';
-  String get momentsListTitle => isChinese ? '最近的片刻' : 'Recent moments';
-  String get datesPageTitle => datesTab;
-  String get datesHeroTitle => isChinese ? '最近要记得的是' : 'Coming up next';
-  String get savedDatesTitle => isChinese ? '已经记下的日期' : 'Saved dates';
-  String get settingsLanguageTitle => isChinese ? '语言' : 'Language';
-  String get settingsThemeTitle => isChinese ? '主题模式' : 'Theme mode';
-  String get settingsTimeZoneTitle => isChinese ? '设备时区' : 'Device time zone';
-  String get settingsTimeZoneHint => isChinese
-      ? '首页的今天、片刻时间和倒计时都会按这里显示。'
-      : 'Home, moment times, and countdowns follow this device time zone.';
-  String get settingsLockPreviewTitle =>
-      isChinese ? '锁屏预览' : 'Lock-screen previews';
-  String get settingsLockPreviewSubtitle => isChinese
-      ? '在通知里直接显示片刻内容。'
-      : 'Show moment text directly inside notifications.';
-  String get settingsLocalHint => isChinese
-      ? '这些设置现在只在本地预览里生效。'
-      : 'These settings only live inside this local prototype for now.';
+  String get recentUpdateSection =>
+      isChinese ? '最近动态预览' : 'Latest shared update';
+  String get recentPlanSection =>
+      isChinese ? '最近一个计划提醒' : 'One plan worth moving';
+  String get quickLinksSection => isChinese ? '快捷入口' : 'Quick actions';
+
+  String get writeNoteLabel => isChinese ? '写随记' : 'Write a note';
+  String get createPlanLabel => isChinese ? '新建计划' : 'New plan';
+  String get goCalendarLabel => isChinese ? '去日历' : 'Open calendar';
+  String get goUsLabel => isChinese ? '去我们' : 'Open Us';
+
+  String get coupleNames => isChinese ? '小满 和 阿澈' : 'Xiaoman & Ache';
+  String get relationshipStatus => isChinese ? '一起第 214 天' : 'Day 214 together';
+  String get relationshipMood => isChinese
+      ? '这周都不算太忙，周五晚上留给一起出门。'
+      : 'This week feels calm enough. Friday night is still saved for the two of you.';
+  String get spaceStatusLabel => isChinese ? '空间状态' : 'Space status';
+  String get spaceStatusValue => isChinese ? '稳定同步中' : 'Steady and shared';
+  String get overviewChipOne => isChinese ? '今晚都在线' : 'Both around tonight';
+  String get overviewChipTwo => isChinese ? '周五留给约会' : 'Friday kept for a date';
+
+  String get noteComposerTitle =>
+      isChinese ? '想留一句话时，就写在这里' : 'Leave a note whenever it feels right';
+  String get noteComposerHint =>
+      isChinese ? '不用写很多，想到什么就留一点。' : 'Keep it light. A few words are enough.';
+  String get noteComposerExample => isChinese
+      ? '比如：回来的路上别忘了买点水果，我想留一半给明天早上。'
+      : 'For example: grab some fruit on the way back. I want to save half for tomorrow morning.';
+
+  String get calendarTitle => calendarTab;
+  String get calendarLeadTitle => isChinese ? '本月安排' : 'This month at a glance';
+  String get calendarLeadSubtitle => isChinese
+      ? '纪念日、约会和提醒，都放在这里。'
+      : 'Anniversaries, scheduled plans, and reminders stay here.';
+  String get selectedDateSection =>
+      isChinese ? '选中日期详情' : 'Selected date details';
+  String get upcomingEventsSection => isChinese ? '近期事项' : 'Coming up soon';
+  String get createCalendarEntrySection =>
+      isChinese ? '新建日历项' : 'Add to calendar';
+  String get selectedDateLabel =>
+      isChinese ? '6 月 6 日 · 周六' : 'June 6 · Saturday';
+  String get createAnniversaryLabel => isChinese ? '纪念日' : 'Anniversary';
+  String get createDatePlanLabel => isChinese ? '约会' : 'Date plan';
+  String get createReminderLabel => isChinese ? '提醒' : 'Reminder';
+  String get periodPlaceholderLabel => isChinese
+      ? '经期记录以后会放在日历里，但会单独区分，也不会默认共享。'
+      : 'Cycle records will appear in calendar later, clearly separated and never shared by default.';
+
+  String get plansNotesTitle => plansNotesTab;
+  String get plansNotesLeadTitle =>
+      isChinese ? '没定日期的，先放这里' : 'Keep undecided things here first';
+  String get plansNotesLeadSubtitle => isChinese
+      ? '有日期的去日历，没日期的计划和随记留在这里。'
+      : 'Dated items belong in calendar. Undated plans and notes stay here.';
+  String get plansSectionTitle => isChinese ? '计划' : 'Plans';
+  String get plansSectionSubtitle => isChinese
+      ? '还没定日期的想法、待讨论事项和约会意向。'
+      : 'Undated ideas, date intentions, and things to discuss.';
+  String get notesSectionTitle => isChinese ? '随记' : 'Notes';
+  String get notesSectionSubtitle => isChinese
+      ? '随手记下的小事、心情和共享日常。'
+      : 'Light shared notes, little thoughts, and daily moments.';
+  String get moveToCalendarLabel =>
+      isChinese ? '以后放进日历' : 'Later move to calendar';
+  String get addPlanLabel => isChinese ? '加一个计划' : 'Add a plan';
+  String get addNoteLabel => isChinese ? '写一条随记' : 'Write a note';
+
+  String get usTitle => usTab;
+  String get usLeadTitle => isChinese ? '我们的空间' : 'Our shared space';
+  String get usLeadSubtitle => isChinese
+      ? '把自己的偏好和两个人一起用的规则，都放在同一个地方。'
+      : 'Keep your personal preferences and shared space rules together.';
+  String get preferencesSection => isChinese ? '我的偏好' : 'My preferences';
+  String get spaceSection => isChinese ? '我们的空间' : 'Our space';
+  String get privacySection => isChinese ? '隐私与共享' : 'Privacy & sharing';
+  String get languageTitle => isChinese ? '语言' : 'Language';
+  String get themeTitle => isChinese ? '主题模式' : 'Theme mode';
+  String get timeZoneTitle => isChinese ? '时区' : 'Time zone';
+  String get timeZoneHint => isChinese
+      ? '首页、日历和随记时间都会按这里展示。'
+      : 'Home, calendar, and note times follow this device time zone.';
+  String get notificationPreviewTitle =>
+      isChinese ? '通知预览' : 'Notification previews';
+  String get notificationPreviewSubtitle => isChinese
+      ? '在通知里直接显示随记和提醒内容。'
+      : 'Show note and reminder text directly inside notifications.';
+  String get spaceNameTitle => isChinese ? '空间名称' : 'Space name';
+  String get inviteStatusTitle => isChinese ? '邀请状态' : 'Invite status';
+  String get sharedRulesTitle => isChinese ? '共享规则' : 'Shared rules';
+  String get relationshipDateTitle => isChinese ? '关系起点' : 'Relationship date';
+  String get cyclePrivacyTitle => isChinese ? '经期记录共享规则' : 'Cycle sharing rule';
+  String get exportUnlinkTitle => isChinese ? '导出与解绑' : 'Export and unlink';
+  String get localPrototypeHint => isChinese
+      ? '这些设置现在只在本地原型里生效，真实同步会在共享阶段接入。'
+      : 'These settings only live in the local prototype for now. Real sync comes in the shared stage.';
+
   String get chineseLabel => '简体中文';
   String get englishLabel => 'English';
   String get themeSystemLabel => isChinese ? '跟随系统' : 'System';
   String get themeLightLabel => isChinese ? '浅色' : 'Light';
   String get themeDarkLabel => isChinese ? '深色' : 'Dark';
 
-  List<MomentCopy> get moments => isChinese
+  List<CalendarItemCopy> get calendarItems => isChinese
       ? const [
-          MomentCopy(author: '阿澈', timeLabel: '刚刚', text: '到家啦，楼下买到了你喜欢的豆花。'),
-          MomentCopy(
+          CalendarItemCopy(
+            title: '关系纪念日',
+            subtitle: '晚饭想去河边那家小店',
+            dateLabel: '6 月 6 日',
+            countdownLabel: '还有 12 天',
+            typeLabel: '纪念日',
+          ),
+          CalendarItemCopy(
+            title: '周五约会夜',
+            subtitle: '电影还没定，先把时间留出来',
+            dateLabel: '5 月 29 日 19:30',
+            countdownLabel: '3 天后',
+            typeLabel: '约会',
+          ),
+          CalendarItemCopy(
+            title: '给阳台植物浇水',
+            subtitle: '顺手把新的花盆也挑一下',
+            dateLabel: '5 月 27 日 20:00',
+            countdownLabel: '明天',
+            typeLabel: '提醒',
+          ),
+        ]
+      : const [
+          CalendarItemCopy(
+            title: 'Relationship anniversary',
+            subtitle: 'Dinner could be at the little riverside place',
+            dateLabel: 'June 6',
+            countdownLabel: '12 days left',
+            typeLabel: 'Anniversary',
+          ),
+          CalendarItemCopy(
+            title: 'Friday date night',
+            subtitle: 'Movie not chosen yet, but the time is already saved',
+            dateLabel: 'May 29, 7:30 PM',
+            countdownLabel: 'In 3 days',
+            typeLabel: 'Date',
+          ),
+          CalendarItemCopy(
+            title: 'Water the balcony plants',
+            subtitle: 'Also pick a new pot while you are at it',
+            dateLabel: 'May 27, 8:00 PM',
+            countdownLabel: 'Tomorrow',
+            typeLabel: 'Reminder',
+          ),
+        ];
+
+  List<PlanItemCopy> get plans => isChinese
+      ? const [
+          PlanItemCopy(
+            title: '把六月短途出门定下来',
+            body: '先决定是去海边还是去山里，别拖到最后一周。',
+            statusLabel: '待讨论',
+            helperLabel: '还没定日期',
+          ),
+          PlanItemCopy(
+            title: '给客厅换一盏更暖的落地灯',
+            body: '想找一盏晚上看书时更舒服的灯。',
+            statusLabel: '想法中',
+            helperLabel: '生活计划',
+          ),
+          PlanItemCopy(
+            title: '把七月那顿生日饭店先挑出来',
+            body: '定下来以后就可以放进日历。',
+            statusLabel: '准备安排',
+            helperLabel: '可转入日历',
+          ),
+        ]
+      : const [
+          PlanItemCopy(
+            title: 'Settle the short June getaway',
+            body:
+                'Pick sea or mountains before the last week sneaks up on you.',
+            statusLabel: 'To discuss',
+            helperLabel: 'No date yet',
+          ),
+          PlanItemCopy(
+            title: 'Find a warmer floor lamp for the living room',
+            body: 'Something that feels better when reading at night.',
+            statusLabel: 'Idea',
+            helperLabel: 'Home plan',
+          ),
+          PlanItemCopy(
+            title: 'Pick the July birthday dinner place early',
+            body: 'Once it is decided, it can move into calendar.',
+            statusLabel: 'Ready to schedule',
+            helperLabel: 'Can move to calendar',
+          ),
+        ];
+
+  List<NoteItemCopy> get notes => isChinese
+      ? const [
+          NoteItemCopy(author: '阿澈', timeLabel: '刚刚', text: '到家啦，楼下买到了你喜欢的豆花。'),
+          NoteItemCopy(
             author: '小满',
             timeLabel: '昨晚 21:18',
             text: '今天风有点大，回来的时候记得把外套拉好。',
           ),
-          MomentCopy(
+          NoteItemCopy(
             author: '阿澈',
             timeLabel: '周日 17:40',
             text: '下次还想跟你去那家小店，汤底真的很暖。',
           ),
         ]
       : const [
-          MomentCopy(
+          NoteItemCopy(
             author: 'Ache',
             timeLabel: 'Just now',
             text:
                 'I am home. The tofu pudding place downstairs still had your favorite one.',
           ),
-          MomentCopy(
+          NoteItemCopy(
             author: 'Xiaoman',
             timeLabel: 'Last night 9:18 PM',
             text: 'The wind was strong today. Zip your jacket on the way back.',
           ),
-          MomentCopy(
+          NoteItemCopy(
             author: 'Ache',
             timeLabel: 'Sun 5:40 PM',
             text:
-                'I want to go back to that little place with you. The broth felt so warm.',
+                'I still want to go back to that little place with you. The broth felt so warm.',
           ),
         ];
 
-  List<DateCopy> get dates => isChinese
-      ? const [
-          DateCopy(
-            title: '关系纪念日',
-            dateLabel: '6 月 6 日',
-            countdownLabel: '还有 12 天',
-            subtitle: '每年都想认真记得的那一天',
-          ),
-          DateCopy(
-            title: '第一次一起看海',
-            dateLabel: '6 月 25 日',
-            countdownLabel: '还有 31 天',
-            subtitle: '这次想早点出发，给日落留时间',
-          ),
-          DateCopy(
-            title: '阿澈生日',
-            dateLabel: '8 月 8 日',
-            countdownLabel: '还有 75 天',
-            subtitle: '先把那家蛋糕店记着',
-          ),
-        ]
-      : const [
-          DateCopy(
-            title: 'Relationship anniversary',
-            dateLabel: 'June 6',
-            countdownLabel: '12 days left',
-            subtitle: 'The day we always want to keep in mind',
-          ),
-          DateCopy(
-            title: 'First trip to the sea',
-            dateLabel: 'June 25',
-            countdownLabel: '31 days left',
-            subtitle:
-                'Start a little earlier this time so sunset does not rush us',
-          ),
-          DateCopy(
-            title: 'Ache\'s birthday',
-            dateLabel: 'August 8',
-            countdownLabel: '75 days left',
-            subtitle: 'Keep that cake shop in mind',
-          ),
-        ];
-
-  String _greetingInChinese() {
-    final hour = DateTime.now().hour;
-    if (hour < 11) {
-      return '早安';
-    }
-    if (hour < 18) {
-      return '下午好';
-    }
-    return '晚上好';
-  }
-
-  String _greetingInEnglish() {
-    final hour = DateTime.now().hour;
-    if (hour < 11) {
-      return 'Good morning';
-    }
-    if (hour < 18) {
-      return 'Good afternoon';
-    }
-    return 'Good evening';
-  }
+  String get spaceNameValue => isChinese ? '两个人的小屋' : 'Little Room for Two';
+  String get inviteStatusValue => isChinese
+      ? '邀请流程还没接真实账号，先保留结构位。'
+      : 'Invite flow is still local-only for now.';
+  String get sharedRulesValue => isChinese
+      ? '日历和计划默认是共享的，随记默认只有作者自己能改。'
+      : 'Calendar and plans are shared by default. Notes are editable only by their author.';
+  String get relationshipDateValue =>
+      isChinese ? '2025 年 10 月 5 日' : 'October 5, 2025';
+  String get cyclePrivacyValue => isChinese
+      ? '经期记录以后会进入日历，但默认只属于记录的人，明确开启后才共享。'
+      : 'Cycle records will later appear in calendar, but they belong to the recorder unless sharing is explicitly enabled.';
+  String get exportUnlinkValue => isChinese
+      ? '导出和解绑先放在这里预留，真实行为等共享版本接入后再开放。'
+      : 'Export and unlink stay here as placeholders until the shared version is wired.';
 }
 
-class MomentCopy {
-  const MomentCopy({
+class CalendarItemCopy {
+  const CalendarItemCopy({
+    required this.title,
+    required this.subtitle,
+    required this.dateLabel,
+    required this.countdownLabel,
+    required this.typeLabel,
+  });
+
+  final String title;
+  final String subtitle;
+  final String dateLabel;
+  final String countdownLabel;
+  final String typeLabel;
+}
+
+class PlanItemCopy {
+  const PlanItemCopy({
+    required this.title,
+    required this.body,
+    required this.statusLabel,
+    required this.helperLabel,
+  });
+
+  final String title;
+  final String body;
+  final String statusLabel;
+  final String helperLabel;
+}
+
+class NoteItemCopy {
+  const NoteItemCopy({
     required this.author,
     required this.timeLabel,
     required this.text,
@@ -183,18 +313,4 @@ class MomentCopy {
   final String author;
   final String timeLabel;
   final String text;
-}
-
-class DateCopy {
-  const DateCopy({
-    required this.title,
-    required this.dateLabel,
-    required this.countdownLabel,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String dateLabel;
-  final String countdownLabel;
-  final String subtitle;
 }

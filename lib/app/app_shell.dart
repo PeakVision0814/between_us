@@ -20,12 +20,6 @@ class _AppShellState extends State<AppShell> {
     setState(() => _selectedIndex = index);
   }
 
-  void _openSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const SettingsScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -33,40 +27,38 @@ class _AppShellState extends State<AppShell> {
       AppDestination(
         label: strings.homeTab,
         icon: Icons.home_outlined,
-        selectedIcon: Icons.home,
+        selectedIcon: Icons.home_rounded,
         screen: HomeScreen(
-          onLeaveOneLine: () => _selectTab(1),
-          onReviewDates: () => _selectTab(2),
-          onOpenMoments: () => _selectTab(1),
-          onOpenSettings: () => _openSettings(context),
+          onOpenCalendar: () => _selectTab(1),
+          onOpenPlansNotes: () => _selectTab(2),
+          onOpenUs: () => _selectTab(3),
+          onCreatePlan: () => _selectTab(2),
+          onWriteNote: () => _selectTab(2),
         ),
       ),
       AppDestination(
-        label: strings.momentsTab,
-        icon: Icons.auto_awesome_outlined,
-        selectedIcon: Icons.auto_awesome,
-        screen: const TimelineScreen(),
+        label: strings.calendarTab,
+        icon: Icons.calendar_month_outlined,
+        selectedIcon: Icons.calendar_month,
+        screen: const CalendarScreen(),
       ),
       AppDestination(
-        label: strings.datesTab,
-        icon: Icons.event_note_outlined,
-        selectedIcon: Icons.event_note,
-        screen: const AnniversariesScreen(),
+        label: strings.plansNotesTab,
+        icon: Icons.edit_note_outlined,
+        selectedIcon: Icons.edit_note,
+        screen: const PlansNotesScreen(),
+      ),
+      AppDestination(
+        label: strings.usTab,
+        icon: Icons.favorite_border,
+        selectedIcon: Icons.favorite,
+        screen: const UsScreen(),
       ),
     ];
     final current = destinations[_selectedIndex];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(current.label),
-        actions: [
-          IconButton(
-            onPressed: () => _openSettings(context),
-            tooltip: strings.settingsTooltip,
-            icon: const Icon(Icons.settings_outlined),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(current.label)),
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,

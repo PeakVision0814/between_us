@@ -1,1 +1,1 @@
-export '../settings/settings_screen.dart';
+// Legacy path kept during the information architecture migration.

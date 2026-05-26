@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/app_theme.dart';
 import '../../../app/app_strings.dart';
+import '../../../app/app_theme.dart';
 
 class DailyNoteCard extends StatelessWidget {
   const DailyNoteCard({super.key, required this.onPressed});
@@ -14,25 +14,25 @@ class DailyNoteCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.sticky_note_2_outlined, color: AppTheme.blush),
+                const Icon(Icons.edit_note_outlined, color: AppTheme.blush),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        strings.actionCardTitle,
+                        strings.noteComposerTitle,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
-                      Text(strings.actionCardHint),
+                      Text(strings.noteComposerHint),
                     ],
                   ),
                 ),
@@ -46,13 +46,13 @@ class DailyNoteCard extends StatelessWidget {
                 color: AppTheme.blush.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Text(strings.actionCardExample),
+              child: Text(strings.noteComposerExample),
             ),
             const SizedBox(height: 14),
             FilledButton.tonalIcon(
               onPressed: onPressed,
-              icon: const Icon(Icons.edit_note),
-              label: Text(strings.leaveOneLineLabel),
+              icon: const Icon(Icons.mode_edit_outline_outlined),
+              label: Text(strings.writeNoteLabel),
             ),
           ],
         ),
