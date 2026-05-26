@@ -24,13 +24,15 @@ class WishlistScreen extends StatelessWidget {
           icon: Icons.redeem_outlined,
           color: AppTheme.blush,
           title: 'Gift ideas',
-          subtitle: 'Worth revisiting later, but not a reason to dilute the first prototype.',
+          subtitle:
+              'Worth revisiting later, but not a reason to dilute the first prototype.',
         ),
         FeatureTile(
           icon: Icons.photo_library_outlined,
           color: AppTheme.gold,
           title: 'Photo memories',
-          subtitle: 'A likely follow-up module once the shared habit and privacy model are trusted.',
+          subtitle:
+              'A likely follow-up module once the shared habit and privacy model are trusted.',
         ),
       ],
     );

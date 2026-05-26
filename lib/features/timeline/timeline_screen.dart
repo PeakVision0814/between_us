@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/app_theme.dart';
+import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/feature_tile.dart';
 import '../../shared/widgets/section_header.dart';
 
 class TimelineScreen extends StatelessWidget {
@@ -10,50 +9,75 @@ class TimelineScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return AppPage(
       children: [
-        const SectionHeader(title: 'Today\'s thread'),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Prompt: What made today feel close?',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  strings.leaveOneLineLabel,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'The local prototype keeps this lightweight on purpose: one short note or memory should feel easier than posting anywhere else.',
+                const SizedBox(height: 8),
+                Text(strings.momentsIntro),
+                const SizedBox(height: 14),
+                FilledButton.tonalIcon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: Text(strings.leaveOneLineLabel),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        const SectionHeader(title: 'Recent notes'),
-        const FeatureTile(
-          icon: Icons.auto_stories_outlined,
-          color: AppTheme.blush,
-          title: 'Mon, May 25 | Movie night',
-          subtitle: 'Shared dumplings, one bad thriller, and zero regrets.',
-        ),
-        const FeatureTile(
-          icon: Icons.local_cafe_outlined,
-          color: AppTheme.mint,
-          title: 'Sun, May 24 | Sunday walk',
-          subtitle:
-              'Stopped for coffee after the river path and talked about June plans.',
-        ),
-        const FeatureTile(
-          icon: Icons.favorite_outline,
-          color: AppTheme.gold,
-          title: 'Why it matters',
-          subtitle:
-              'This tab is the MVP habit loop: leave one note, revisit one memory, come back tomorrow.',
-        ),
+        const SizedBox(height: 18),
+        SectionHeader(title: strings.momentsListTitle),
+        ...strings.moments.map((moment) => _MomentCard(moment: moment)),
       ],
+    );
+  }
+}
+
+class _MomentCard extends StatelessWidget {
+  const _MomentCard({required this.moment});
+
+  final MomentCopy moment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      moment.author,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  Text(
+                    moment.timeLabel,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(moment.text),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

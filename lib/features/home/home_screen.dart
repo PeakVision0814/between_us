@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/app_theme.dart';
+import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/feature_tile.dart';
 import '../../shared/widgets/section_header.dart';
 import 'widgets/couple_overview_card.dart';
 import 'widgets/daily_note_card.dart';
@@ -10,82 +9,122 @@ import 'widgets/daily_note_card.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
-    required this.onWriteTodayNote,
+    required this.onLeaveOneLine,
     required this.onReviewDates,
-    required this.onOpenBacklog,
+    required this.onOpenMoments,
     required this.onOpenSettings,
   });
 
-  final VoidCallback onWriteTodayNote;
+  final VoidCallback onLeaveOneLine;
   final VoidCallback onReviewDates;
-  final VoidCallback onOpenBacklog;
+  final VoidCallback onOpenMoments;
   final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final moment = strings.moments.first;
+    final nextDate = strings.dates.first;
+
     return AppPage(
       children: [
-        Text('Between Us', style: Theme.of(context).textTheme.headlineSmall),
+        Text(
+          strings.homeGreeting,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
         const SizedBox(height: 8),
         Text(
-          'One quiet place for today\'s note and the dates you both care about.',
+          strings.homeSubtitle,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 20),
-        CoupleOverviewCard(onOpenSettings: onOpenSettings),
+        const CoupleOverviewCard(),
         const SizedBox(height: 14),
-        DailyNoteCard(onPressed: onWriteTodayNote),
+        DailyNoteCard(onPressed: onLeaveOneLine),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onWriteTodayNote,
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Write today\'s note'),
+        SectionHeader(title: strings.recentMomentSection),
+        Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onOpenMoments,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${moment.author} | ${moment.timeLabel}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    moment.text,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onReviewDates,
-                icon: const Icon(Icons.event_outlined),
-                label: const Text('Review dates'),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 18),
-        const SectionHeader(title: 'Why this MVP'),
-        const FeatureTile(
-          icon: Icons.auto_stories_outlined,
-          color: AppTheme.blush,
-          title: 'Daily note first',
-          subtitle:
-              'A short shared message is the clearest reason to open the app again tomorrow.',
+        SectionHeader(title: strings.nextDateSection),
+        Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onReviewDates,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          nextDate.title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(nextDate.subtitle),
+                        const SizedBox(height: 10),
+                        Text(
+                          nextDate.dateLabel,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    nextDate.countdownLabel,
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        const FeatureTile(
-          icon: Icons.event_available,
-          color: AppTheme.gold,
-          title: 'Dates stay visible',
-          subtitle:
-              'Important milestones stay close at hand instead of getting buried in a settings page.',
-        ),
-        const SizedBox(height: 8),
-        const SectionHeader(title: 'Secondary pages'),
+        const SizedBox(height: 18),
+        SectionHeader(title: strings.quickLinksSection),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            OutlinedButton.icon(
-              onPressed: onOpenBacklog,
-              icon: const Icon(Icons.lightbulb_outline),
-              label: const Text('Ideas backlog'),
+            ActionChip(
+              avatar: const Icon(Icons.auto_awesome_outlined, size: 18),
+              label: Text(strings.openMomentsLabel),
+              onPressed: onOpenMoments,
             ),
-            OutlinedButton.icon(
+            ActionChip(
+              avatar: const Icon(Icons.event_note_outlined, size: 18),
+              label: Text(strings.openDatesLabel),
+              onPressed: onReviewDates,
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.settings_outlined, size: 18),
+              label: Text(strings.openSettingsLabel),
               onPressed: onOpenSettings,
-              icon: const Icon(Icons.shield_outlined),
-              label: const Text('Space settings'),
             ),
           ],
         ),

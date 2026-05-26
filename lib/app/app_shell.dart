@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../features/anniversaries/anniversaries_screen.dart';
 import '../features/home/home_screen.dart';
-import '../features/profile/profile_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/timeline/timeline_screen.dart';
-import '../features/wishlist/wishlist_screen.dart';
+import 'app_strings.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -20,64 +20,59 @@ class _AppShellState extends State<AppShell> {
     setState(() => _selectedIndex = index);
   }
 
-  void _openSecondaryPage(
-    BuildContext context, {
-    required String title,
-    required Widget child,
-  }) {
+  void _openSettings(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: Text(title)),
-          body: SafeArea(child: child),
-        ),
-      ),
+      MaterialPageRoute<void>(builder: (context) => const SettingsScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final destinations = <AppDestination>[
       AppDestination(
-        label: 'Home',
-        icon: Icons.favorite_border,
-        selectedIcon: Icons.favorite,
+        label: strings.homeTab,
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home,
         screen: HomeScreen(
-          onWriteTodayNote: () => _selectTab(1),
+          onLeaveOneLine: () => _selectTab(1),
           onReviewDates: () => _selectTab(2),
-          onOpenBacklog: () => _openSecondaryPage(
-            context,
-            title: 'Ideas backlog',
-            child: const WishlistScreen(),
-          ),
-          onOpenSettings: () => _openSecondaryPage(
-            context,
-            title: 'Space settings',
-            child: const ProfileScreen(),
-          ),
+          onOpenMoments: () => _selectTab(1),
+          onOpenSettings: () => _openSettings(context),
         ),
       ),
-      const AppDestination(
-        label: 'Timeline',
-        icon: Icons.timeline_outlined,
-        selectedIcon: Icons.timeline,
-        screen: TimelineScreen(),
+      AppDestination(
+        label: strings.momentsTab,
+        icon: Icons.auto_awesome_outlined,
+        selectedIcon: Icons.auto_awesome,
+        screen: const TimelineScreen(),
       ),
-      const AppDestination(
-        label: 'Dates',
-        icon: Icons.event_outlined,
-        selectedIcon: Icons.event,
-        screen: AnniversariesScreen(),
+      AppDestination(
+        label: strings.datesTab,
+        icon: Icons.event_note_outlined,
+        selectedIcon: Icons.event_note,
+        screen: const AnniversariesScreen(),
       ),
     ];
     final current = destinations[_selectedIndex];
 
     return Scaffold(
-      appBar: AppBar(title: Text(current.label)),
+      appBar: AppBar(
+        title: Text(current.label),
+        actions: [
+          IconButton(
+            onPressed: () => _openSettings(context),
+            tooltip: strings.settingsTooltip,
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
-          children: destinations.map((destination) => destination.screen).toList(),
+          children: destinations
+              .map((destination) => destination.screen)
+              .toList(),
         ),
       ),
       bottomNavigationBar: NavigationBar(
