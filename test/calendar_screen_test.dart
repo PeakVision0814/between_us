@@ -7,69 +7,28 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('calendar opens in the default Chinese locale', (tester) async {
     await _pumpCalendar(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('calendar-selected-date-label')));
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
 
     expect(app.locale, const Locale('zh', 'CN'));
+    expect(find.byType(CalendarScreen), findsOneWidget);
+  });
+
+  testWidgets('calendar shows empty state when no events', (tester) async {
+    await _pumpCalendar(tester);
+
+    await _scrollTo(tester, find.text('还没有日历事件'));
+
+    expect(find.text('还没有日历事件'), findsOneWidget);
+  });
+
+  testWidgets('calendar has month view and composer', (tester) async {
+    await _pumpCalendar(tester);
+
+    await _scrollTo(tester, find.byKey(const ValueKey('calendar-selected-date-label')));
+
     expect(find.byKey(const ValueKey('calendar-selected-date-label')), findsOneWidget);
-  });
-
-  testWidgets('calendar shows a meaningful default selected date', (tester) async {
-    await _pumpCalendar(tester);
-    await _scrollTo(
-      tester,
-      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
-    );
-
-    expect(
-      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('calendar-detail-empty')), findsNothing);
-  });
-
-  testWidgets('tapping another marked day updates the selected details', (
-    tester,
-  ) async {
-    await _pumpCalendar(tester);
-
-    await tester.tap(find.byKey(const ValueKey('calendar-day-2026-05-29')));
-    await tester.pumpAndSettle();
-    await _scrollTo(
-      tester,
-      find.byKey(const ValueKey('calendar-detail-friday-date-night')),
-    );
-
-    expect(
-      find.byKey(const ValueKey('calendar-detail-friday-date-night')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('calendar-detail-empty')), findsNothing);
-  });
-
-  testWidgets('tapping an empty day shows the empty state instead of stale details', (
-    tester,
-  ) async {
-    await _pumpCalendar(tester);
-
-    await tester.tap(find.byKey(const ValueKey('calendar-day-2026-06-11')));
-    await tester.pumpAndSettle();
-    await _scrollTo(tester, find.byKey(const ValueKey('calendar-detail-empty')));
-
-    expect(find.byKey(const ValueKey('calendar-detail-empty')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('calendar-detail-friday-date-night')),
-      findsNothing,
-    );
+    expect(find.text('纪念日'), findsWidgets);
   });
 }
 

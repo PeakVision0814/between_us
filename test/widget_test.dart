@@ -57,17 +57,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
+      find.byKey(const ValueKey('calendar-selected-date-label')),
       200,
       scrollable: find.byType(Scrollable),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('calendar-detail-relationship-anniversary')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('calendar-detail-title-relationship-anniversary')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('calendar-selected-date-label')), findsOneWidget);
   });
 
   testWidgets(

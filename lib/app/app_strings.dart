@@ -345,13 +345,13 @@ class AppStrings {
   String calendarTypeLabel(CalendarEntryType type) => switch (type) {
         CalendarEntryType.anniversary =>
           isChinese ? '纪念日' : 'Anniversary',
-        CalendarEntryType.date => isChinese ? '约会' : 'Date',
+        CalendarEntryType.datePlan => isChinese ? '约会' : 'Date',
         CalendarEntryType.reminder => isChinese ? '提醒' : 'Reminder',
       };
 
   String calendarRepeatLabel(CalendarRepeatRule repeatRule) =>
       switch (repeatRule) {
-        CalendarRepeatRule.once => calendarRepeatOnceLabel,
+        CalendarRepeatRule.none => calendarRepeatOnceLabel,
         CalendarRepeatRule.yearly => calendarRepeatYearlyLabel,
       };
 
@@ -361,25 +361,25 @@ class AppStrings {
             id: 'relationship-anniversary',
             type: CalendarEntryType.anniversary,
             title: '在一起纪念日',
-            subtitle: '晚上想去河边那家小店慢慢吃顿饭。',
-            date: DateTime(2025, 6, 6),
+            description: '晚上想去河边那家小店慢慢吃顿饭。',
+            startsAt: DateTime(2025, 6, 6),
             repeatRule: CalendarRepeatRule.yearly,
           ),
           CalendarEntryData(
             id: 'friday-date-night',
-            type: CalendarEntryType.date,
+            type: CalendarEntryType.datePlan,
             title: '周五约会夜',
-            subtitle: '电影还没定，但晚上 19:30 先留给我们。',
-            date: DateTime(2026, 5, 29, 19, 30),
-            repeatRule: CalendarRepeatRule.once,
+            description: '电影还没定，但晚上 19:30 先留给我们。',
+            startsAt: DateTime(2026, 5, 29, 19, 30),
+            repeatRule: CalendarRepeatRule.none,
           ),
           CalendarEntryData(
             id: 'plant-reminder',
             type: CalendarEntryType.reminder,
             title: '给阳台植物浇水',
-            subtitle: '顺手看看要不要带一个新的小花盆回来。',
-            date: DateTime(2026, 5, 27, 20),
-            repeatRule: CalendarRepeatRule.once,
+            description: '顺手看看要不要带一个新的小花盆回来。',
+            startsAt: DateTime(2026, 5, 27, 20),
+            repeatRule: CalendarRepeatRule.none,
           ),
         ]
       : [
@@ -387,26 +387,26 @@ class AppStrings {
             id: 'relationship-anniversary',
             type: CalendarEntryType.anniversary,
             title: 'Relationship anniversary',
-            subtitle: 'A slow dinner by the riverside sounds right for that night.',
-            date: DateTime(2025, 6, 6),
+            description: 'A slow dinner by the riverside sounds right for that night.',
+            startsAt: DateTime(2025, 6, 6),
             repeatRule: CalendarRepeatRule.yearly,
           ),
           CalendarEntryData(
             id: 'friday-date-night',
-            type: CalendarEntryType.date,
+            type: CalendarEntryType.datePlan,
             title: 'Friday date night',
-            subtitle:
+            description:
                 'The movie can wait. 7:30 PM is already saved for the two of you.',
-            date: DateTime(2026, 5, 29, 19, 30),
-            repeatRule: CalendarRepeatRule.once,
+            startsAt: DateTime(2026, 5, 29, 19, 30),
+            repeatRule: CalendarRepeatRule.none,
           ),
           CalendarEntryData(
             id: 'plant-reminder',
             type: CalendarEntryType.reminder,
             title: 'Water the balcony plants',
-            subtitle: 'Maybe bring back a new little pot while you are at it.',
-            date: DateTime(2026, 5, 27, 20),
-            repeatRule: CalendarRepeatRule.once,
+            description: 'Maybe bring back a new little pot while you are at it.',
+            startsAt: DateTime(2026, 5, 27, 20),
+            repeatRule: CalendarRepeatRule.none,
           ),
         ];
 
@@ -490,7 +490,7 @@ class AppStrings {
     return CalendarItemCopy(
       id: item.entry.id,
       title: item.entry.title,
-      subtitle: item.entry.subtitle,
+      subtitle: item.entry.description,
       dateLabel: formatCalendarDate(
         item.occurrence,
         includeWeekday: includeWeekday,
@@ -668,46 +668,46 @@ class NoteItemCopy {
   final String text;
 }
 
-enum CalendarEntryType { anniversary, date, reminder }
+enum CalendarEntryType { anniversary, datePlan, reminder }
 
-enum CalendarRepeatRule { once, yearly }
+enum CalendarRepeatRule { none, yearly }
 
 class CalendarEntryData {
   const CalendarEntryData({
     required this.id,
     required this.type,
     required this.title,
-    required this.subtitle,
-    required this.date,
+    required this.description,
+    required this.startsAt,
     required this.repeatRule,
   });
 
   final String id;
   final CalendarEntryType type;
   final String title;
-  final String subtitle;
-  final DateTime date;
+  final String description;
+  final DateTime startsAt;
   final CalendarRepeatRule repeatRule;
 
   bool occursOn(DateTime day) {
     if (repeatRule == CalendarRepeatRule.yearly) {
-      return day.month == date.month && day.day == date.day;
+      return day.month == startsAt.month && day.day == startsAt.day;
     }
 
-    return day.year == date.year && day.month == date.month && day.day == date.day;
+    return day.year == startsAt.year && day.month == startsAt.month && day.day == startsAt.day;
   }
 
   DateTime? nextOccurrenceFrom(DateTime reference) {
-    if (repeatRule == CalendarRepeatRule.once) {
-      return date.isBefore(reference) ? null : date;
+    if (repeatRule == CalendarRepeatRule.none) {
+      return startsAt.isBefore(reference) ? null : startsAt;
     }
 
     final thisYear = DateTime(
       reference.year,
-      date.month,
-      date.day,
-      date.hour,
-      date.minute,
+      startsAt.month,
+      startsAt.day,
+      startsAt.hour,
+      startsAt.minute,
     );
 
     if (!thisYear.isBefore(reference)) {
@@ -716,10 +716,10 @@ class CalendarEntryData {
 
     return DateTime(
       reference.year + 1,
-      date.month,
-      date.day,
-      date.hour,
-      date.minute,
+      startsAt.month,
+      startsAt.day,
+      startsAt.hour,
+      startsAt.minute,
     );
   }
 }
