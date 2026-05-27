@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
@@ -7,8 +8,53 @@ import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/debug_refresh_diagnostics_card.dart';
 import '../../shared/widgets/section_header.dart';
 
-class UsScreen extends StatelessWidget {
+class UsScreen extends StatefulWidget {
   const UsScreen({super.key});
+
+  @override
+  State<UsScreen> createState() => _UsScreenState();
+}
+
+class _UsScreenState extends State<UsScreen> {
+  String? _spaceName;
+  String? _relationshipStartDate;
+  int _memberCount = 0;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSpaceData();
+  }
+
+  Future<void> _loadSpaceData() async {
+    try {
+      final spaceResponse = await Supabase.instance.client
+          .from('couple_spaces')
+          .select('space_name, relationship_start_date')
+          .limit(1)
+          .maybeSingle();
+
+      if (spaceResponse != null) {
+        _spaceName = spaceResponse['space_name'] as String?;
+        _relationshipStartDate = spaceResponse['relationship_start_date'] as String?;
+
+        final membersResponse = await Supabase.instance.client
+            .from('couple_memberships')
+            .select('id')
+            .eq('couple_space_id', spaceResponse['id'])
+            .eq('status', 'active');
+
+        _memberCount = (membersResponse as List).length;
+      }
+    } catch (_) {
+      // Query failed; keep defaults.
+    }
+
+    if (mounted) {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +81,18 @@ class UsScreen extends StatelessWidget {
                     Expanded(
                       child: _HeroFact(
                         title: strings.spaceNameTitle,
-                        value: strings.spaceNameValue,
+                        value: _spaceName ?? strings.spaceNameValue,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _HeroFact(
                         title: strings.spaceStatusLabel,
-                        value: strings.spaceStatusValue,
+                        value: _loading
+                            ? '...'
+                            : _memberCount >= 2
+                                ? (strings.isChinese ? '已激活' : 'Active')
+                                : (strings.isChinese ? '等待对方加入' : 'Waiting for partner'),
                       ),
                     ),
                   ],
@@ -131,13 +181,17 @@ class UsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.home_work_outlined),
                 title: Text(strings.spaceNameTitle),
-                subtitle: Text(strings.spaceNameValue),
+                subtitle: Text(_spaceName ?? strings.spaceNameValue),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.mail_outline),
                 title: Text(strings.inviteStatusTitle),
-                subtitle: Text(strings.inviteStatusValue),
+                subtitle: Text(_loading
+                    ? '...'
+                    : _memberCount >= 2
+                        ? (strings.isChinese ? '已激活' : 'Active')
+                        : (strings.isChinese ? '等待对方加入' : 'Waiting for partner')),
               ),
               const Divider(height: 1),
               ListTile(
@@ -149,7 +203,7 @@ class UsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.favorite_outline),
                 title: Text(strings.relationshipDateTitle),
-                subtitle: Text(strings.relationshipDateValue),
+                subtitle: Text(_relationshipStartDate ?? strings.relationshipDateValue),
               ),
             ],
           ),

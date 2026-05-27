@@ -18,5 +18,11 @@ Future<void> main() async {
     // Anonymous sign-in failed; app continues without auth.
   }
 
+  try {
+    await Supabase.instance.client.rpc('create_couple_space');
+  } catch (_) {
+    // Space already exists or creation failed; app continues.
+  }
+
   runApp(const BetweenUsApp());
 }
