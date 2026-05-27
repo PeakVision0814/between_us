@@ -20,6 +20,8 @@ class PlansNotesScreen extends StatefulWidget {
 class PlansNotesScreenState extends State<PlansNotesScreen> {
   late PlansNotesMode _activeMode;
   Future<List<NoteRecord>>? _notesFuture;
+  String? _coupleSpaceId;
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -28,6 +30,22 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
         ? PlansNotesMode.plan
         : widget.mode;
     _notesFuture = _fetchNotes();
+    _loadCoupleSpaceId();
+  }
+
+  Future<void> _loadCoupleSpaceId() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('couple_spaces')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+      if (response != null) {
+        _coupleSpaceId = response['id'] as String;
+      }
+    } catch (_) {
+      // Query failed; will be null.
+    }
   }
 
   Future<List<NoteRecord>> _fetchNotes() async {
@@ -43,6 +61,96 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     } catch (_) {
       return [];
     }
+  }
+
+  void _refreshNotes() {
+    setState(() {
+      _notesFuture = _fetchNotes();
+    });
+  }
+
+  Future<bool> _submitNote(String body) async {
+    if (_coupleSpaceId == null || body.trim().isEmpty) return false;
+
+    setState(() => _submitting = true);
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return false;
+
+      await Supabase.instance.client.from('notes').insert({
+        'couple_space_id': _coupleSpaceId,
+        'author_profile_id': user.id,
+        'body': body.trim(),
+        'authored_at': DateTime.now().toIso8601String(),
+        'author_local_date': DateTime.now().toIso8601String().substring(0, 10),
+      });
+
+      _refreshNotes();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  void _showWriteNoteDialog() {
+    final strings = AppStrings.of(context);
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(strings.isChinese ? '写随记' : 'Write a note'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: strings.isChinese
+                  ? '想到什么就留一点...'
+                  : 'Leave a little something...',
+            ),
+            autofocus: true,
+            maxLines: 4,
+            textInputAction: TextInputAction.newline,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: _submitting
+                  ? null
+                  : () async {
+                      final success = await _submitNote(controller.text);
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(strings.isChinese
+                                ? '发送失败，请重试'
+                                : 'Failed to send. Please try again.'),
+                          ),
+                        );
+                      }
+                    },
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.isChinese ? '发送' : 'Send'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void switchMode(PlansNotesMode mode) {
@@ -96,7 +204,16 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               }
 
               if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return _NotesEmptyState(isChinese: strings.isChinese);
+                return Column(
+                  children: [
+                    _NotesEmptyState(isChinese: strings.isChinese),
+                    const SizedBox(height: 16),
+                    _WriteNoteButton(
+                      isChinese: strings.isChinese,
+                      onPressed: _showWriteNoteDialog,
+                    ),
+                  ],
+                );
               }
 
               final notes = snapshot.data!;
@@ -109,6 +226,11 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       text: note.body,
                     ),
                   )),
+                  const SizedBox(height: 16),
+                  _WriteNoteButton(
+                    isChinese: strings.isChinese,
+                    onPressed: _showWriteNoteDialog,
+                  ),
                 ],
               );
             },
@@ -417,8 +539,8 @@ class _NotesEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               isChinese
-                  ? '登录后即可查看共享的随记内容'
-                  : 'Sign in to see shared notes',
+                  ? '写一条给对方看看吧'
+                  : 'Leave one for your partner',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -449,5 +571,34 @@ String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
     }
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${months[dateTime.month - 1]} ${dateTime.day}';
+  }
+}
+
+class _WriteNoteButton extends StatelessWidget {
+  const _WriteNoteButton({
+    required this.isChinese,
+    required this.onPressed,
+  });
+
+  final bool isChinese;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.edit_outlined),
+        label: Text(isChinese ? '写随记' : 'Write a note'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+        ),
+      ),
+    );
   }
 }
