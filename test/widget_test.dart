@@ -22,7 +22,10 @@ void main() {
     await tester.pumpWidget(const BetweenUsApp());
 
     expect(find.text('小满 和 阿澈'), findsOneWidget);
-    expect(find.text('关系纪念日'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('home-featured-calendar-title-relationship-anniversary')),
+      findsOneWidget,
+    );
 
     await tester.scrollUntilVisible(
       find.text('最近一个计划提醒'),
@@ -34,6 +37,37 @@ void main() {
     expect(find.text('最近一个计划提醒'), findsOneWidget);
     expect(find.text('把六月短途出门定下来'), findsOneWidget);
     expect(find.text('去日历'), findsOneWidget);
+  });
+
+  testWidgets('home featured date matches the calendar default selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BetweenUsApp());
+
+    expect(
+      find.byKey(const ValueKey('home-featured-calendar-title-relationship-anniversary')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.calendar_month_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('calendar-detail-relationship-anniversary')),
+      200,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('calendar-detail-relationship-anniversary')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-detail-title-relationship-anniversary')),
+      findsOneWidget,
+    );
   });
 
   testWidgets(

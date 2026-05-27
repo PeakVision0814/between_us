@@ -12,34 +12,32 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  static final DateTime _defaultSelectedDate = DateTime(2026, 6, 6);
-
-  late DateTime _selectedDate;
+  DateTime? _selectedDate;
 
   @override
-  void initState() {
-    super.initState();
-    _selectedDate = _dateOnly(_defaultSelectedDate);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selectedDate ??= _dateOnly(AppStrings.of(context).calendarDefaultSelectedDate);
   }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final displayMonth = strings.calendarPrototypeDisplayMonth;
-    final visibleDays = _buildVisibleDays(displayMonth);
+    final visibleDays = strings.calendarVisibleDaysForMonth(displayMonth);
     final entriesByDay = _groupEntriesByDay(
       entries: strings.calendarPrototypeEntries,
       visibleDays: visibleDays,
     );
     final selectedEntries = [
-      ...(entriesByDay[_dateKey(_selectedDate)] ?? const <CalendarEntryData>[]),
+      ...(entriesByDay[_dateKey(_selectedDate!)] ?? const <CalendarEntryData>[]),
     ]..sort(
         (left, right) => _occurrenceOnDay(
           left,
-          _selectedDate,
-        ).compareTo(_occurrenceOnDay(right, _selectedDate)),
+          _selectedDate!,
+        ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
       );
-    final upcomingEntries = _buildUpcomingEntries(strings);
+    final upcomingEntries = strings.calendarUpcomingEntries;
 
     return AppPage(
       children: [
@@ -64,7 +62,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _MonthView(
                   displayMonth: displayMonth,
                   visibleDays: visibleDays,
-                  selectedDate: _selectedDate,
+                  selectedDate: _selectedDate!,
                   entriesByDay: entriesByDay,
                   onSelectDate: (day) {
                     setState(() {
@@ -86,7 +84,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               children: [
                 Text(
                   strings.formatCalendarDate(
-                    _selectedDate,
+                    _selectedDate!,
                     includeWeekday: true,
                   ),
                   key: const ValueKey('calendar-selected-date-label'),
@@ -106,7 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _SelectedEntryCard(
                         entry: entry,
-                        occurrence: _occurrenceOnDay(entry, _selectedDate),
+                        occurrence: _occurrenceOnDay(entry, _selectedDate!),
                       ),
                     ),
                   ),
@@ -203,20 +201,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  List<DateTime> _buildVisibleDays(DateTime displayMonth) {
-    final monthStart = DateTime(displayMonth.year, displayMonth.month);
-    var gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
-
-    if (gridStart == monthStart) {
-      gridStart = gridStart.subtract(const Duration(days: 7));
-    }
-
-    return List<DateTime>.generate(
-      42,
-      (index) => gridStart.add(Duration(days: index)),
-    );
-  }
-
   Map<String, List<CalendarEntryData>> _groupEntriesByDay({
     required List<CalendarEntryData> entries,
     required List<DateTime> visibleDays,
@@ -231,18 +215,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     return grouped;
-  }
-
-  List<_UpcomingEntry> _buildUpcomingEntries(AppStrings strings) {
-    final reference = strings.calendarPrototypeReferenceDate;
-    final upcoming = [
-      for (final entry in strings.calendarPrototypeEntries)
-        if (entry.nextOccurrenceFrom(reference) case final occurrence?)
-          _UpcomingEntry(entry: entry, occurrence: occurrence),
-    ];
-
-    upcoming.sort((left, right) => left.occurrence.compareTo(right.occurrence));
-    return upcoming;
   }
 
   static DateTime _occurrenceOnDay(CalendarEntryData entry, DateTime day) {
@@ -480,7 +452,11 @@ class _SelectedEntryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(entry.title, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            entry.title,
+            key: ValueKey('calendar-detail-title-${entry.id}'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 6),
           Text(entry.subtitle),
           const SizedBox(height: 10),
@@ -656,14 +632,4 @@ class _EntryChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _UpcomingEntry {
-  const _UpcomingEntry({
-    required this.entry,
-    required this.occurrence,
-  });
-
-  final CalendarEntryData entry;
-  final DateTime occurrence;
 }

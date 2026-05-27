@@ -23,7 +23,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final nextDate = strings.calendarItems.first;
+    final nextDate = strings.calendarFeaturedItem;
     final recentNote = strings.notes.first;
     final recentPlan = strings.plans.first;
 
@@ -203,7 +203,11 @@ class _HeroMoment extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(item.title, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                item.title,
+                key: ValueKey('home-featured-calendar-title-${item.id}'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 6),
               Text(item.subtitle),
               const SizedBox(height: 8),

@@ -153,7 +153,12 @@ class AppStrings {
   String get themeLightLabel => isChinese ? '浅色' : 'Light';
   String get themeDarkLabel => isChinese ? '深色' : 'Dark';
 
-  List<CalendarItemCopy> get calendarItems => isChinese
+  List<CalendarItemCopy> get calendarItems => [
+        for (final item in calendarUpcomingEntries)
+          calendarItemCopyForOccurrence(item),
+      ];
+
+/*
       ? const [
           CalendarItemCopy(
             title: '关系纪念日',
@@ -201,6 +206,7 @@ class AppStrings {
           ),
         ];
 
+*/
   List<PlanItemCopy> get plans => isChinese
       ? const [
           PlanItemCopy(
@@ -404,6 +410,100 @@ class AppStrings {
           ),
         ];
 
+  List<CalendarEntryOccurrence> get calendarUpcomingEntries {
+    final upcoming = [
+      for (final entry in calendarPrototypeEntries)
+        if (entry.nextOccurrenceFrom(calendarPrototypeReferenceDate)
+            case final occurrence?)
+          CalendarEntryOccurrence(entry: entry, occurrence: occurrence),
+    ];
+
+    upcoming.sort((left, right) => left.occurrence.compareTo(right.occurrence));
+    return upcoming;
+  }
+
+  DateTime get calendarDefaultSelectedDate {
+    final displayMonth = calendarPrototypeDisplayMonth;
+    final inMonthEntries = [
+      for (final item in calendarUpcomingEntries)
+        if (item.occurrence.year == displayMonth.year &&
+            item.occurrence.month == displayMonth.month)
+          item,
+    ];
+    if (inMonthEntries.isNotEmpty) {
+      return _dateOnly(inMonthEntries.first.occurrence);
+    }
+
+    final visibleDays = calendarVisibleDaysForMonth(displayMonth);
+    final visibleEntries = [
+      for (final item in calendarUpcomingEntries)
+        if (visibleDays.any((day) => _sameDate(day, item.occurrence))) item,
+    ];
+    if (visibleEntries.isNotEmpty) {
+      return _dateOnly(visibleEntries.first.occurrence);
+    }
+
+    return _dateOnly(displayMonth);
+  }
+
+  CalendarEntryOccurrence get calendarFeaturedEntry {
+    final matches = entriesForCalendarDay(calendarDefaultSelectedDate);
+    if (matches.isNotEmpty) {
+      return matches.first;
+    }
+
+    return calendarUpcomingEntries.first;
+  }
+
+  CalendarItemCopy get calendarFeaturedItem =>
+      calendarItemCopyForOccurrence(calendarFeaturedEntry);
+
+  List<CalendarEntryOccurrence> entriesForCalendarDay(DateTime day) {
+    final normalizedDay = _dateOnly(day);
+    final matches = [
+      for (final item in calendarUpcomingEntries)
+        if (_sameDate(item.occurrence, normalizedDay)) item,
+    ];
+
+    matches.sort((left, right) => left.occurrence.compareTo(right.occurrence));
+    return matches;
+  }
+
+  List<DateTime> calendarVisibleDaysForMonth(DateTime displayMonth) {
+    final monthStart = DateTime(displayMonth.year, displayMonth.month);
+    var gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
+
+    if (_sameDate(gridStart, monthStart)) {
+      gridStart = gridStart.subtract(const Duration(days: 7));
+    }
+
+    return List<DateTime>.generate(
+      42,
+      (index) => gridStart.add(Duration(days: index)),
+    );
+  }
+
+  CalendarItemCopy calendarItemCopyForOccurrence(
+    CalendarEntryOccurrence item, {
+    bool includeWeekday = false,
+  }) {
+    return CalendarItemCopy(
+      id: item.entry.id,
+      title: item.entry.title,
+      subtitle: item.entry.subtitle,
+      dateLabel: formatCalendarDate(
+        item.occurrence,
+        includeWeekday: includeWeekday,
+        includeTime: item.showsTime,
+      ),
+      countdownLabel: formatCountdownLabel(
+        item.occurrence,
+        calendarPrototypeReferenceDate,
+      ),
+      typeLabel: calendarTypeLabel(item.entry.type),
+    );
+  }
+
   String formatCalendarMonthYear(DateTime date) {
     if (isChinese) {
       return '${date.year} 年 ${date.month} 月';
@@ -459,6 +559,17 @@ class AppStrings {
     return isChinese ? '$difference 天后' : 'In $difference days';
   }
 
+  DateTime _dateOnly(DateTime date) => DateTime(
+    date.year,
+    date.month,
+    date.day,
+  );
+
+  bool _sameDate(DateTime left, DateTime right) =>
+      left.year == right.year &&
+      left.month == right.month &&
+      left.day == right.day;
+
   String _formatTime(DateTime date) {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
@@ -503,6 +614,7 @@ class AppStrings {
 
 class CalendarItemCopy {
   const CalendarItemCopy({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.dateLabel,
@@ -510,11 +622,24 @@ class CalendarItemCopy {
     required this.typeLabel,
   });
 
+  final String id;
   final String title;
   final String subtitle;
   final String dateLabel;
   final String countdownLabel;
   final String typeLabel;
+}
+
+class CalendarEntryOccurrence {
+  const CalendarEntryOccurrence({
+    required this.entry,
+    required this.occurrence,
+  });
+
+  final CalendarEntryData entry;
+  final DateTime occurrence;
+
+  bool get showsTime => occurrence.hour != 0 || occurrence.minute != 0;
 }
 
 class PlanItemCopy {
