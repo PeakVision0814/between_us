@@ -103,6 +103,21 @@ class AppStrings {
   String get addPlanLabel => isChinese ? '加一个计划' : 'Add a plan';
   String get addNoteLabel => isChinese ? '写一条随记' : 'Write a note';
 
+  String get planModeLeadTitle =>
+      isChinese ? '想做的事，先记在这里' : 'Jot down what you want to do';
+  String get planModeLeadSubtitle => isChinese
+      ? '不用马上定日期，想到了就先放着，等准备好了再挪去日历。'
+      : 'No need to set a date right away. Park it here and move it to calendar when ready.';
+  String get noteModeLeadTitle =>
+      isChinese ? '随手留一点，给彼此看看' : 'Leave a little something for each other';
+  String get noteModeLeadSubtitle => isChinese
+      ? '不用写很多，一句话、一个念头、一点日常碎片都好。'
+      : 'A sentence, a thought, a small daily moment — anything counts.';
+  String get switchToNotesHint =>
+      isChinese ? '看看随记' : 'Switch to notes';
+  String get switchToPlansHint =>
+      isChinese ? '看看计划' : 'Switch to plans';
+
   String get usTitle => usTab;
   String get usLeadTitle => isChinese ? '我们的空间' : 'Our shared space';
   String get usLeadSubtitle => isChinese

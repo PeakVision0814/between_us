@@ -15,16 +15,24 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
+  PlansNotesMode _plansNotesMode = PlansNotesMode.overview;
 
   void _selectTab(int index) {
     setState(() => _selectedIndex = index);
   }
 
+  void _openPlansWithMode(PlansNotesMode mode) {
+    setState(() {
+      _plansNotesMode = mode;
+      _selectedIndex = 2;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final destinations = <AppDestination>[
-      AppDestination(
+    final destinations = <_AppDestination>[
+      _AppDestination(
         label: strings.homeTab,
         icon: Icons.home_outlined,
         selectedIcon: Icons.home_rounded,
@@ -32,23 +40,23 @@ class _AppShellState extends State<AppShell> {
           onOpenCalendar: () => _selectTab(1),
           onOpenPlansNotes: () => _selectTab(2),
           onOpenUs: () => _selectTab(3),
-          onCreatePlan: () => _selectTab(2),
-          onWriteNote: () => _selectTab(2),
+          onCreatePlan: () => _openPlansWithMode(PlansNotesMode.plan),
+          onWriteNote: () => _openPlansWithMode(PlansNotesMode.note),
         ),
       ),
-      AppDestination(
+      _AppDestination(
         label: strings.calendarTab,
         icon: Icons.calendar_month_outlined,
         selectedIcon: Icons.calendar_month,
         screen: const CalendarScreen(),
       ),
-      AppDestination(
+      _AppDestination(
         label: strings.plansNotesTab,
         icon: Icons.edit_note_outlined,
         selectedIcon: Icons.edit_note,
-        screen: const PlansNotesScreen(),
+        screen: PlansNotesScreen(mode: _plansNotesMode),
       ),
-      AppDestination(
+      _AppDestination(
         label: strings.usTab,
         icon: Icons.favorite_border,
         selectedIcon: Icons.favorite,
@@ -62,9 +70,8 @@ class _AppShellState extends State<AppShell> {
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
-          children: destinations
-              .map((destination) => destination.screen)
-              .toList(),
+          children:
+              destinations.map((destination) => destination.screen).toList(),
         ),
       ),
       bottomNavigationBar: NavigationBar(
@@ -84,8 +91,8 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class AppDestination {
-  const AppDestination({
+class _AppDestination {
+  const _AppDestination({
     required this.label,
     required this.icon,
     required this.selectedIcon,

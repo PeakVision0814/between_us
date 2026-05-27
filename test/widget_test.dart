@@ -36,6 +36,46 @@ void main() {
     expect(find.text('去日历'), findsOneWidget);
   });
 
+  testWidgets(
+    'tapping "新建计划" from home enters plans/notes page in plan mode',
+    (tester) async {
+      await tester.pumpWidget(const BetweenUsApp());
+
+      await tester.scrollUntilVisible(
+        find.text('新建计划'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('新建计划'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('想做的事，先记在这里'), findsOneWidget);
+      expect(find.text('计划'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'tapping "写随记" from home enters plans/notes page in note mode',
+    (tester) async {
+      await tester.pumpWidget(const BetweenUsApp());
+
+      await tester.scrollUntilVisible(
+        find.text('写随记'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('写随记').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('随手留一点，给彼此看看'), findsOneWidget);
+      expect(find.text('随记'), findsWidgets);
+    },
+  );
+
   testWidgets('can enter Us page and change theme and language', (
     tester,
   ) async {
