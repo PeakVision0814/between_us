@@ -1,5 +1,7 @@
 begin;
 
+-- 1. Extensions & types
+
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 
@@ -11,61 +13,7 @@ create type public.calendar_event_type as enum ('anniversary', 'date_plan', 'rem
 create type public.calendar_event_recurrence as enum ('none', 'yearly');
 create type public.plan_status as enum ('idea', 'discussing', 'scheduled', 'done', 'archived');
 
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = timezone('utc', now());
-  return new;
-end;
-$$;
-
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (
-    new.id,
-    coalesce(
-      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
-      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
-      '新的用户'
-    )
-  )
-  on conflict (id) do nothing;
-
-  return new;
-end;
-$$;
-
-create or replace function public.is_active_member(
-  p_couple_space_id uuid,
-  p_profile_id uuid default auth.uid()
-)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.couple_memberships memberships
-    join public.couple_spaces spaces
-      on spaces.id = memberships.couple_space_id
-    where memberships.couple_space_id = p_couple_space_id
-      and memberships.profile_id = p_profile_id
-      and memberships.status = 'active'
-      and memberships.left_at is null
-      and spaces.closed_at is null
-      and spaces.status in ('pending_partner', 'active')
-  );
-$$;
+-- 2. Tables
 
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -118,14 +66,6 @@ create table public.couple_memberships (
       or (status in ('left', 'removed') and left_at is not null)
     )
 );
-
-create unique index couple_memberships_one_active_space_per_profile_idx
-  on public.couple_memberships (profile_id)
-  where status = 'active' and left_at is null;
-
-create unique index couple_memberships_one_active_owner_per_space_idx
-  on public.couple_memberships (couple_space_id)
-  where role = 'owner' and status = 'active' and left_at is null;
 
 create table public.couple_invites (
   id uuid primary key default extensions.gen_random_uuid(),
@@ -213,6 +153,8 @@ create table public.notes (
     check (char_length(btrim(body)) between 1 and 4000)
 );
 
+-- 3. Cross-table foreign keys
+
 alter table public.calendar_events
   add constraint calendar_events_source_plan_fk
   foreign key (source_plan_id, couple_space_id)
@@ -225,6 +167,16 @@ alter table public.plans
   references public.calendar_events (id, couple_space_id)
   deferrable initially deferred;
 
+-- 4. Indexes
+
+create unique index couple_memberships_one_active_space_per_profile_idx
+  on public.couple_memberships (profile_id)
+  where status = 'active' and left_at is null;
+
+create unique index couple_memberships_one_active_owner_per_space_idx
+  on public.couple_memberships (couple_space_id)
+  where role = 'owner' and status = 'active' and left_at is null;
+
 create unique index calendar_events_source_plan_idx
   on public.calendar_events (source_plan_id)
   where source_plan_id is not null and deleted_at is null;
@@ -232,6 +184,64 @@ create unique index calendar_events_source_plan_idx
 create unique index plans_scheduled_event_idx
   on public.plans (scheduled_event_id)
   where scheduled_event_id is not null and deleted_at is null;
+
+-- 5. Functions
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = timezone('utc', now());
+  return new;
+end;
+$$;
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name)
+  values (
+    new.id,
+    coalesce(
+      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
+      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+      '新的用户'
+    )
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+create or replace function public.is_active_member(
+  p_couple_space_id uuid,
+  p_profile_id uuid default auth.uid()
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.couple_memberships memberships
+    join public.couple_spaces spaces
+      on spaces.id = memberships.couple_space_id
+    where memberships.couple_space_id = p_couple_space_id
+      and memberships.profile_id = p_profile_id
+      and memberships.status = 'active'
+      and memberships.left_at is null
+      and spaces.closed_at is null
+      and spaces.status in ('pending_partner', 'active')
+  );
+$$;
 
 create or replace function public.protect_immutable_fields()
 returns trigger
@@ -595,6 +605,8 @@ begin
 end;
 $$;
 
+-- 6. Triggers
+
 create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
@@ -649,6 +661,8 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+-- 7. Seed existing users into profiles
+
 insert into public.profiles (id, display_name)
 select
   users.id,
@@ -662,6 +676,8 @@ left join public.profiles profiles
   on profiles.id = users.id
 where profiles.id is null;
 
+-- 8. Enable RLS
+
 alter table public.profiles enable row level security;
 alter table public.couple_spaces enable row level security;
 alter table public.couple_memberships enable row level security;
@@ -669,6 +685,8 @@ alter table public.couple_invites enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.plans enable row level security;
 alter table public.notes enable row level security;
+
+-- 9. RLS policies
 
 create policy "profiles_select_self"
   on public.profiles
@@ -795,6 +813,8 @@ create policy "notes_update_author_only"
     author_profile_id = auth.uid()
     and public.is_active_member(couple_space_id)
   );
+
+-- 10. Grants
 
 grant usage on schema public to anon, authenticated, service_role;
 
