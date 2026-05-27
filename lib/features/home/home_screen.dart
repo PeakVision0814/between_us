@@ -108,7 +108,7 @@ class _HomeHero extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _AvatarPair(labelOne: '满', labelTwo: '澈'),
+                    _AvatarPair(labelOne: strings.avatarLabelOne, labelTwo: strings.avatarLabelTwo),
                     const Spacer(),
                     _QuietBadge(
                       icon: Icons.favorite_rounded,

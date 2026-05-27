@@ -20,9 +20,9 @@ class CoupleOverviewCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const CircleBadge(label: '满', color: AppTheme.blush),
+                CircleBadge(label: strings.avatarLabelOne, color: AppTheme.blush),
                 const SizedBox(width: 10),
-                const CircleBadge(label: '澈', color: AppTheme.mint),
+                CircleBadge(label: strings.avatarLabelTwo, color: AppTheme.mint),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(

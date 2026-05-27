@@ -27,7 +27,7 @@ class CalendarScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(strings.calendarLeadSubtitle),
                 const SizedBox(height: 18),
-                _MonthViewPlaceholder(isChinese: strings.isChinese),
+                const _MonthViewPlaceholder(),
               ],
             ),
           ),
@@ -85,9 +85,7 @@ class CalendarScreen extends StatelessWidget {
 }
 
 class _MonthViewPlaceholder extends StatelessWidget {
-  const _MonthViewPlaceholder({required this.isChinese});
-
-  final bool isChinese;
+  const _MonthViewPlaceholder();
   static const _rows = [
     [26, 27, 28, 29, 30, 31, 1],
     [2, 3, 4, 5, 6, 7, 8],
@@ -100,10 +98,9 @@ class _MonthViewPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final weekLabels = isChinese
-        ? const ['一', '二', '三', '四', '五', '六', '日']
-        : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final monthLabel = isChinese ? '2026 年 6 月' : 'June 2026';
+    final strings = AppStrings.of(context);
+    final weekLabels = strings.weekLabels;
+    final monthLabel = strings.monthYearLabel;
 
     return Container(
       padding: const EdgeInsets.all(14),

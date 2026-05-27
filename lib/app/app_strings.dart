@@ -40,6 +40,8 @@ class AppStrings {
   String get goCalendarLabel => isChinese ? '去日历' : 'Open calendar';
   String get goUsLabel => isChinese ? '去我们' : 'Open Us';
 
+  String get avatarLabelOne => isChinese ? '满' : 'X';
+  String get avatarLabelTwo => isChinese ? '澈' : 'A';
   String get coupleNames => isChinese ? '小满 和 阿澈' : 'Xiaoman & Ache';
   String get relationshipStatus => isChinese ? '一起第 214 天' : 'Day 214 together';
   String get relationshipMood => isChinese
@@ -57,6 +59,11 @@ class AppStrings {
   String get noteComposerExample => isChinese
       ? '比如：回来的路上别忘了买点水果，我想留一半给明天早上。'
       : 'For example: grab some fruit on the way back. I want to save half for tomorrow morning.';
+
+  List<String> get weekLabels => isChinese
+      ? const ['一', '二', '三', '四', '五', '六', '日']
+      : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  String get monthYearLabel => isChinese ? '2026 年 6 月' : 'June 2026';
 
   String get calendarTitle => calendarTab;
   String get calendarLeadTitle => isChinese ? '本月安排' : 'This month at a glance';
