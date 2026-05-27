@@ -4,13 +4,42 @@ import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/section_header.dart';
 
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
+
+  @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  static final DateTime _defaultSelectedDate = DateTime(2026, 6, 6);
+
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = _dateOnly(_defaultSelectedDate);
+  }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final items = strings.calendarItems;
+    final displayMonth = strings.calendarPrototypeDisplayMonth;
+    final visibleDays = _buildVisibleDays(displayMonth);
+    final entriesByDay = _groupEntriesByDay(
+      entries: strings.calendarPrototypeEntries,
+      visibleDays: visibleDays,
+    );
+    final selectedEntries = [
+      ...(entriesByDay[_dateKey(_selectedDate)] ?? const <CalendarEntryData>[]),
+    ]..sort(
+        (left, right) => _occurrenceOnDay(
+          left,
+          _selectedDate,
+        ).compareTo(_occurrenceOnDay(right, _selectedDate)),
+      );
+    final upcomingEntries = _buildUpcomingEntries(strings);
 
     return AppPage(
       children: [
@@ -21,19 +50,34 @@ class CalendarScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  strings.calendarLeadTitle,
+                  strings.calendarOverviewTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                Text(strings.calendarLeadSubtitle),
+                Text(strings.calendarOverviewSubtitle),
+                const SizedBox(height: 6),
+                Text(
+                  strings.calendarOverviewCaption,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 18),
-                const _MonthViewPlaceholder(),
+                _MonthView(
+                  displayMonth: displayMonth,
+                  visibleDays: visibleDays,
+                  selectedDate: _selectedDate,
+                  entriesByDay: entriesByDay,
+                  onSelectDate: (day) {
+                    setState(() {
+                      _selectedDate = _dateOnly(day);
+                    });
+                  },
+                ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 18),
-        SectionHeader(title: strings.selectedDateSection),
+        SectionHeader(title: strings.calendarDetailsTitle),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -41,39 +85,115 @@ class CalendarScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  strings.selectedDateLabel,
+                  strings.formatCalendarDate(
+                    _selectedDate,
+                    includeWeekday: true,
+                  ),
+                  key: const ValueKey('calendar-selected-date-label'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 12),
-                ...items.take(2).map((item) => _SelectedDateRow(item: item)),
+                const SizedBox(height: 6),
+                Text(
+                  strings.calendarDetailsHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 14),
+                if (selectedEntries.isEmpty)
+                  _SelectedDayEmptyState(strings: strings)
+                else
+                  ...selectedEntries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SelectedEntryCard(
+                        entry: entry,
+                        occurrence: _occurrenceOnDay(entry, _selectedDate),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 18),
-        SectionHeader(title: strings.upcomingEventsSection),
-        ...items.map((item) => _UpcomingEventCard(item: item)),
+        SectionHeader(title: strings.calendarUpcomingTitle),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            strings.calendarUpcomingHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        ...upcomingEntries.map(
+          (item) => _UpcomingEventCard(
+            entry: item.entry,
+            occurrence: item.occurrence,
+          ),
+        ),
         const SizedBox(height: 18),
-        SectionHeader(title: strings.createCalendarEntrySection),
+        SectionHeader(title: strings.calendarComposerTitle),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(strings.calendarComposerHint),
+                const SizedBox(height: 14),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    _EntryChip(label: strings.createAnniversaryLabel),
-                    _EntryChip(label: strings.createDatePlanLabel),
-                    _EntryChip(label: strings.createReminderLabel),
+                    _EntryChip(
+                      label: strings.calendarTypeLabel(
+                        CalendarEntryType.anniversary,
+                      ),
+                    ),
+                    _EntryChip(
+                      label: strings.calendarTypeLabel(CalendarEntryType.date),
+                    ),
+                    _EntryChip(
+                      label: strings.calendarTypeLabel(
+                        CalendarEntryType.reminder,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  strings.periodPlaceholderLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.secondary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.favorite_outline,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              strings.calendarPeriodPlaceholderTitle,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              strings.calendarPeriodPlaceholderSubtitle,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -82,25 +202,94 @@ class CalendarScreen extends StatelessWidget {
       ],
     );
   }
+
+  List<DateTime> _buildVisibleDays(DateTime displayMonth) {
+    final monthStart = DateTime(displayMonth.year, displayMonth.month);
+    var gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
+
+    if (gridStart == monthStart) {
+      gridStart = gridStart.subtract(const Duration(days: 7));
+    }
+
+    return List<DateTime>.generate(
+      42,
+      (index) => gridStart.add(Duration(days: index)),
+    );
+  }
+
+  Map<String, List<CalendarEntryData>> _groupEntriesByDay({
+    required List<CalendarEntryData> entries,
+    required List<DateTime> visibleDays,
+  }) {
+    final grouped = <String, List<CalendarEntryData>>{};
+
+    for (final day in visibleDays) {
+      final items = entries.where((entry) => entry.occursOn(day)).toList();
+      if (items.isNotEmpty) {
+        grouped[_dateKey(day)] = items;
+      }
+    }
+
+    return grouped;
+  }
+
+  List<_UpcomingEntry> _buildUpcomingEntries(AppStrings strings) {
+    final reference = strings.calendarPrototypeReferenceDate;
+    final upcoming = [
+      for (final entry in strings.calendarPrototypeEntries)
+        if (entry.nextOccurrenceFrom(reference) case final occurrence?)
+          _UpcomingEntry(entry: entry, occurrence: occurrence),
+    ];
+
+    upcoming.sort((left, right) => left.occurrence.compareTo(right.occurrence));
+    return upcoming;
+  }
+
+  static DateTime _occurrenceOnDay(CalendarEntryData entry, DateTime day) {
+    if (entry.repeatRule == CalendarRepeatRule.yearly) {
+      return DateTime(
+        day.year,
+        day.month,
+        day.day,
+        entry.date.hour,
+        entry.date.minute,
+      );
+    }
+
+    return entry.date;
+  }
+
+  static DateTime _dateOnly(DateTime date) => DateTime(
+    date.year,
+    date.month,
+    date.day,
+  );
+
+  static String _dateKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }
 
-class _MonthViewPlaceholder extends StatelessWidget {
-  const _MonthViewPlaceholder();
-  static const _rows = [
-    [26, 27, 28, 29, 30, 31, 1],
-    [2, 3, 4, 5, 6, 7, 8],
-    [9, 10, 11, 12, 13, 14, 15],
-    [16, 17, 18, 19, 20, 21, 22],
-    [23, 24, 25, 26, 27, 28, 29],
-    [30, 1, 2, 3, 4, 5, 6],
-  ];
+class _MonthView extends StatelessWidget {
+  const _MonthView({
+    required this.displayMonth,
+    required this.visibleDays,
+    required this.selectedDate,
+    required this.entriesByDay,
+    required this.onSelectDate,
+  });
+
+  final DateTime displayMonth;
+  final List<DateTime> visibleDays;
+  final DateTime selectedDate;
+  final Map<String, List<CalendarEntryData>> entriesByDay;
+  final ValueChanged<DateTime> onSelectDate;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(context);
-    final weekLabels = strings.weekLabels;
-    final monthLabel = strings.monthYearLabel;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -113,13 +302,16 @@ class _MonthViewPlaceholder extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(monthLabel, style: Theme.of(context).textTheme.titleMedium),
-              Icon(Icons.expand_more, color: colorScheme.primary),
+              Text(
+                strings.formatCalendarMonthYear(displayMonth),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Icon(Icons.calendar_today_outlined, color: colorScheme.primary),
             ],
           ),
           const SizedBox(height: 12),
           Row(
-            children: weekLabels
+            children: strings.weekLabels
                 .map(
                   (label) => Expanded(
                     child: Center(
@@ -133,24 +325,171 @@ class _MonthViewPlaceholder extends StatelessWidget {
                 .toList(),
           ),
           const SizedBox(height: 10),
-          ..._rows.map(
-            (row) => Padding(
+          for (var index = 0; index < visibleDays.length; index += 7)
+            Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
-                children: row
-                    .map(
-                      (day) => Expanded(
-                        child: _DayCell(
-                          label: '$day',
-                          selected: day == 6,
-                          marked: day == 6 || day == 25 || day == 29,
-                          faded: day > 29,
-                        ),
+                children: [
+                  for (final day in visibleDays.sublist(index, index + 7))
+                    Expanded(
+                      child: _DayCell(
+                        date: day,
+                        inMonth: day.month == displayMonth.month,
+                        selected: _sameDate(day, selectedDate),
+                        hasEntries: entriesByDay.containsKey(_dateKey(day)),
+                        onTap: () => onSelectDate(day),
                       ),
-                    )
-                    .toList(),
+                    ),
+                ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  static bool _sameDate(DateTime left, DateTime right) =>
+      left.year == right.year &&
+      left.month == right.month &&
+      left.day == right.day;
+
+  static String _dateKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+}
+
+class _DayCell extends StatelessWidget {
+  const _DayCell({
+    required this.date,
+    required this.inMonth,
+    required this.selected,
+    required this.hasEntries,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final bool inMonth;
+  final bool selected;
+  final bool hasEntries;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = selected
+        ? colorScheme.primary
+        : (hasEntries
+              ? colorScheme.primary.withValues(alpha: 0.12)
+              : Colors.transparent);
+    final borderColor = selected
+        ? colorScheme.primary
+        : hasEntries
+        ? colorScheme.primary.withValues(alpha: 0.28)
+        : Colors.transparent;
+    final textColor = selected
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface.withValues(alpha: inMonth ? 1 : 0.45);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey(
+            'calendar-day-${date.year.toString().padLeft(4, '0')}-'
+            '${date.month.toString().padLeft(2, '0')}-'
+            '${date.day.toString().padLeft(2, '0')}',
+          ),
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            height: 46,
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${date.day}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: textColor,
+                    fontWeight: selected || hasEntries
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: hasEntries
+                        ? (selected
+                              ? colorScheme.onPrimary
+                              : colorScheme.primary)
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedEntryCard extends StatelessWidget {
+  const _SelectedEntryCard({
+    required this.entry,
+    required this.occurrence,
+  });
+
+  final CalendarEntryData entry;
+  final DateTime occurrence;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final showsTime = occurrence.hour != 0 || occurrence.minute != 0;
+
+    return Container(
+      key: ValueKey('calendar-detail-${entry.id}'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _MetaChip(label: strings.calendarTypeLabel(entry.type)),
+              _MetaChip(label: strings.calendarRepeatLabel(entry.repeatRule)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(entry.title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Text(entry.subtitle),
+          const SizedBox(height: 10),
+          Text(
+            strings.formatCalendarDate(
+              occurrence,
+              includeTime: showsTime,
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -158,79 +497,34 @@ class _MonthViewPlaceholder extends StatelessWidget {
   }
 }
 
-class _DayCell extends StatelessWidget {
-  const _DayCell({
-    required this.label,
-    required this.selected,
-    required this.marked,
-    required this.faded,
-  });
+class _SelectedDayEmptyState extends StatelessWidget {
+  const _SelectedDayEmptyState({required this.strings});
 
-  final String label;
-  final bool selected;
-  final bool marked;
-  final bool faded;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final background = selected
-        ? colorScheme.primary
-        : (marked
-              ? colorScheme.tertiary.withValues(alpha: 0.18)
-              : Colors.transparent);
-    final textColor = selected ? colorScheme.onPrimary : colorScheme.onSurface;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Container(
-        height: 38,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: faded ? textColor.withValues(alpha: 0.35) : textColor,
-              fontWeight: selected || marked
-                  ? FontWeight.w700
-                  : FontWeight.w500,
-            ),
-          ),
-        ),
+    return Container(
+      key: const ValueKey('calendar-detail-empty'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
       ),
-    );
-  }
-}
-
-class _SelectedDateRow extends StatelessWidget {
-  const _SelectedDateRow({required this.item});
-
-  final CalendarItemCopy item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.circle, size: 10),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(item.subtitle),
-              ],
-            ),
+          Text(
+            strings.calendarEmptyDayTitle,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            strings.calendarEmptyDaySubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -239,32 +533,57 @@ class _SelectedDateRow extends StatelessWidget {
 }
 
 class _UpcomingEventCard extends StatelessWidget {
-  const _UpcomingEventCard({required this.item});
+  const _UpcomingEventCard({
+    required this.entry,
+    required this.occurrence,
+  });
 
-  final CalendarItemCopy item;
+  final CalendarEntryData entry;
+  final DateTime occurrence;
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final showsTime = occurrence.hour != 0 || occurrence.minute != 0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
+        key: ValueKey('calendar-upcoming-${entry.id}'),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _MetaChip(label: strings.calendarTypeLabel(entry.type)),
+                        if (entry.repeatRule == CalendarRepeatRule.yearly)
+                          _MetaChip(
+                            label: strings.calendarRepeatLabel(entry.repeatRule),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     Text(
-                      item.title,
+                      entry.title,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
-                    Text(item.subtitle),
+                    Text(entry.subtitle),
                     const SizedBox(height: 10),
                     Text(
-                      item.dateLabel,
+                      strings.formatCalendarDate(
+                        occurrence,
+                        includeWeekday: true,
+                        includeTime: showsTime,
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -272,12 +591,41 @@ class _UpcomingEventCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                item.countdownLabel,
+                strings.formatCountdownLabel(
+                  occurrence,
+                  strings.calendarPrototypeReferenceDate,
+                ),
                 textAlign: TextAlign.right,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -308,4 +656,14 @@ class _EntryChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _UpcomingEntry {
+  const _UpcomingEntry({
+    required this.entry,
+    required this.occurrence,
+  });
+
+  final CalendarEntryData entry;
+  final DateTime occurrence;
 }

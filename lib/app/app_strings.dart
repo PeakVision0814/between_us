@@ -293,6 +293,212 @@ class AppStrings {
   String get exportUnlinkValue => isChinese
       ? '导出和解绑先放在这里预留，真实行为等共享版本接入后再开放。'
       : 'Export and unlink stay here as placeholders until the shared version is wired.';
+  DateTime get calendarPrototypeDisplayMonth => DateTime(2026, 6);
+  DateTime get calendarPrototypeReferenceDate => DateTime(2026, 5, 27, 9);
+
+  String get calendarOverviewTitle =>
+      isChinese ? '这个月的有日期安排' : 'This month\'s dated plans';
+  String get calendarOverviewSubtitle => isChinese
+      ? '纪念日、约会和提醒，只要定了日期，就都放在这里。'
+      : 'If it has a date, this is where anniversaries, dates, and reminders belong.';
+  String get calendarOverviewCaption => isChinese
+      ? '月视图、当天详情和近期事项都来自同一份样例日历。'
+      : 'The month view, day details, and coming-up list all come from the same sample calendar.';
+  String get calendarDetailsTitle =>
+      isChinese ? '这一天有什么' : 'What is on this day';
+  String get calendarDetailsHint => isChinese
+      ? '只看当前选中日期，不混入别的内容。'
+      : 'Only items for the selected date appear here.';
+  String get calendarEmptyDayTitle =>
+      isChinese ? '这一天先留白' : 'This day is still open';
+  String get calendarEmptyDaySubtitle => isChinese
+      ? '有明确日期的纪念日、约会或提醒，才会出现在这里。'
+      : 'Only dated anniversaries, date plans, or reminders will show here.';
+  String get calendarUpcomingTitle =>
+      isChinese ? '近期事项' : 'Coming up soon';
+  String get calendarUpcomingHint => isChinese
+      ? '按时间顺序往后看，和上面的月历是同一批内容。'
+      : 'The next few dated items, in order, from the same calendar data.';
+  String get calendarComposerTitle =>
+      isChinese ? '放进日历的内容' : 'What belongs in calendar';
+  String get calendarComposerHint => isChinese
+      ? '首版先只收纪念日、约会和提醒。'
+      : 'For now, calendar only holds anniversaries, dates, and reminders.';
+  String get calendarPeriodPlaceholderTitle =>
+      isChinese ? '经期记录会后续接入' : 'Cycle records come later';
+  String get calendarPeriodPlaceholderSubtitle => isChinese
+      ? '经期记录之后也会放在日历里，但会单独分区，也不会默认共享。'
+      : 'Cycle records will live here later too, but in a clearly separate area and never shared by default.';
+  String get calendarRepeatYearlyLabel =>
+      isChinese ? '每年重复' : 'Repeats yearly';
+  String get calendarRepeatOnceLabel =>
+      isChinese ? '单次安排' : 'One-time';
+  String get calendarTodayLabel => isChinese ? '今天' : 'Today';
+  String get calendarTomorrowLabel => isChinese ? '明天' : 'Tomorrow';
+
+  String calendarTypeLabel(CalendarEntryType type) => switch (type) {
+        CalendarEntryType.anniversary =>
+          isChinese ? '纪念日' : 'Anniversary',
+        CalendarEntryType.date => isChinese ? '约会' : 'Date',
+        CalendarEntryType.reminder => isChinese ? '提醒' : 'Reminder',
+      };
+
+  String calendarRepeatLabel(CalendarRepeatRule repeatRule) =>
+      switch (repeatRule) {
+        CalendarRepeatRule.once => calendarRepeatOnceLabel,
+        CalendarRepeatRule.yearly => calendarRepeatYearlyLabel,
+      };
+
+  List<CalendarEntryData> get calendarPrototypeEntries => isChinese
+      ? [
+          CalendarEntryData(
+            id: 'relationship-anniversary',
+            type: CalendarEntryType.anniversary,
+            title: '在一起纪念日',
+            subtitle: '晚上想去河边那家小店慢慢吃顿饭。',
+            date: DateTime(2025, 6, 6),
+            repeatRule: CalendarRepeatRule.yearly,
+          ),
+          CalendarEntryData(
+            id: 'friday-date-night',
+            type: CalendarEntryType.date,
+            title: '周五约会夜',
+            subtitle: '电影还没定，但晚上 19:30 先留给我们。',
+            date: DateTime(2026, 5, 29, 19, 30),
+            repeatRule: CalendarRepeatRule.once,
+          ),
+          CalendarEntryData(
+            id: 'plant-reminder',
+            type: CalendarEntryType.reminder,
+            title: '给阳台植物浇水',
+            subtitle: '顺手看看要不要带一个新的小花盆回来。',
+            date: DateTime(2026, 5, 27, 20),
+            repeatRule: CalendarRepeatRule.once,
+          ),
+        ]
+      : [
+          CalendarEntryData(
+            id: 'relationship-anniversary',
+            type: CalendarEntryType.anniversary,
+            title: 'Relationship anniversary',
+            subtitle: 'A slow dinner by the riverside sounds right for that night.',
+            date: DateTime(2025, 6, 6),
+            repeatRule: CalendarRepeatRule.yearly,
+          ),
+          CalendarEntryData(
+            id: 'friday-date-night',
+            type: CalendarEntryType.date,
+            title: 'Friday date night',
+            subtitle:
+                'The movie can wait. 7:30 PM is already saved for the two of you.',
+            date: DateTime(2026, 5, 29, 19, 30),
+            repeatRule: CalendarRepeatRule.once,
+          ),
+          CalendarEntryData(
+            id: 'plant-reminder',
+            type: CalendarEntryType.reminder,
+            title: 'Water the balcony plants',
+            subtitle: 'Maybe bring back a new little pot while you are at it.',
+            date: DateTime(2026, 5, 27, 20),
+            repeatRule: CalendarRepeatRule.once,
+          ),
+        ];
+
+  String formatCalendarMonthYear(DateTime date) {
+    if (isChinese) {
+      return '${date.year} 年 ${date.month} 月';
+    }
+
+    return '${_englishMonthNames[date.month - 1]} ${date.year}';
+  }
+
+  String formatCalendarDate(
+    DateTime date, {
+    bool includeWeekday = false,
+    bool includeTime = false,
+  }) {
+    final buffer = StringBuffer();
+
+    if (isChinese) {
+      buffer.write('${date.month} 月 ${date.day} 日');
+    } else {
+      buffer.write('${_englishMonthNames[date.month - 1]} ${date.day}');
+    }
+
+    if (includeWeekday) {
+      buffer.write(' · ${calendarWeekdayLabel(date.weekday)}');
+    }
+
+    if (includeTime) {
+      buffer.write(isChinese ? ' ' : ', ');
+      buffer.write(_formatTime(date));
+    }
+
+    return buffer.toString();
+  }
+
+  String calendarWeekdayLabel(int weekday) => isChinese
+      ? _chineseWeekdayNames[weekday - 1]
+      : _englishWeekdayNames[weekday - 1];
+
+  String formatCountdownLabel(DateTime target, DateTime reference) {
+    final difference = DateTime(
+      target.year,
+      target.month,
+      target.day,
+    ).difference(DateTime(reference.year, reference.month, reference.day)).inDays;
+
+    if (difference <= 0) {
+      return calendarTodayLabel;
+    }
+
+    if (difference == 1) {
+      return calendarTomorrowLabel;
+    }
+
+    return isChinese ? '$difference 天后' : 'In $difference days';
+  }
+
+  String _formatTime(DateTime date) {
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  static const List<String> _englishMonthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  static const List<String> _englishWeekdayNames = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  static const List<String> _chineseWeekdayNames = [
+    '周一',
+    '周二',
+    '周三',
+    '周四',
+    '周五',
+    '周六',
+    '周日',
+  ];
 }
 
 class CalendarItemCopy {
@@ -335,4 +541,60 @@ class NoteItemCopy {
   final String author;
   final String timeLabel;
   final String text;
+}
+
+enum CalendarEntryType { anniversary, date, reminder }
+
+enum CalendarRepeatRule { once, yearly }
+
+class CalendarEntryData {
+  const CalendarEntryData({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.date,
+    required this.repeatRule,
+  });
+
+  final String id;
+  final CalendarEntryType type;
+  final String title;
+  final String subtitle;
+  final DateTime date;
+  final CalendarRepeatRule repeatRule;
+
+  bool occursOn(DateTime day) {
+    if (repeatRule == CalendarRepeatRule.yearly) {
+      return day.month == date.month && day.day == date.day;
+    }
+
+    return day.year == date.year && day.month == date.month && day.day == date.day;
+  }
+
+  DateTime? nextOccurrenceFrom(DateTime reference) {
+    if (repeatRule == CalendarRepeatRule.once) {
+      return date.isBefore(reference) ? null : date;
+    }
+
+    final thisYear = DateTime(
+      reference.year,
+      date.month,
+      date.day,
+      date.hour,
+      date.minute,
+    );
+
+    if (!thisYear.isBefore(reference)) {
+      return thisYear;
+    }
+
+    return DateTime(
+      reference.year + 1,
+      date.month,
+      date.day,
+      date.hour,
+      date.minute,
+    );
+  }
 }
