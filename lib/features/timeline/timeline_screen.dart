@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_strings.dart';
+import '../../data/models/note_record.dart';
 import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/section_header.dart';
 
@@ -17,6 +19,7 @@ class PlansNotesScreen extends StatefulWidget {
 
 class PlansNotesScreenState extends State<PlansNotesScreen> {
   late PlansNotesMode _activeMode;
+  Future<List<NoteRecord>>? _notesFuture;
 
   @override
   void initState() {
@@ -24,6 +27,22 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     _activeMode = widget.mode == PlansNotesMode.overview
         ? PlansNotesMode.plan
         : widget.mode;
+    _notesFuture = _fetchNotes();
+  }
+
+  Future<List<NoteRecord>> _fetchNotes() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('notes')
+          .select()
+          .filter('deleted_at', 'is', null)
+          .order('authored_at', ascending: false);
+      return (response as List)
+          .map((json) => NoteRecord.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   void switchMode(PlansNotesMode mode) {
@@ -66,7 +85,34 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
         ] else ...[
           SectionHeader(title: strings.notesSectionTitle),
           _SectionIntro(text: strings.notesSectionSubtitle),
-          ...strings.notes.map((note) => _NoteCard(note: note)),
+          FutureBuilder<List<NoteRecord>>(
+            future: _notesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return _NotesEmptyState(isChinese: strings.isChinese);
+              }
+
+              final notes = snapshot.data!;
+              return Column(
+                children: [
+                  ...notes.map((note) => _NoteCard(
+                    note: NoteItemCopy(
+                      author: note.authorProfileId,
+                      timeLabel: _formatTimeLabel(note.authoredAt, isChinese: strings.isChinese),
+                      text: note.body,
+                    ),
+                  )),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 24),
           _SecondaryHint(
             label: strings.switchToPlansHint,
@@ -343,5 +389,65 @@ class _SecondaryHint extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _NotesEmptyState extends StatelessWidget {
+  const _NotesEmptyState({required this.isChinese});
+
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.note_alt_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isChinese ? '还没有随记' : 'No notes yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isChinese
+                  ? '登录后即可查看共享的随记内容'
+                  : 'Sign in to see shared notes',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+
+  if (difference.inMinutes < 1) {
+    return isChinese ? '刚刚' : 'Just now';
+  } else if (difference.inHours < 1) {
+    return isChinese ? '${difference.inMinutes} 分钟前' : '${difference.inMinutes} min ago';
+  } else if (difference.inDays < 1) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  } else if (difference.inDays < 7) {
+    final weekdays = isChinese
+        ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return '${weekdays[dateTime.weekday - 1]} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  } else {
+    if (isChinese) {
+      return '${dateTime.month}月${dateTime.day}日';
+    }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[dateTime.month - 1]} ${dateTime.day}';
   }
 }
