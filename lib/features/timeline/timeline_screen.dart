@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_strings.dart';
 import '../../data/models/note_record.dart';
+import '../../data/models/plan_record.dart';
 import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/section_header.dart';
 
@@ -20,6 +21,7 @@ class PlansNotesScreen extends StatefulWidget {
 class PlansNotesScreenState extends State<PlansNotesScreen> {
   late PlansNotesMode _activeMode;
   Future<List<NoteRecord>>? _notesFuture;
+  Future<List<PlanRecord>>? _plansFuture;
   String? _coupleSpaceId;
   bool _submitting = false;
 
@@ -30,6 +32,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
         ? PlansNotesMode.plan
         : widget.mode;
     _notesFuture = _fetchNotes();
+    _plansFuture = _fetchPlans();
     _loadCoupleSpaceId();
   }
 
@@ -67,6 +70,124 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     setState(() {
       _notesFuture = _fetchNotes();
     });
+  }
+
+  Future<List<PlanRecord>> _fetchPlans() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('plans')
+          .select()
+          .filter('deleted_at', 'is', null)
+          .order('created_at', ascending: false);
+      return (response as List)
+          .map((json) => PlanRecord.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  void _refreshPlans() {
+    setState(() {
+      _plansFuture = _fetchPlans();
+    });
+  }
+
+  Future<bool> _submitPlan(String title, String body) async {
+    if (_coupleSpaceId == null || title.trim().isEmpty) return false;
+
+    setState(() => _submitting = true);
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return false;
+
+      await Supabase.instance.client.from('plans').insert({
+        'couple_space_id': _coupleSpaceId,
+        'created_by': user.id,
+        'title': title.trim(),
+        'body': body.trim().isEmpty ? null : body.trim(),
+        'status': 'idea',
+      });
+
+      _refreshPlans();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  void _showCreatePlanDialog() {
+    final strings = AppStrings.of(context);
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(strings.isChinese ? '加一个计划' : 'Add a plan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  hintText: strings.isChinese ? '想做什么...' : 'What do you want to do...',
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bodyController,
+                decoration: InputDecoration(
+                  hintText: strings.isChinese ? '补充说明（可选）' : 'Details (optional)',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: _submitting
+                  ? null
+                  : () async {
+                      final success = await _submitPlan(
+                        titleController.text,
+                        bodyController.text,
+                      );
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(strings.isChinese
+                                ? '创建失败，请重试'
+                                : 'Failed to create. Please try again.'),
+                          ),
+                        );
+                      }
+                    },
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.isChinese ? '创建' : 'Create'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<bool> _submitNote(String body) async {
@@ -184,7 +305,49 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
         if (isPlanMode) ...[
           SectionHeader(title: strings.plansSectionTitle),
           _SectionIntro(text: strings.plansSectionSubtitle),
-          ...strings.plans.map((plan) => _PlanCard(plan: plan)),
+          FutureBuilder<List<PlanRecord>>(
+            future: _plansFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return Column(
+                  children: [
+                    _PlansEmptyState(isChinese: strings.isChinese),
+                    const SizedBox(height: 16),
+                    _CreatePlanButton(
+                      isChinese: strings.isChinese,
+                      onPressed: _showCreatePlanDialog,
+                    ),
+                  ],
+                );
+              }
+
+              final plans = snapshot.data!;
+              return Column(
+                children: [
+                  ...plans.map((plan) => _PlanCard(
+                    plan: PlanItemCopy(
+                      title: plan.title,
+                      body: plan.body ?? '',
+                      statusLabel: _planStatusLabel(plan.status, isChinese: strings.isChinese),
+                      helperLabel: '',
+                    ),
+                  )),
+                  const SizedBox(height: 16),
+                  _CreatePlanButton(
+                    isChinese: strings.isChinese,
+                    onPressed: _showCreatePlanDialog,
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 24),
           _SecondaryHint(
             label: strings.switchToNotesHint,
@@ -296,8 +459,10 @@ class _PlanCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(plan.title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 6),
-              Text(plan.body),
+              if (plan.body.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(plan.body),
+              ],
               const SizedBox(height: 12),
               Text(
                 plan.helperLabel,
@@ -593,6 +758,82 @@ class _WriteNoteButton extends StatelessWidget {
         onPressed: onPressed,
         icon: const Icon(Icons.edit_outlined),
         label: Text(isChinese ? '写随记' : 'Write a note'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+        ),
+      ),
+    );
+  }
+}
+
+String _planStatusLabel(String status, {required bool isChinese}) {
+  return switch (status) {
+    'idea' => isChinese ? '想法中' : 'Idea',
+    'discussing' => isChinese ? '待讨论' : 'Discussing',
+    'scheduled' => isChinese ? '已安排' : 'Scheduled',
+    'done' => isChinese ? '已完成' : 'Done',
+    'archived' => isChinese ? '已归档' : 'Archived',
+    _ => status,
+  };
+}
+
+class _PlansEmptyState extends StatelessWidget {
+  const _PlansEmptyState({required this.isChinese});
+
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.lightbulb_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isChinese ? '还没有计划' : 'No plans yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isChinese
+                  ? '想做的事先记在这里'
+                  : 'Jot down what you want to do',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CreatePlanButton extends StatelessWidget {
+  const _CreatePlanButton({
+    required this.isChinese,
+    required this.onPressed,
+  });
+
+  final bool isChinese;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add),
+        label: Text(isChinese ? '加一个计划' : 'Add a plan'),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: colorScheme.primary,
