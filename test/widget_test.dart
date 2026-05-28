@@ -5,43 +5,37 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'app defaults to simplified Chinese and shows four primary tabs',
+    'unauthenticated users see the email OTP gate instead of the app shell',
     (tester) async {
-      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.unauthenticated,
+        supabaseReady: true,
+      );
 
-      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-
-      expect(app.locale, const Locale('zh', 'CN'));
-      expect(find.text('首页'), findsWidgets);
-      expect(find.text('日历'), findsOneWidget);
-      expect(find.text('计划笔记'), findsOneWidget);
-      expect(find.text('我们'), findsOneWidget);
+      expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
     },
   );
 
-  testWidgets('home shows the main status modules', (tester) async {
-    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
-
-    expect(find.text('小满 和 阿澈'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('最近一个计划提醒'),
-      200,
-      scrollable: find.byType(Scrollable),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('最近一个计划提醒'), findsOneWidget);
-    expect(find.text('还没有计划，新建一个吧'), findsOneWidget);
-    expect(find.text('去日历'), findsOneWidget);
-  });
-
-  testWidgets('home shows empty calendar state and navigates to calendar', (
+  testWidgets('authenticated app keeps the default zh-CN locale', (
     tester,
   ) async {
-    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
+    await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
 
-    expect(find.text('暂无即将到来的日历事件'), findsWidgets);
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+
+    expect(app.locale, const Locale('zh', 'CN'));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
+  });
+
+  testWidgets('home can navigate to the calendar tab', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+    );
 
     await tester.tap(
       find.descendant(
@@ -57,53 +51,61 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('calendar-selected-date-label')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-date-label')),
+      findsOneWidget,
+    );
   });
 
-  testWidgets(
-    'tapping "新建计划" from home enters plans/notes page in plan mode',
-    (tester) async {
-      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
+  testWidgets('tapping new plan from home enters plan mode', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+    );
 
-      await tester.scrollUntilVisible(
-        find.text('新建计划'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('New plan'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('新建计划'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('New plan').first);
+    await tester.pumpAndSettle();
 
-      expect(find.text('想做的事，先记在这里'), findsOneWidget);
-      expect(find.text('计划'), findsWidgets);
-    },
-  );
+    expect(find.text('Jot down what you want to do'), findsWidgets);
+    expect(find.text('Plans'), findsWidgets);
+  });
 
-  testWidgets(
-    'tapping "写随记" from home enters plans/notes page in note mode',
-    (tester) async {
-      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
+  testWidgets('tapping write note from home enters note mode', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+    );
 
-      await tester.scrollUntilVisible(
-        find.text('写随记'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Write a note'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('写随记').first);
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Write a note').first);
+    await tester.pumpAndSettle();
 
-      expect(find.text('随手留一点，给彼此看看'), findsOneWidget);
-      expect(find.text('随记'), findsWidgets);
-    },
-  );
+    expect(
+      find.text('Leave a little something for each other'),
+      findsOneWidget,
+    );
+    expect(find.text('Notes'), findsWidgets);
+  });
 
-  testWidgets('can enter Us page and change theme and language', (
+  testWidgets('authenticated users can enter Us and change language/theme', (
     tester,
   ) async {
-    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
+    await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
 
     await tester.tap(
       find.descendant(
@@ -113,15 +115,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('我的偏好'), findsOneWidget);
-    expect(find.text('我们的空间'), findsWidgets);
+    expect(find.text('English'), findsOneWidget);
 
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('en'));
-    expect(find.text('Us'), findsWidgets);
     expect(find.text('My preferences'), findsOneWidget);
 
     await tester.scrollUntilVisible(
@@ -137,4 +137,23 @@ void main() {
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
   });
+}
+
+Future<void> _pumpApp(
+  WidgetTester tester, {
+  required AppAuthStatus authStatus,
+  AppLanguage? language,
+  bool supabaseReady = false,
+}) async {
+  final controller = AppController();
+  if (language != null) {
+    controller.setLanguage(language);
+  }
+  controller.debugSetAuthState(
+    status: authStatus,
+    supabaseReady: supabaseReady,
+  );
+
+  await tester.pumpWidget(BetweenUsApp(controller: controller));
+  await tester.pumpAndSettle();
 }

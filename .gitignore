@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.codex-*/
 
 # IntelliJ related
 *.iml
@@ -32,6 +33,21 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Android/Kotlin local build state
+/android/.kotlin/
+**/local.properties
+
+# Signing keys
+key.properties
+**/*.keystore
+**/*.jks
 
 # Symbolication related
 app.*.symbols

@@ -5,6 +5,7 @@ import 'app_controller.dart';
 import 'app_shell.dart';
 import 'app_strings.dart';
 import 'app_theme.dart';
+import '../features/auth/email_otp_sign_in_screen.dart';
 
 class BetweenUsApp extends StatelessWidget {
   const BetweenUsApp({super.key, required this.controller});
@@ -31,7 +32,10 @@ class BetweenUsApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: controller.themeMode,
-            home: const AppShell(),
+            home: switch (controller.authStatus) {
+              AppAuthStatus.authenticated => const AppShell(),
+              _ => const EmailOtpSignInScreen(),
+            },
           );
         },
       ),
