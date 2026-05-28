@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -18,30 +19,67 @@ class UsScreen extends StatefulWidget {
   State<UsScreen> createState() => _UsScreenState();
 }
 
-class _UsScreenState extends State<UsScreen> {
+class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String? _spaceName;
   String? _relationshipStartDate;
   String? _coupleSpaceId;
   int _memberCount = 0;
   bool _loading = true;
+  bool _loadingSpaceData = false;
 
   String? _currentInviteCode;
   DateTime? _currentInviteExpiresAt;
   bool _generatingInvite = false;
+  Timer? _spaceRefreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSpaceData();
+    _spaceRefreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _loadSpaceData(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _spaceRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadSpaceData();
+    }
   }
 
   Future<void> _loadSpaceData() async {
+    if (_loadingSpaceData) return;
+    _loadingSpaceData = true;
+    final appController = AppScope.read(context);
+    if (!appController.supabaseReady) {
+      debugPrint(
+        '[Space] skip load: supabase not ready (${appController.supabaseFailureReason ?? 'unknown'})',
+      );
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+      _loadingSpaceData = false;
+      return;
+    }
+
     try {
       final spaceResponse = await Supabase.instance.client
           .from('couple_spaces')
           .select('id, space_name, relationship_start_date')
           .limit(1)
           .maybeSingle();
+
+      debugPrint('[Space] loaded: $spaceResponse');
 
       if (spaceResponse != null) {
         _coupleSpaceId = spaceResponse['id'] as String;
@@ -55,9 +93,12 @@ class _UsScreenState extends State<UsScreen> {
             .eq('status', 'active');
 
         _memberCount = (membersResponse as List).length;
+        debugPrint('[Space] id=$_coupleSpaceId members=$_memberCount');
       }
-    } catch (_) {
-      // Query failed; keep defaults.
+    } catch (e) {
+      debugPrint('[Space] load failed: $e');
+    } finally {
+      _loadingSpaceData = false;
     }
 
     if (mounted) {
@@ -72,7 +113,15 @@ class _UsScreenState extends State<UsScreen> {
   }
 
   Future<void> _generateInviteCode() async {
-    if (_coupleSpaceId == null || _generatingInvite) return;
+    if (_generatingInvite) return;
+
+    if (_coupleSpaceId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('空间未初始化，请重启 App')),
+      );
+      return;
+    }
 
     setState(() => _generatingInvite = true);
 
@@ -83,13 +132,27 @@ class _UsScreenState extends State<UsScreen> {
         'p_plain_code': code,
       });
 
-      final data = response as Map<String, dynamic>;
+      final data = switch (response) {
+        final List<dynamic> rows when rows.isNotEmpty => rows.first as Map<String, dynamic>,
+        final Map<String, dynamic> row => row,
+        _ => throw StateError('Unexpected invite response: $response'),
+      };
       setState(() {
         _currentInviteCode = code;
         _currentInviteExpiresAt = DateTime.parse(data['expires_at'] as String);
       });
-    } catch (_) {
-      // Generation failed.
+    } catch (e) {
+      debugPrint('[Invite] generate failed: $e');
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              strings.isChinese ? '邀请码生成失败，请稍后重试' : 'Failed to generate invite code. Please try again later.',
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _generatingInvite = false);
@@ -113,6 +176,7 @@ class _UsScreenState extends State<UsScreen> {
         );
       }
     } catch (e) {
+      debugPrint('[Invite] accept failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

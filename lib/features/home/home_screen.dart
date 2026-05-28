@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../app/app_theme.dart';
 import '../../app/app_strings.dart';
+import '../../app/app_theme.dart';
+import '../../app/app_controller.dart';
 import '../../shared/widgets/app_page.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,6 +38,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    final appController = AppScope.read(context);
+    if (!appController.supabaseReady) {
+      debugPrint(
+        '[Home] skip load: supabase not ready (${appController.supabaseFailureReason ?? 'unknown'})',
+      );
+      return;
+    }
+
     try {
       final results = await Future.wait([
         Supabase.instance.client
@@ -103,7 +112,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         // Data loaded.
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Home] load failed: $e');
       // Query failed; keep nulls.
     }
   }

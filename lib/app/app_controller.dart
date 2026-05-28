@@ -16,10 +16,14 @@ class AppController extends ChangeNotifier {
   AppLanguage _language = AppLanguage.zhCn;
   AppThemePreference _themePreference = AppThemePreference.system;
   bool _notificationPreviewEnabled = false;
+  bool _supabaseReady = false;
+  String? _supabaseFailureReason;
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
   bool get notificationPreviewEnabled => _notificationPreviewEnabled;
+  bool get supabaseReady => _supabaseReady;
+  String? get supabaseFailureReason => _supabaseFailureReason;
 
   Locale get locale => _language.locale;
 
@@ -28,6 +32,18 @@ class AppController extends ChangeNotifier {
     AppThemePreference.light => ThemeMode.light,
     AppThemePreference.dark => ThemeMode.dark,
   };
+
+  void setSupabaseBootstrapState({
+    required bool ready,
+    String? failureReason,
+  }) {
+    if (_supabaseReady == ready && _supabaseFailureReason == failureReason) {
+      return;
+    }
+    _supabaseReady = ready;
+    _supabaseFailureReason = failureReason;
+    notifyListeners();
+  }
 
   void setLanguage(AppLanguage language) {
     if (_language == language) {
@@ -57,6 +73,12 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> loadPreferences() async {
+    if (!_supabaseReady) {
+      debugPrint(
+        '[Supabase] Skipping loadPreferences because bootstrap is not ready (${_supabaseFailureReason ?? 'unknown'})',
+      );
+      return;
+    }
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
@@ -99,6 +121,12 @@ class AppController extends ChangeNotifier {
   }
 
   void _persistProfile(Map<String, dynamic> data) {
+    if (!_supabaseReady) {
+      debugPrint(
+        '[Supabase] Skipping profile persistence because bootstrap is not ready (${_supabaseFailureReason ?? 'unknown'})',
+      );
+      return;
+    }
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
@@ -121,6 +149,13 @@ class AppScope extends InheritedNotifier<AppController> {
 
   static AppController of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
+    assert(scope != null, 'AppScope not found in context');
+    return scope!.notifier!;
+  }
+
+  static AppController read(BuildContext context) {
+    final element = context.getElementForInheritedWidgetOfExactType<AppScope>();
+    final scope = element?.widget as AppScope?;
     assert(scope != null, 'AppScope not found in context');
     return scope!.notifier!;
   }
