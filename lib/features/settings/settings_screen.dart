@@ -123,6 +123,59 @@ class _UsScreenState extends State<UsScreen> {
     }
   }
 
+  void _showEditSpaceNameDialog() {
+    final strings = AppStrings.of(context);
+    final controller = TextEditingController(text: _spaceName ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.isChinese ? '修改空间名称' : 'Edit space name'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: strings.isChinese ? '输入新的空间名称' : 'Enter a new space name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isEmpty) return;
+              Navigator.pop(context);
+              await _updateSpaceName(newName);
+            },
+            child: Text(strings.isChinese ? '保存' : 'Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateSpaceName(String newName) async {
+    if (_coupleSpaceId == null) return;
+    try {
+      await Supabase.instance.client
+          .from('couple_spaces')
+          .update({'space_name': newName}).eq('id', _coupleSpaceId!);
+      setState(() => _spaceName = newName);
+    } catch (_) {
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(strings.isChinese ? '修改失败，请重试' : 'Failed to update, please try again'),
+          ),
+        );
+      }
+    }
+  }
+
   void _showInviteCodeDialog() {
     final strings = AppStrings.of(context);
     final controller = TextEditingController();
@@ -281,6 +334,8 @@ class _UsScreenState extends State<UsScreen> {
                 leading: const Icon(Icons.home_work_outlined),
                 title: Text(strings.spaceNameTitle),
                 subtitle: Text(_spaceName ?? strings.spaceNameValue),
+                trailing: const Icon(Icons.edit_outlined, size: 20),
+                onTap: _showEditSpaceNameDialog,
               ),
               const Divider(height: 1),
               ListTile(

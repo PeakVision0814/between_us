@@ -20,6 +20,7 @@ class _BetweenUsAppState extends State<BetweenUsApp> {
   void initState() {
     super.initState();
     _controller = AppController();
+    _controller.loadPreferences();
   }
 
   @override
