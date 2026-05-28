@@ -228,7 +228,8 @@
 
 `RLS` 应确保以下原则成立：
 
-- 用户只能读取和更新自己的 `profiles` 行
+- 用户可以读取和更新自己的 `profiles` 行
+- 同一 `couple_space` 的活跃成员可以互相读取对方的 `display_name` 和 `avatar_url`
 - 用户只能修改自己的语言、主题、时区和通知偏好
 - 活跃成员才能读取所在 `couple_space`
 - 活跃成员才能读取 `calendar_events`、`plans`、`notes`

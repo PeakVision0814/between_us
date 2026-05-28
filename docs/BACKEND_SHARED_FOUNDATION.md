@@ -26,6 +26,7 @@
 - 共享空间 owner 约束
 - RLS policy
 - 最小 invite 生命周期 RPC
+- 伴侣互相可见 profiles 的 RLS 策略（`20260528150000_add_profiles_select_couple_partner.sql`）
 
 ## 关系边界
 
@@ -33,7 +34,8 @@
 
 - 一行对应一个 `auth.users.id`
 - 只承接个人资料与个人偏好
-- RLS 只允许用户读取和更新自己的行
+- RLS 允许用户读取和更新自己的完整资料行
+- RLS 允许同一 couple_space 的活跃成员互相读取最小公开资料字段：`display_name`、`avatar_url`
 
 `couple_spaces`
 
@@ -86,7 +88,7 @@
 
 `profiles`
 
-- `select`: 只能读自己
+- `select`: 本人可读取自己的完整资料；同一 `couple_space` 的活跃成员可读取对方的 `display_name` 和 `avatar_url`
 - `update`: 只能改自己
 
 `couple_spaces`
@@ -209,7 +211,7 @@
 ## 本轮明确没做
 
 - 不接 Flutter UI
-- 不做完整登录 UI
+- 不做完整登录 UI（后续阶段将补邮箱验证码登录，并预留手机号验证码登录）
 - 不做通知
 - 不做复杂云函数编排
 - 不做经期预测
