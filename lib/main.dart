@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app/app_controller.dart';
 import 'app/between_us_app.dart';
 
 Future<void> main() async {
@@ -24,5 +25,8 @@ Future<void> main() async {
     // Space already exists or creation failed; app continues.
   }
 
-  runApp(const BetweenUsApp());
+  final controller = AppController();
+  await controller.loadPreferences();
+
+  runApp(BetweenUsApp(controller: controller));
 }

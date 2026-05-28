@@ -1,3 +1,4 @@
+import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +7,7 @@ void main() {
   testWidgets(
     'app defaults to simplified Chinese and shows four primary tabs',
     (tester) async {
-      await tester.pumpWidget(const BetweenUsApp());
+      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
       final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
 
@@ -19,7 +20,7 @@ void main() {
   );
 
   testWidgets('home shows the main status modules', (tester) async {
-    await tester.pumpWidget(const BetweenUsApp());
+    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
     expect(find.text('小满 和 阿澈'), findsOneWidget);
     expect(
@@ -42,7 +43,7 @@ void main() {
   testWidgets('home featured date matches the calendar default selection', (
     tester,
   ) async {
-    await tester.pumpWidget(const BetweenUsApp());
+    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
     expect(
       find.byKey(const ValueKey('home-featured-calendar-title-relationship-anniversary')),
@@ -69,7 +70,7 @@ void main() {
   testWidgets(
     'tapping "新建计划" from home enters plans/notes page in plan mode',
     (tester) async {
-      await tester.pumpWidget(const BetweenUsApp());
+      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
       await tester.scrollUntilVisible(
         find.text('新建计划'),
@@ -89,7 +90,7 @@ void main() {
   testWidgets(
     'tapping "写随记" from home enters plans/notes page in note mode',
     (tester) async {
-      await tester.pumpWidget(const BetweenUsApp());
+      await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
       await tester.scrollUntilVisible(
         find.text('写随记'),
@@ -109,7 +110,7 @@ void main() {
   testWidgets('can enter Us page and change theme and language', (
     tester,
   ) async {
-    await tester.pumpWidget(const BetweenUsApp());
+    await tester.pumpWidget(BetweenUsApp(controller: AppController()));
 
     await tester.tap(
       find.descendant(
