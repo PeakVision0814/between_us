@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/couple_space_guard.dart';
 import '../../app/app_strings.dart';
 import '../../data/models/note_record.dart';
 import '../../data/models/plan_record.dart';
@@ -24,10 +25,12 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   Future<List<PlanRecord>>? _plansFuture;
   String? _coupleSpaceId;
   bool _submitting = false;
+  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
+    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
     _activeMode = widget.mode == PlansNotesMode.overview
         ? PlansNotesMode.plan
         : widget.mode;
@@ -38,16 +41,25 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
 
   Future<void> _loadCoupleSpaceId() async {
     try {
-      final response = await Supabase.instance.client
-          .from('couple_spaces')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
-      if (response != null) {
-        _coupleSpaceId = response['id'] as String;
-      }
+      _coupleSpaceId = await _coupleSpaceGuard.loadCurrentSpaceId();
     } catch (_) {
       // Query failed; will be null.
+    }
+  }
+
+  Future<String?> _ensureCoupleSpaceId() async {
+    final currentSpaceId = _coupleSpaceId;
+    if (currentSpaceId != null) {
+      return currentSpaceId;
+    }
+
+    try {
+      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
+      _coupleSpaceId = ensuredSpaceId;
+      return ensuredSpaceId;
+    } catch (error) {
+      debugPrint('[PlansNotes] ensure couple space failed: $error');
+      return null;
     }
   }
 
@@ -94,16 +106,18 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   }
 
   Future<bool> _submitPlan(String title, String body) async {
-    if (_coupleSpaceId == null || title.trim().isEmpty) return false;
+    if (title.trim().isEmpty) return false;
 
     setState(() => _submitting = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
+      final coupleSpaceId = await _ensureCoupleSpaceId();
+      if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('plans').insert({
-        'couple_space_id': _coupleSpaceId,
+        'couple_space_id': coupleSpaceId,
         'created_by': user.id,
         'title': title.trim(),
         'body': body.trim().isEmpty ? null : body.trim(),
@@ -137,7 +151,9 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               TextField(
                 controller: titleController,
                 decoration: InputDecoration(
-                  hintText: strings.isChinese ? '想做什么...' : 'What do you want to do...',
+                  hintText: strings.isChinese
+                      ? '想做什么...'
+                      : 'What do you want to do...',
                 ),
                 autofocus: true,
               ),
@@ -145,7 +161,9 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               TextField(
                 controller: bodyController,
                 decoration: InputDecoration(
-                  hintText: strings.isChinese ? '补充说明（可选）' : 'Details (optional)',
+                  hintText: strings.isChinese
+                      ? '补充说明（可选）'
+                      : 'Details (optional)',
                 ),
                 maxLines: 3,
               ),
@@ -169,9 +187,11 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       } else if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(strings.isChinese
-                                ? '创建失败，请重试'
-                                : 'Failed to create. Please try again.'),
+                            content: Text(
+                              strings.isChinese
+                                  ? '创建失败，请重试'
+                                  : 'Failed to create. Please try again.',
+                            ),
                           ),
                         );
                       }
@@ -191,16 +211,18 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   }
 
   Future<bool> _submitNote(String body) async {
-    if (_coupleSpaceId == null || body.trim().isEmpty) return false;
+    if (body.trim().isEmpty) return false;
 
     setState(() => _submitting = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
+      final coupleSpaceId = await _ensureCoupleSpaceId();
+      if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('notes').insert({
-        'couple_space_id': _coupleSpaceId,
+        'couple_space_id': coupleSpaceId,
         'author_profile_id': user.id,
         'body': body.trim(),
         'authored_at': DateTime.now().toIso8601String(),
@@ -253,9 +275,11 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       } else if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(strings.isChinese
-                                ? '发送失败，请重试'
-                                : 'Failed to send. Please try again.'),
+                            content: Text(
+                              strings.isChinese
+                                  ? '发送失败，请重试'
+                                  : 'Failed to send. Please try again.',
+                            ),
                           ),
                         );
                       }
@@ -315,7 +339,9 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                 );
               }
 
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty) {
                 return Column(
                   children: [
                     _PlansEmptyState(isChinese: strings.isChinese),
@@ -331,14 +357,19 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               final plans = snapshot.data!;
               return Column(
                 children: [
-                  ...plans.map((plan) => _PlanCard(
-                    plan: PlanItemCopy(
-                      title: plan.title,
-                      body: plan.body ?? '',
-                      statusLabel: _planStatusLabel(plan.status, isChinese: strings.isChinese),
-                      helperLabel: '',
+                  ...plans.map(
+                    (plan) => _PlanCard(
+                      plan: PlanItemCopy(
+                        title: plan.title,
+                        body: plan.body ?? '',
+                        statusLabel: _planStatusLabel(
+                          plan.status,
+                          isChinese: strings.isChinese,
+                        ),
+                        helperLabel: '',
+                      ),
                     ),
-                  )),
+                  ),
                   const SizedBox(height: 16),
                   _CreatePlanButton(
                     isChinese: strings.isChinese,
@@ -366,7 +397,9 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                 );
               }
 
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty) {
                 return Column(
                   children: [
                     _NotesEmptyState(isChinese: strings.isChinese),
@@ -382,13 +415,18 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               final notes = snapshot.data!;
               return Column(
                 children: [
-                  ...notes.map((note) => _NoteCard(
-                    note: NoteItemCopy(
-                      author: note.authorProfileId,
-                      timeLabel: _formatTimeLabel(note.authoredAt, isChinese: strings.isChinese),
-                      text: note.body,
+                  ...notes.map(
+                    (note) => _NoteCard(
+                      note: NoteItemCopy(
+                        author: note.authorProfileId,
+                        timeLabel: _formatTimeLabel(
+                          note.authoredAt,
+                          isChinese: strings.isChinese,
+                        ),
+                        text: note.body,
+                      ),
                     ),
-                  )),
+                  ),
                   const SizedBox(height: 16),
                   _WriteNoteButton(
                     isChinese: strings.isChinese,
@@ -694,7 +732,9 @@ class _NotesEmptyState extends StatelessWidget {
             Icon(
               Icons.note_alt_outlined,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             Text(
@@ -703,9 +743,7 @@ class _NotesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isChinese
-                  ? '写一条给对方看看吧'
-                  : 'Leave one for your partner',
+              isChinese ? '写一条给对方看看吧' : 'Leave one for your partner',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -722,7 +760,9 @@ String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
   if (difference.inMinutes < 1) {
     return isChinese ? '刚刚' : 'Just now';
   } else if (difference.inHours < 1) {
-    return isChinese ? '${difference.inMinutes} 分钟前' : '${difference.inMinutes} min ago';
+    return isChinese
+        ? '${difference.inMinutes} 分钟前'
+        : '${difference.inMinutes} min ago';
   } else if (difference.inDays < 1) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   } else if (difference.inDays < 7) {
@@ -734,16 +774,26 @@ String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
     if (isChinese) {
       return '${dateTime.month}月${dateTime.day}日';
     }
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[dateTime.month - 1]} ${dateTime.day}';
   }
 }
 
 class _WriteNoteButton extends StatelessWidget {
-  const _WriteNoteButton({
-    required this.isChinese,
-    required this.onPressed,
-  });
+  const _WriteNoteButton({required this.isChinese, required this.onPressed});
 
   final bool isChinese;
   final VoidCallback onPressed;
@@ -794,7 +844,9 @@ class _PlansEmptyState extends StatelessWidget {
             Icon(
               Icons.lightbulb_outline,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             Text(
@@ -803,9 +855,7 @@ class _PlansEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isChinese
-                  ? '想做的事先记在这里'
-                  : 'Jot down what you want to do',
+              isChinese ? '想做的事先记在这里' : 'Jot down what you want to do',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -816,10 +866,7 @@ class _PlansEmptyState extends StatelessWidget {
 }
 
 class _CreatePlanButton extends StatelessWidget {
-  const _CreatePlanButton({
-    required this.isChinese,
-    required this.onPressed,
-  });
+  const _CreatePlanButton({required this.isChinese, required this.onPressed});
 
   final bool isChinese;
   final VoidCallback onPressed;

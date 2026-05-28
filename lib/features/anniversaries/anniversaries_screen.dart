@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/couple_space_guard.dart';
 import '../../app/app_strings.dart';
 import '../../data/models/calendar_event_record.dart';
 import '../../shared/widgets/app_page.dart';
@@ -18,10 +19,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<CalendarEventRecord> _events = [];
   String? _coupleSpaceId;
   bool _submitting = false;
+  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
+    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
     _loadCoupleSpaceId();
     _loadEvents();
   }
@@ -29,22 +32,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedDate ??= _dateOnly(AppStrings.of(context).calendarDefaultSelectedDate);
+    _selectedDate ??= _dateOnly(
+      AppStrings.of(context).calendarDefaultSelectedDate,
+    );
   }
 
   Future<void> _loadCoupleSpaceId() async {
     try {
-      final response = await Supabase.instance.client
-          .from('couple_spaces')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
-      if (response != null) {
-        _coupleSpaceId = response['id'] as String;
-      }
+      _coupleSpaceId = await _coupleSpaceGuard.loadCurrentSpaceId();
     } catch (_) {
       // Supabase not initialized or query failed
       _coupleSpaceId = null;
+    }
+  }
+
+  Future<String?> _ensureCoupleSpaceId() async {
+    final currentSpaceId = _coupleSpaceId;
+    if (currentSpaceId != null) {
+      return currentSpaceId;
+    }
+
+    try {
+      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
+      _coupleSpaceId = ensuredSpaceId;
+      return ensuredSpaceId;
+    } catch (error) {
+      debugPrint('[Calendar] ensure couple space failed: $error');
+      return null;
     }
   }
 
@@ -57,7 +71,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           .filter('deleted_at', 'is', null)
           .order('starts_at', ascending: true);
       final records = (response as List)
-          .map((json) => CalendarEventRecord.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                CalendarEventRecord.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       if (mounted) {
         setState(() {
@@ -81,16 +98,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     required String recurrence,
     bool allDay = false,
   }) async {
-    if (_coupleSpaceId == null || title.trim().isEmpty) return false;
+    if (title.trim().isEmpty) return false;
 
     setState(() => _submitting = true);
 
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
+      final coupleSpaceId = await _ensureCoupleSpaceId();
+      if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('calendar_events').insert({
-        'couple_space_id': _coupleSpaceId,
+        'couple_space_id': coupleSpaceId,
         'created_by': user.id,
         'event_type': eventType,
         'title': title.trim(),
@@ -123,15 +142,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
       entries: entries,
       visibleDays: visibleDays,
     );
-    final selectedEntries = [
-      ...(entriesByDay[_dateKey(_selectedDate!)] ?? const <CalendarEntryData>[]),
-    ]..sort(
-        (left, right) => _occurrenceOnDay(
-          left,
-          _selectedDate!,
-        ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
-      );
-    final upcomingEntries = _getUpcomingEntries(entries, strings.calendarPrototypeReferenceDate);
+    final selectedEntries =
+        [
+          ...(entriesByDay[_dateKey(_selectedDate!)] ??
+              const <CalendarEntryData>[]),
+        ]..sort(
+          (left, right) => _occurrenceOnDay(
+            left,
+            _selectedDate!,
+          ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
+        );
+    final upcomingEntries = _getUpcomingEntries(
+      entries,
+      strings.calendarPrototypeReferenceDate,
+    );
 
     return AppPage(
       children: [
@@ -226,10 +250,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         const SizedBox(height: 18),
         SectionHeader(title: strings.calendarComposerTitle),
-        _ComposerCard(
-          submitting: _submitting,
-          onSubmit: _submitEvent,
-        ),
+        _ComposerCard(submitting: _submitting, onSubmit: _submitEvent),
       ],
     );
   }
@@ -304,11 +325,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return entry.startsAt;
   }
 
-  static DateTime _dateOnly(DateTime date) => DateTime(
-    date.year,
-    date.month,
-    date.day,
-  );
+  static DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   static String _dateKey(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
@@ -491,10 +509,7 @@ class _DayCell extends StatelessWidget {
 }
 
 class _SelectedEntryCard extends StatelessWidget {
-  const _SelectedEntryCard({
-    required this.entry,
-    required this.occurrence,
-  });
+  const _SelectedEntryCard({required this.entry, required this.occurrence});
 
   final CalendarEntryData entry;
   final DateTime occurrence;
@@ -534,10 +549,7 @@ class _SelectedEntryCard extends StatelessWidget {
           Text(entry.description),
           const SizedBox(height: 10),
           Text(
-            strings.formatCalendarDate(
-              occurrence,
-              includeTime: showsTime,
-            ),
+            strings.formatCalendarDate(occurrence, includeTime: showsTime),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -582,10 +594,7 @@ class _SelectedDayEmptyState extends StatelessWidget {
 }
 
 class _UpcomingEventCard extends StatelessWidget {
-  const _UpcomingEventCard({
-    required this.entry,
-    required this.occurrence,
-  });
+  const _UpcomingEventCard({required this.entry, required this.occurrence});
 
   final CalendarEntryData entry;
   final DateTime occurrence;
@@ -615,7 +624,9 @@ class _UpcomingEventCard extends StatelessWidget {
                         _MetaChip(label: strings.calendarTypeLabel(entry.type)),
                         if (entry.repeatRule == CalendarRepeatRule.yearly)
                           _MetaChip(
-                            label: strings.calendarRepeatLabel(entry.repeatRule),
+                            label: strings.calendarRepeatLabel(
+                              entry.repeatRule,
+                            ),
                           ),
                       ],
                     ),
@@ -722,7 +733,9 @@ class _UpcomingEmptyState extends StatelessWidget {
             Icon(
               Icons.event_outlined,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             Text(
@@ -744,10 +757,7 @@ class _UpcomingEmptyState extends StatelessWidget {
 }
 
 class _ComposerCard extends StatefulWidget {
-  const _ComposerCard({
-    required this.submitting,
-    required this.onSubmit,
-  });
+  const _ComposerCard({required this.submitting, required this.onSubmit});
 
   final bool submitting;
   final Future<bool> Function({
@@ -757,7 +767,8 @@ class _ComposerCard extends StatefulWidget {
     required String eventType,
     required String recurrence,
     bool allDay,
-  }) onSubmit;
+  })
+  onSubmit;
 
   @override
   State<_ComposerCard> createState() => _ComposerCardState();
@@ -788,7 +799,11 @@ class _ComposerCardState extends State<_ComposerCard> {
                   spacing: 8,
                   children: [
                     ChoiceChip(
-                      label: Text(strings.calendarTypeLabel(CalendarEntryType.anniversary)),
+                      label: Text(
+                        strings.calendarTypeLabel(
+                          CalendarEntryType.anniversary,
+                        ),
+                      ),
                       selected: _selectedType == 'anniversary',
                       onSelected: (selected) {
                         if (selected) {
@@ -800,7 +815,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                       },
                     ),
                     ChoiceChip(
-                      label: Text(strings.calendarTypeLabel(CalendarEntryType.datePlan)),
+                      label: Text(
+                        strings.calendarTypeLabel(CalendarEntryType.datePlan),
+                      ),
                       selected: _selectedType == 'date_plan',
                       onSelected: (selected) {
                         if (selected) {
@@ -812,7 +829,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                       },
                     ),
                     ChoiceChip(
-                      label: Text(strings.calendarTypeLabel(CalendarEntryType.reminder)),
+                      label: Text(
+                        strings.calendarTypeLabel(CalendarEntryType.reminder),
+                      ),
                       selected: _selectedType == 'reminder',
                       onSelected: (selected) {
                         if (selected) {
@@ -837,7 +856,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                 TextField(
                   controller: descriptionController,
                   decoration: InputDecoration(
-                    hintText: strings.isChinese ? '描述（可选）' : 'Description (optional)',
+                    hintText: strings.isChinese
+                        ? '描述（可选）'
+                        : 'Description (optional)',
                   ),
                   maxLines: 2,
                 ),
@@ -892,7 +913,11 @@ class _ComposerCardState extends State<_ComposerCard> {
                   ? null
                   : () async {
                       final startsAt = isAllDay
-                          ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
+                          ? DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                            )
                           : DateTime(
                               selectedDate.year,
                               selectedDate.month,
@@ -908,7 +933,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                             : descriptionController.text,
                         startsAt: startsAt,
                         eventType: _selectedType,
-                        recurrence: _selectedType == 'anniversary' ? 'yearly' : 'none',
+                        recurrence: _selectedType == 'anniversary'
+                            ? 'yearly'
+                            : 'none',
                         allDay: isAllDay,
                       );
 
@@ -917,9 +944,11 @@ class _ComposerCardState extends State<_ComposerCard> {
                       } else if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(strings.isChinese
-                                ? '创建失败，请重试'
-                                : 'Failed to create. Please try again.'),
+                            content: Text(
+                              strings.isChinese
+                                  ? '创建失败，请重试'
+                                  : 'Failed to create. Please try again.',
+                            ),
                           ),
                         );
                       }
@@ -960,7 +989,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                     _showCreateDialog();
                   },
                   child: _EntryChip(
-                    label: strings.calendarTypeLabel(CalendarEntryType.anniversary),
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.anniversary,
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -969,7 +1000,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                     _showCreateDialog();
                   },
                   child: _EntryChip(
-                    label: strings.calendarTypeLabel(CalendarEntryType.datePlan),
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.datePlan,
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -978,7 +1011,9 @@ class _ComposerCardState extends State<_ComposerCard> {
                     _showCreateDialog();
                   },
                   child: _EntryChip(
-                    label: strings.calendarTypeLabel(CalendarEntryType.reminder),
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.reminder,
+                    ),
                   ),
                 ),
               ],
@@ -988,7 +1023,9 @@ class _ComposerCardState extends State<_ComposerCard> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
+                color: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(

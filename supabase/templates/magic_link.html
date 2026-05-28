@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Between Us sign-in code</title>
+  </head>
+  <body style="margin:0;padding:24px;background:#f5efe8;font-family:Arial,sans-serif;color:#2f2723;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            style="max-width:480px;background:#fffaf6;border-radius:20px;padding:32px;border:1px solid #eadfd5;"
+          >
+            <tr>
+              <td>
+                <p style="margin:0 0 12px;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#8b6f5a;">
+                  Between Us
+                </p>
+                <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;">
+                  Your 6-digit sign-in code
+                </h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">
+                  Enter this code in the app to finish signing in. Do not use the email link as the
+                  primary login flow for this project.
+                </p>
+                <div
+                  style="margin:0 0 24px;padding:18px 20px;border-radius:16px;background:#f3e6db;text-align:center;font-size:32px;font-weight:700;letter-spacing:0.3em;color:#5b4030;"
+                >
+                  {{ .Token }}
+                </div>
+                <p style="margin:0 0 12px;font-size:14px;line-height:1.7;">
+                  This code expires in 1 hour. If you did not request it, you can ignore this email.
+                </p>
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#7d6b5f;">
+                  For debugging only, the generated confirmation URL is:
+                  <br />
+                  <a href="{{ .ConfirmationURL }}" style="color:#7d6b5f;">{{ .ConfirmationURL }}</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

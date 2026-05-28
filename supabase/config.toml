@@ -238,6 +238,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Local Email OTP should use a 6-digit token instead of a magic link.
+[auth.email.template.magic_link]
+subject = "Your Between Us sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
