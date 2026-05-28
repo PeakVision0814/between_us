@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_theme.dart';
 import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.onOpenCalendar,
@@ -21,33 +22,141 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onWriteNote;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  CalendarItemCopy? _nextDate;
+  NoteItemCopy? _recentNote;
+  PlanItemCopy? _recentPlan;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        Supabase.instance.client
+            .from('notes')
+            .select('body, authored_at')
+            .filter('deleted_at', 'is', null)
+            .order('authored_at', ascending: false)
+            .limit(1)
+            .maybeSingle(),
+        Supabase.instance.client
+            .from('calendar_events')
+            .select('title, description, starts_at, event_type')
+            .filter('deleted_at', 'is', null)
+            .gte('starts_at', DateTime.now().toIso8601String().substring(0, 10))
+            .order('starts_at', ascending: true)
+            .limit(1)
+            .maybeSingle(),
+        Supabase.instance.client
+            .from('plans')
+            .select('title, body, status')
+            .filter('deleted_at', 'is', null)
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle(),
+      ]);
+
+      if (!mounted) return;
+      final strings = AppStrings.of(context);
+
+      final noteData = results[0];
+      final eventData = results[1];
+      final planData = results[2];
+
+      setState(() {
+        if (noteData != null) {
+          _recentNote = NoteItemCopy(
+            author: '',
+            timeLabel: _formatTimeAgo(
+              DateTime.parse(noteData['authored_at'] as String),
+              strings.isChinese,
+            ),
+            text: noteData['body'] as String,
+          );
+        }
+        if (eventData != null) {
+          final startsAt = DateTime.parse(eventData['starts_at'] as String);
+          final eventType = eventData['event_type'] as String;
+          _nextDate = CalendarItemCopy(
+            id: 'home-featured',
+            title: eventData['title'] as String,
+            subtitle: eventData['description'] as String? ?? '',
+            dateLabel: strings.formatCalendarDate(startsAt, includeTime: startsAt.hour != 0),
+            countdownLabel: strings.formatCountdownLabel(startsAt, DateTime.now()),
+            typeLabel: strings.calendarTypeLabel(_mapEventType(eventType)),
+          );
+        }
+        if (planData != null) {
+          _recentPlan = PlanItemCopy(
+            title: planData['title'] as String,
+            body: planData['body'] as String? ?? '',
+            statusLabel: _mapPlanStatus(planData['status'] as String, strings.isChinese),
+            helperLabel: strings.isChinese ? '来自计划' : 'From plans',
+          );
+        }
+        // Data loaded.
+      });
+    } catch (_) {
+      // Query failed; keep nulls.
+    }
+  }
+
+  static String _formatTimeAgo(DateTime dt, bool isChinese) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return isChinese ? '刚刚' : 'Just now';
+    if (diff.inHours < 1) return isChinese ? '${diff.inMinutes} 分钟前' : '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return isChinese ? '${diff.inHours} 小时前' : '${diff.inHours}h ago';
+    if (diff.inDays < 30) return isChinese ? '${diff.inDays} 天前' : '${diff.inDays}d ago';
+    return isChinese ? '${dt.month} 月 ${dt.day} 日' : '${dt.month}/${dt.day}';
+  }
+
+  static CalendarEntryType _mapEventType(String type) => switch (type) {
+        'anniversary' => CalendarEntryType.anniversary,
+        'reminder' => CalendarEntryType.reminder,
+        _ => CalendarEntryType.datePlan,
+      };
+
+  static String _mapPlanStatus(String status, bool isChinese) => switch (status) {
+        'idea' => isChinese ? '想法中' : 'Idea',
+        'planned' => isChinese ? '已安排' : 'Planned',
+        'done' => isChinese ? '已完成' : 'Done',
+        _ => status,
+      };
+
+  @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final nextDate = strings.calendarFeaturedItem;
-    final recentNote = strings.notes.first;
-    final recentPlan = strings.plans.first;
 
     return AppPage(
       children: [
         _HomeHero(
-          nextDate: nextDate,
-          onOpenCalendar: onOpenCalendar,
-          onOpenUs: onOpenUs,
+          nextDate: _nextDate,
+          onOpenCalendar: widget.onOpenCalendar,
+          onOpenUs: widget.onOpenUs,
+          isChinese: strings.isChinese,
         ),
         const SizedBox(height: 22),
-        _NextDatePanel(item: nextDate, onTap: onOpenCalendar),
+        _NextDatePanel(item: _nextDate, onTap: widget.onOpenCalendar, isChinese: strings.isChinese),
         const SizedBox(height: 22),
         _RecentPreviewPanel(
-          note: recentNote,
-          plan: recentPlan,
-          onOpenPlansNotes: onOpenPlansNotes,
-          onWriteNote: onWriteNote,
+          note: _recentNote,
+          plan: _recentPlan,
+          onOpenPlansNotes: widget.onOpenPlansNotes,
+          onWriteNote: widget.onWriteNote,
+          isChinese: strings.isChinese,
         ),
         const SizedBox(height: 22),
         _PrimaryActions(
-          onOpenCalendar: onOpenCalendar,
-          onCreatePlan: onCreatePlan,
-          onWriteNote: onWriteNote,
+          onOpenCalendar: widget.onOpenCalendar,
+          onCreatePlan: widget.onCreatePlan,
+          onWriteNote: widget.onWriteNote,
         ),
       ],
     );
@@ -59,11 +168,13 @@ class _HomeHero extends StatelessWidget {
     required this.nextDate,
     required this.onOpenCalendar,
     required this.onOpenUs,
+    required this.isChinese,
   });
 
-  final CalendarItemCopy nextDate;
+  final CalendarItemCopy? nextDate;
   final VoidCallback onOpenCalendar;
   final VoidCallback onOpenUs;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +244,7 @@ class _HomeHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 22),
-                _HeroMoment(item: nextDate, onOpenCalendar: onOpenCalendar),
+                _HeroMoment(item: nextDate, onOpenCalendar: onOpenCalendar, isChinese: isChinese),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -170,10 +281,11 @@ class _HomeHero extends StatelessWidget {
 }
 
 class _HeroMoment extends StatelessWidget {
-  const _HeroMoment({required this.item, required this.onOpenCalendar});
+  const _HeroMoment({required this.item, required this.onOpenCalendar, required this.isChinese});
 
-  final CalendarItemCopy item;
+  final CalendarItemCopy? item;
   final VoidCallback onOpenCalendar;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -187,36 +299,41 @@ class _HeroMoment extends StatelessWidget {
         onTap: onOpenCalendar,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _TypeBadge(label: item.typeLabel),
-                  const Spacer(),
-                  Text(
-                    item.countdownLabel,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.primary,
+          child: item != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _TypeBadge(label: item!.typeLabel),
+                        const Spacer(),
+                        Text(
+                          item!.countdownLabel,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                item.title,
-                key: ValueKey('home-featured-calendar-title-${item.id}'),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 6),
-              Text(item.subtitle),
-              const SizedBox(height: 8),
-              Text(
-                item.dateLabel,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
+                    const SizedBox(height: 12),
+                    Text(
+                      item!.title,
+                      key: ValueKey('home-featured-calendar-title-${item!.id}'),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(item!.subtitle),
+                    const SizedBox(height: 8),
+                    Text(
+                      item!.dateLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                )
+              : Text(
+                  isChinese ? '暂无即将到来的日历事件' : 'No upcoming calendar events',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
         ),
       ),
     );
@@ -282,10 +399,11 @@ class _PrimaryActions extends StatelessWidget {
 }
 
 class _NextDatePanel extends StatelessWidget {
-  const _NextDatePanel({required this.item, required this.onTap});
+  const _NextDatePanel({required this.item, required this.onTap, required this.isChinese});
 
-  final CalendarItemCopy item;
+  final CalendarItemCopy? item;
   final VoidCallback onTap;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +414,7 @@ class _NextDatePanel extends StatelessWidget {
       children: [
         _SectionTitle(title: strings.nextDateSection),
         const SizedBox(height: 12),
-        _DatePreviewCard(item: item, onTap: onTap),
+        _DatePreviewCard(item: item, onTap: onTap, isChinese: isChinese),
       ],
     );
   }
@@ -308,12 +426,14 @@ class _RecentPreviewPanel extends StatelessWidget {
     required this.plan,
     required this.onOpenPlansNotes,
     required this.onWriteNote,
+    required this.isChinese,
   });
 
-  final NoteItemCopy note;
-  final PlanItemCopy plan;
+  final NoteItemCopy? note;
+  final PlanItemCopy? plan;
   final VoidCallback onOpenPlansNotes;
   final VoidCallback onWriteNote;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -324,21 +444,22 @@ class _RecentPreviewPanel extends StatelessWidget {
       children: [
         _SectionTitle(title: strings.recentUpdateSection),
         const SizedBox(height: 12),
-        _NotePreviewCard(note: note, onWriteNote: onWriteNote),
+        _NotePreviewCard(note: note, onWriteNote: onWriteNote, isChinese: isChinese),
         const SizedBox(height: 14),
         _SectionTitle(title: strings.recentPlanSection),
         const SizedBox(height: 12),
-        _PlanPreviewCard(plan: plan, onTap: onOpenPlansNotes),
+        _PlanPreviewCard(plan: plan, onTap: onOpenPlansNotes, isChinese: isChinese),
       ],
     );
   }
 }
 
 class _DatePreviewCard extends StatelessWidget {
-  const _DatePreviewCard({required this.item, required this.onTap});
+  const _DatePreviewCard({required this.item, required this.onTap, required this.isChinese});
 
-  final CalendarItemCopy item;
+  final CalendarItemCopy? item;
   final VoidCallback onTap;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -346,50 +467,56 @@ class _DatePreviewCard extends StatelessWidget {
 
     return _SurfacePanel(
       onTap: onTap,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconTile(icon: Icons.event_available_outlined, color: AppTheme.gold),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+      child: item != null
+          ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TypeBadge(label: item.typeLabel),
-                const SizedBox(height: 10),
-                Text(
-                  item.title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                _IconTile(icon: Icons.event_available_outlined, color: AppTheme.gold),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _TypeBadge(label: item!.typeLabel),
+                      const SizedBox(height: 10),
+                      Text(
+                        item!.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 5),
+                      Text(item!.subtitle),
+                      const SizedBox(height: 10),
+                      Text(
+                        item!.dateLabel,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 5),
-                Text(item.subtitle),
-                const SizedBox(height: 10),
+                const SizedBox(width: 12),
                 Text(
-                  item.dateLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  item!.countdownLabel,
+                  textAlign: TextAlign.right,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: colorScheme.primary),
                 ),
               ],
+            )
+          : Text(
+              isChinese ? '暂无即将到来的日历事件' : 'No upcoming calendar events',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            item.countdownLabel,
-            textAlign: TextAlign.right,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: colorScheme.primary),
-          ),
-        ],
-      ),
     );
   }
 }
 
 class _NotePreviewCard extends StatelessWidget {
-  const _NotePreviewCard({required this.note, required this.onWriteNote});
+  const _NotePreviewCard({required this.note, required this.onWriteNote, required this.isChinese});
 
-  final NoteItemCopy note;
+  final NoteItemCopy? note;
   final VoidCallback onWriteNote;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
@@ -399,31 +526,38 @@ class _NotePreviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _IconTile(icon: Icons.notes_rounded, color: AppTheme.blush),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${note.author} · ${note.timeLabel}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      note.text,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(height: 1.35),
-                    ),
-                  ],
+          if (note != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _IconTile(icon: Icons.notes_rounded, color: AppTheme.blush),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        note!.timeLabel,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        note!.text,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(height: 1.35),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ] else ...[
+            Text(
+              isChinese ? '还没有随记，写一条吧' : 'No notes yet — write one',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
@@ -440,44 +574,52 @@ class _NotePreviewCard extends StatelessWidget {
 }
 
 class _PlanPreviewCard extends StatelessWidget {
-  const _PlanPreviewCard({required this.plan, required this.onTap});
+  const _PlanPreviewCard({required this.plan, required this.onTap, required this.isChinese});
 
-  final PlanItemCopy plan;
+  final PlanItemCopy? plan;
   final VoidCallback onTap;
+  final bool isChinese;
 
   @override
   Widget build(BuildContext context) {
     return _SurfacePanel(
       onTap: onTap,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconTile(icon: Icons.route_outlined, color: AppTheme.mint),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+      child: plan != null
+          ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TypeBadge(label: plan.statusLabel),
-                const SizedBox(height: 10),
-                Text(
-                  plan.title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                _IconTile(icon: Icons.route_outlined, color: AppTheme.mint),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _TypeBadge(label: plan!.statusLabel),
+                      const SizedBox(height: 10),
+                      Text(
+                        plan!.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      if (plan!.body.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(plan!.body),
+                      ],
+                      const SizedBox(height: 10),
+                      Text(
+                        plan!.helperLabel,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(plan.body),
-                const SizedBox(height: 10),
-                Text(
-                  plan.helperLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded),
               ],
+            )
+          : Text(
+              isChinese ? '还没有计划，新建一个吧' : 'No plans yet — create one',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right_rounded),
-        ],
-      ),
     );
   }
 }
