@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
+import '../../app/couple_space_guard.dart';
 import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/debug_refresh_diagnostics_card.dart';
@@ -31,11 +32,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   DateTime? _currentInviteExpiresAt;
   bool _generatingInvite = false;
   Timer? _spaceRefreshTimer;
+  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
     _loadSpaceData();
     _spaceRefreshTimer = Timer.periodic(
       const Duration(seconds: 5),
@@ -73,10 +76,15 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
 
     try {
+      _coupleSpaceId = await _ensureCoupleSpaceId();
+      if (_coupleSpaceId == null) {
+        return;
+      }
+
       final spaceResponse = await Supabase.instance.client
           .from('couple_spaces')
           .select('id, space_name, relationship_start_date')
-          .limit(1)
+          .eq('id', _coupleSpaceId!)
           .maybeSingle();
 
       debugPrint('[Space] loaded: $spaceResponse');
@@ -84,7 +92,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       if (spaceResponse != null) {
         _coupleSpaceId = spaceResponse['id'] as String;
         _spaceName = spaceResponse['space_name'] as String?;
-        _relationshipStartDate = spaceResponse['relationship_start_date'] as String?;
+        _relationshipStartDate =
+            spaceResponse['relationship_start_date'] as String?;
 
         final membersResponse = await Supabase.instance.client
             .from('couple_memberships')
@@ -106,6 +115,22 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<String?> _ensureCoupleSpaceId() async {
+    final currentSpaceId = _coupleSpaceId;
+    if (currentSpaceId != null && currentSpaceId.isNotEmpty) {
+      return currentSpaceId;
+    }
+
+    try {
+      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
+      _coupleSpaceId = ensuredSpaceId;
+      return ensuredSpaceId;
+    } catch (error) {
+      debugPrint('[Space] ensure couple space failed: $error');
+      return null;
+    }
+  }
+
   String _generateRandomCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random();
@@ -115,11 +140,12 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   Future<void> _generateInviteCode() async {
     if (_generatingInvite) return;
 
-    if (_coupleSpaceId == null) {
+    final coupleSpaceId = await _ensureCoupleSpaceId();
+    if (coupleSpaceId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('空间未初始化，请重启 App')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('空间未初始化，请重启 App')));
       return;
     }
 
@@ -127,13 +153,14 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
     try {
       final code = _generateRandomCode();
-      final response = await Supabase.instance.client.rpc('create_couple_invite', params: {
-        'p_couple_space_id': _coupleSpaceId,
-        'p_plain_code': code,
-      });
+      final response = await Supabase.instance.client.rpc(
+        'create_couple_invite',
+        params: {'p_couple_space_id': coupleSpaceId, 'p_plain_code': code},
+      );
 
       final data = switch (response) {
-        final List<dynamic> rows when rows.isNotEmpty => rows.first as Map<String, dynamic>,
+        final List<dynamic> rows when rows.isNotEmpty =>
+          rows.first as Map<String, dynamic>,
         final Map<String, dynamic> row => row,
         _ => throw StateError('Unexpected invite response: $response'),
       };
@@ -148,7 +175,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              strings.isChinese ? '邀请码生成失败，请稍后重试' : 'Failed to generate invite code. Please try again later.',
+              strings.isChinese
+                  ? '邀请码生成失败，请稍后重试'
+                  : 'Failed to generate invite code. Please try again later.',
             ),
           ),
         );
@@ -162,16 +191,21 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   Future<void> _acceptInvite(String code) async {
     try {
-      await Supabase.instance.client.rpc('accept_couple_invite', params: {
-        'p_plain_code': code,
-      });
+      await Supabase.instance.client.rpc(
+        'accept_couple_invite',
+        params: {'p_plain_code': code},
+      );
 
       await _loadSpaceData();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppStrings.of(context).isChinese ? '已成功加入空间' : 'Successfully joined the space'),
+            content: Text(
+              AppStrings.of(context).isChinese
+                  ? '已成功加入空间'
+                  : 'Successfully joined the space',
+            ),
           ),
         );
       }
@@ -180,7 +214,11 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppStrings.of(context).isChinese ? '邀请码无效或已过期' : 'Invalid or expired invite code'),
+            content: Text(
+              AppStrings.of(context).isChinese
+                  ? '邀请码无效或已过期'
+                  : 'Invalid or expired invite code',
+            ),
           ),
         );
       }
@@ -197,7 +235,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(strings.isChinese ? '确认退出登录？' : 'Sign out of this account?'),
+        title: Text(
+          strings.isChinese ? '确认退出登录？' : 'Sign out of this account?',
+        ),
         content: Text(
           strings.isChinese
               ? '退出后会清理当前账号的本地登录状态、昵称和偏好，并回到登录页。'
@@ -280,14 +320,19 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     try {
       await Supabase.instance.client
           .from('couple_spaces')
-          .update({'space_name': newName}).eq('id', _coupleSpaceId!);
+          .update({'space_name': newName})
+          .eq('id', _coupleSpaceId!);
       setState(() => _spaceName = newName);
     } catch (_) {
       if (mounted) {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(strings.isChinese ? '修改失败，请重试' : 'Failed to update, please try again'),
+            content: Text(
+              strings.isChinese
+                  ? '修改失败，请重试'
+                  : 'Failed to update, please try again',
+            ),
           ),
         );
       }
@@ -305,7 +350,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            hintText: strings.isChinese ? '请输入对方分享的邀请码' : 'Enter the invite code shared by your partner',
+            hintText: strings.isChinese
+                ? '请输入对方分享的邀请码'
+                : 'Enter the invite code shared by your partner',
           ),
           autofocus: true,
         ),
@@ -361,8 +408,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                         value: _loading
                             ? '...'
                             : _memberCount >= 2
-                                ? (strings.isChinese ? '已激活' : 'Active')
-                                : (strings.isChinese ? '等待对方加入' : 'Waiting for partner'),
+                            ? (strings.isChinese ? '已激活' : 'Active')
+                            : (strings.isChinese
+                                  ? '等待对方加入'
+                                  : 'Waiting for partner'),
                       ),
                     ),
                   ],
@@ -485,11 +534,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ListTile(
                 leading: const Icon(Icons.mail_outline),
                 title: Text(strings.inviteStatusTitle),
-                subtitle: Text(_loading
-                    ? '...'
-                    : _memberCount >= 2
-                        ? (strings.isChinese ? '已激活' : 'Active')
-                        : (strings.isChinese ? '等待对方加入' : 'Waiting for partner')),
+                subtitle: Text(
+                  _loading
+                      ? '...'
+                      : _memberCount >= 2
+                      ? (strings.isChinese ? '已激活' : 'Active')
+                      : (strings.isChinese ? '等待对方加入' : 'Waiting for partner'),
+                ),
               ),
               if (!_loading && _memberCount < 2) ...[
                 const Divider(height: 1),
@@ -505,9 +556,15 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -515,19 +572,24 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                               Expanded(
                                 child: Text(
                                   _currentInviteCode!,
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontFamily: 'monospace',
-                                    letterSpacing: 2,
-                                  ),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontFamily: 'monospace',
+                                        letterSpacing: 2,
+                                      ),
                                 ),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.copy, size: 20),
                                 onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: _currentInviteCode!));
+                                  Clipboard.setData(
+                                    ClipboardData(text: _currentInviteCode!),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(strings.isChinese ? '已复制' : 'Copied'),
+                                      content: Text(
+                                        strings.isChinese ? '已复制' : 'Copied',
+                                      ),
                                       duration: const Duration(seconds: 2),
                                     ),
                                   );
@@ -548,15 +610,28 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                   ),
                 ] else ...[
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: _generatingInvite ? null : _generateInviteCode,
+                        onPressed: _generatingInvite
+                            ? null
+                            : _generateInviteCode,
                         icon: _generatingInvite
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Icon(Icons.vpn_key_outlined),
-                        label: Text(strings.isChinese ? '生成邀请码' : 'Generate invite code'),
+                        label: Text(
+                          strings.isChinese ? '生成邀请码' : 'Generate invite code',
+                        ),
                       ),
                     ),
                   ),
@@ -568,7 +643,11 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                     child: OutlinedButton.icon(
                       onPressed: _showInviteCodeDialog,
                       icon: const Icon(Icons.login),
-                      label: Text(strings.isChinese ? '输入邀请码加入' : 'Enter invite code to join'),
+                      label: Text(
+                        strings.isChinese
+                            ? '输入邀请码加入'
+                            : 'Enter invite code to join',
+                      ),
                     ),
                   ),
                 ),
@@ -583,7 +662,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ListTile(
                 leading: const Icon(Icons.favorite_outline),
                 title: Text(strings.relationshipDateTitle),
-                subtitle: Text(_relationshipStartDate ?? strings.relationshipDateValue),
+                subtitle: Text(
+                  _relationshipStartDate ?? strings.relationshipDateValue,
+                ),
               ),
             ],
           ),
