@@ -311,32 +311,72 @@
 - 昵称设置后可在"我们"页随时修改
 - 头像暂用首字母头像（取昵称第一个字），不做图片上传
 
+### 登录与注册分离
+
+登录和注册是两个独立流程，不允许合并：
+
+- **登录**：仅允许已注册用户使用，输入未注册邮箱时提示”该邮箱尚未注册”并引导去注册页
+- **注册**：新用户通过注册页创建账号，同样使用邮箱验证码确认身份
+
+Supabase 配置要求：关闭 “Enable automatic account creation on sign in”，确保 signInWithOtp 不会对不存在的邮箱自动创建账号。
+
+分离的原因：
+- 用户必须明确知道自己在做什么（登录 vs 注册）
+- 防止输错邮箱意外创建空账号产生脏数据
+- 注册时可引导用户了解产品定位
+- 为后续手机号登录/注册预留清晰的入口结构
+
 ### 登录门禁流程
 
 ```
 App 启动 → 初始化 Supabase → 检查 session
-  → 无 session → 登录页 → 发送邮箱验证码 → 输入 6 位验证码 → 验证成功
   → 有 session → 直接继续初始化用户数据
-  → 登录成功后 → 检查/创建 profile → 检查 display_name
+  → 无 session → 进入登录页
+    → 用户输入已注册邮箱 → 发送验证码 → 输入 6 位验证码 → 验证成功
+    → 用户输入未注册邮箱 → 提示”该邮箱尚未注册” → 引导跳转注册页
+  → 登录/注册成功后 → 检查/创建 profile → 检查 display_name
     → 默认值 → 昵称设置引导页 → 设置后进入主页
     → 已有昵称 → 直接进入主页
 ```
 
-注意：`handle_new_user()` 触发器会在 `auth.users` 插入时自动创建 `profiles` 行，但触发器执行有微小延迟。前端在登录成功后查询 profiles 时，如果查不到应等待重试，而非直接报错。
+### 注册流程
 
-登录页要求：
+```
+注册页 → 用户输入邮箱 → 调用 auth.signUp → 发送验证码
+  → 输入 6 位验证码 → 验证成功
+  → handle_new_user() 触发器自动创建 profiles 行
+  → 进入昵称设置引导页 → 设置后进入主页
+```
+
+注意：`handle_new_user()` 触发器会在 `auth.users` 插入时自动创建 `profiles` 行，但触发器执行有微小延迟。前端在注册/登录成功后查询 profiles 时，如果查不到应等待重试，而非直接报错。
+
+### 登录页要求
+
 - 出现在 App Shell 之前
 - 默认只提供邮箱验证码登录
 - 首版主流程是 App 内输入 6 位验证码
 - 不采用邮件链接跳转作为主流程
-- 明确提示“登录后才能进入完整界面”
+- 明确提示”登录后才能进入完整界面”
+- 底部提供”没有账号？去注册”跳转链接
+- 未注册邮箱输入后显示友好提示并引导去注册
 - 保留未来增加手机号验证码登录入口的位置
 
-昵称引导页要求：
-- 全屏页面，出现在首次登录后的主界面之前
-- 标题："给自己取个名字吧"
-- 输入框 placeholder："对方会看到这个名字"
-- 可跳过，但跳过后仍可在"我们"页修改
+### 注册页要求
+
+- 出现在 App Shell 之前，与登录页平级
+- 标题：中文”创建账号” / 英文”Create Account”
+- 简短说明产品定位（情侣共享空间）
+- 邮箱输入框 + 发送验证码按钮
+- 验证码输入步骤
+- 底部提供”已有账号？去登录”跳转链接
+- UI 风格与登录页保持一致
+
+### 昵称引导页要求
+
+- 全屏页面，出现在首次登录/注册后的主界面之前
+- 标题：”给自己取个名字吧”
+- 输入框 placeholder：”对方会看到这个名字”
+- 可跳过，但跳过后仍可在”我们”页修改
 
 ## 单人模式 vs 双人模式
 
@@ -375,6 +415,67 @@ App 启动 → 初始化 Supabase → 检查 session
 3. 第二位用户加入后，空间成为有效双人空间
 4. 达到 2 人后不允许再加入更多成员
 5. 任一成员可发起解绑，但真正删除必须明确确认
+
+## 应用状态管理与初始化流程
+
+### 设计原则
+
+AppController 是整个应用的唯一状态中心。所有用户身份、空间归属、成员关系数据，统一由 AppController 持有和加载。下游页面只读取 AppController 的状态，不独立查询 Supabase。
+
+这样做的原因：
+- 避免多个页面各自初始化空间数据导致的竞态条件
+- 避免重复查询造成的性能浪费和状态不一致
+- 确保用户进入主界面时，所有基础数据已就绪
+
+### 统一 Bootstrap 流程
+
+```
+App 启动
+  → 初始化 Supabase SDK
+  → 检查 session
+    → 无 session → 登录门禁
+    → 有 session → 进入数据初始化
+  → 数据初始化（loadPreferences）
+    → 加载 profile（display_name、偏好设置）
+    → 查询 couple_memberships 获取 currentSpaceId
+    → 如果没有活跃空间 → 调用 create_couple_space 创建
+    → 如果有空间 → 查询同空间另一成员的 display_name
+    → 设置 appReady = true
+  → appReady 后进入 App Shell
+```
+
+### AppController 持有的核心状态
+
+| 字段 | 类型 | 含义 |
+|------|------|------|
+| selfProfileId | String? | 当前登录用户的 UUID |
+| displayName | String? | 当前用户的昵称 |
+| currentSpaceId | String? | 当前用户所属的 couple_space ID |
+| memberCount | int | 当前空间的活跃成员数（0/1/2） |
+| partnerDisplayName | String? | 对方的昵称，仅双人时有值 |
+| appReady | bool | 所有基础数据加载完毕，可安全使用功能 |
+
+### 数据所有权规则
+
+| 数据 | 所有者 | 下游页面如何获取 |
+|------|--------|-----------------|
+| 用户身份（profile） | AppController | AppScope.of(context).displayName |
+| 空间 ID | AppController | AppScope.of(context).currentSpaceId |
+| 成员数 / 配对状态 | AppController | AppScope.of(context).memberCount |
+| 对方昵称 | AppController | AppScope.of(context).partnerDisplayName |
+| 日历事件列表 | 各页面自行查询 | 使用 AppController.currentSpaceId 作为过滤条件 |
+| 计划/随记列表 | 各页面自行查询 | 使用 AppController.currentSpaceId 作为过滤条件 |
+
+### 禁止模式
+
+- 禁止各页面自行创建 CoupleSpaceGuard 实例或独立查询空间归属
+- 禁止各页面自行判断"用户是否就绪"，统一依赖 appReady
+- 禁止在 AppController 之外持有 spaceId 的缓存副本
+- 禁止写入数据时自行 ensure 空间，应直接使用 AppController.currentSpaceId
+
+### 写入数据时的 spaceId 来源
+
+所有需要 `couple_space_id` 的写入操作（创建日历事件、计划、随记、邀请码），统一从 `AppScope.read(context).currentSpaceId` 获取。如果为 null（理论上不应发生，因为 appReady 保证了），显示友好错误提示并引导用户检查网络，而非"请重启 App"。
 
 ## 敏感数据规则
 
