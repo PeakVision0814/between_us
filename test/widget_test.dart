@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +33,45 @@ void main() {
   });
 
   testWidgets(
+    'initial authenticated sync still blocks on the profile loading screen',
+    (tester) async {
+      final controller = AppController();
+      final reloadProfileCompleter = Completer<void>();
+      final syncFuture = controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          expect(force, isTrue);
+          expect(controller.profileCheckInProgress, isTrue);
+          await reloadProfileCompleter.future;
+          controller.debugSeedLoadedProfile(
+            userId: 'user-1',
+            displayName: '灏忔弧',
+          );
+        },
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('auth-profile-loading-screen')),
+        findsOneWidget,
+      );
+      expect(find.byType(NavigationBar), findsNothing);
+
+      reloadProfileCompleter.complete();
+      await syncFuture;
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('auth-profile-loading-screen')),
+        findsNothing,
+      );
+      expect(find.byType(NavigationBar), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'authenticated users with placeholder display name see the profile gate',
     (tester) async {
       await _pumpApp(
@@ -53,7 +94,7 @@ void main() {
     await _pumpApp(
       tester,
       authStatus: AppAuthStatus.authenticated,
-      displayName: '小满',
+      displayName: 'Xiaoman',
     );
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -62,6 +103,43 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(4));
   });
+
+  testWidgets(
+    'same-user session refresh does not reopen the blocking profile loading screen',
+    (tester) async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        displayName: '灏忔弧',
+      );
+      controller.debugSeedLoadedProfile(userId: 'user-1', displayName: '灏忔弧');
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth-profile-loading-screen')),
+        findsNothing,
+      );
+
+      var reloadCalls = 0;
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          reloadCalls += 1;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(reloadCalls, 0);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth-profile-loading-screen')),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('home can navigate to the calendar tab', (tester) async {
     await _pumpApp(
@@ -144,7 +222,7 @@ void main() {
     await _pumpApp(
       tester,
       authStatus: AppAuthStatus.authenticated,
-      displayName: '小满',
+      displayName: 'Xiaoman',
     );
 
     await tester.tap(

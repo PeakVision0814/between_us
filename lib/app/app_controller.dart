@@ -36,6 +36,7 @@ class AppController extends ChangeNotifier {
   bool _profileSaveInProgress = false;
   String? _profileErrorCode;
   StreamSubscription<AuthState>? _authStateSubscription;
+  Future<void> _sessionSyncQueue = Future<void>.value();
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
@@ -75,6 +76,7 @@ class AppController extends ChangeNotifier {
 
     await _authStateSubscription?.cancel();
     _authStateSubscription = null;
+    _sessionSyncQueue = Future<void>.value();
 
     try {
       await Supabase.initialize(
@@ -367,8 +369,28 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncSession(Session? session) async {
-    if (session == null) {
+  Future<void> _syncSession(
+    Session? session, {
+    bool forceBlockingProfileCheck = false,
+  }) {
+    _sessionSyncQueue = _sessionSyncQueue
+        .catchError((Object _, StackTrace __) {})
+        .then(
+          (_) => _applySessionSnapshot(
+            userId: session?.user.id,
+            forceBlockingProfileCheck: forceBlockingProfileCheck,
+            reloadProfile: loadPreferences,
+          ),
+        );
+    return _sessionSyncQueue;
+  }
+
+  Future<void> _applySessionSnapshot({
+    required String? userId,
+    required Future<void> Function({bool force}) reloadProfile,
+    bool forceBlockingProfileCheck = false,
+  }) async {
+    if (userId == null) {
       _authStatus = AppAuthStatus.unauthenticated;
       _pendingEmail = null;
       _authErrorCode = null;
@@ -384,15 +406,75 @@ class AppController extends ChangeNotifier {
       return;
     }
 
-    _authStatus = AppAuthStatus.authenticated;
-    _pendingEmail = null;
-    _authErrorCode = null;
-    _profileCheckInProgress = true;
-    _profileErrorCode = null;
-    notifyListeners();
-    await loadPreferences(force: true);
-    _profileCheckInProgress = false;
-    notifyListeners();
+    final shouldBlockForProfileCheck =
+        forceBlockingProfileCheck ||
+        _authStatus != AppAuthStatus.authenticated ||
+        _loadedPreferencesUserId != userId;
+
+    var shouldNotify = false;
+    if (_authStatus != AppAuthStatus.authenticated) {
+      _authStatus = AppAuthStatus.authenticated;
+      shouldNotify = true;
+    }
+    if (_pendingEmail != null) {
+      _pendingEmail = null;
+      shouldNotify = true;
+    }
+    if (_authErrorCode != null) {
+      _authErrorCode = null;
+      shouldNotify = true;
+    }
+    if (_profileErrorCode != null) {
+      _profileErrorCode = null;
+      shouldNotify = true;
+    }
+
+    if (!shouldBlockForProfileCheck) {
+      if (_profileCheckInProgress) {
+        _profileCheckInProgress = false;
+        shouldNotify = true;
+      }
+      if (shouldNotify) {
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (!_profileCheckInProgress) {
+      _profileCheckInProgress = true;
+      shouldNotify = true;
+    }
+    if (shouldNotify) {
+      notifyListeners();
+    }
+
+    await reloadProfile(force: true);
+    if (_profileCheckInProgress) {
+      _profileCheckInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  @visibleForTesting
+  void debugSeedLoadedProfile({
+    required String? userId,
+    String? displayName,
+  }) {
+    _loadedPreferencesUserId = userId;
+    _displayName = displayName;
+  }
+
+  @visibleForTesting
+  Future<void> debugSyncSessionUser(
+    String? userId, {
+    Future<void> Function({bool force})? onReloadProfile,
+    bool forceBlockingProfileCheck = false,
+  }) {
+    return _applySessionSnapshot(
+      userId: userId,
+      forceBlockingProfileCheck: forceBlockingProfileCheck,
+      reloadProfile: onReloadProfile ?? ({bool force = false}) async {},
+    );
   }
 
   void _setAuthBusy(bool busy) {

@@ -60,6 +60,7 @@ class _AuthLoadingScreen extends StatelessWidget {
     final strings = AppStrings.of(context);
 
     return Scaffold(
+      key: const ValueKey('auth-profile-loading-screen'),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
