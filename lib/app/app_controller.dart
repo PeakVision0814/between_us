@@ -19,6 +19,8 @@ enum AppThemePreference { system, light, dark }
 enum AppAuthStatus { initializing, unauthenticated, otpSent, authenticated }
 
 class AppController extends ChangeNotifier {
+  static const String defaultDisplayNamePlaceholder = '新的用户';
+
   AppLanguage _language = AppLanguage.zhCn;
   AppThemePreference _themePreference = AppThemePreference.system;
   bool _notificationPreviewEnabled = false;
@@ -29,6 +31,10 @@ class AppController extends ChangeNotifier {
   String? _authErrorCode;
   bool _authBusy = false;
   String? _loadedPreferencesUserId;
+  String? _displayName;
+  bool _profileCheckInProgress = false;
+  bool _profileSaveInProgress = false;
+  String? _profileErrorCode;
   StreamSubscription<AuthState>? _authStateSubscription;
 
   AppLanguage get language => _language;
@@ -41,6 +47,14 @@ class AppController extends ChangeNotifier {
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
+  String? get displayName => _displayName;
+  bool get profileCheckInProgress => _profileCheckInProgress;
+  bool get profileSaveInProgress => _profileSaveInProgress;
+  String? get profileErrorCode => _profileErrorCode;
+  bool get requiresDisplayNameSetup =>
+      isAuthenticated &&
+      !_profileCheckInProgress &&
+      !_hasCompletedDisplayName(_displayName);
 
   Locale get locale => _language.locale;
 
@@ -234,7 +248,7 @@ class AppController extends ChangeNotifier {
         profile = await Supabase.instance.client
             .from('profiles')
             .select(
-              'preferred_locale, theme_preference, notification_preview_enabled',
+              'display_name, preferred_locale, theme_preference, notification_preview_enabled',
             )
             .eq('id', userId)
             .maybeSingle();
@@ -247,6 +261,11 @@ class AppController extends ChangeNotifier {
       }
       if (profile == null) return;
       var changed = false;
+      final displayName = profile['display_name'] as String?;
+      if (_displayName != displayName) {
+        _displayName = displayName;
+        changed = true;
+      }
       final locale = profile['preferred_locale'] as String?;
       if (locale != null) {
         final lang = locale == 'en' ? AppLanguage.en : AppLanguage.zhCn;
@@ -279,6 +298,55 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> saveDisplayName(String value) async {
+    final normalizedValue = value.trim();
+    if (!_supabaseReady) {
+      _setProfileError('initialize_failed');
+      return false;
+    }
+    if (!_isValidDisplayName(normalizedValue)) {
+      _setProfileError('invalid_display_name');
+      return false;
+    }
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      _setProfileError('missing_user');
+      return false;
+    }
+
+    _profileSaveInProgress = true;
+    _profileErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'display_name': normalizedValue})
+          .eq('id', userId);
+      _displayName = normalizedValue;
+      _profileErrorCode = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Profile] Save display_name failed: $error');
+      _profileErrorCode = 'save_failed';
+      notifyListeners();
+      return false;
+    } finally {
+      _profileSaveInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  void clearProfileError() {
+    if (_profileErrorCode == null) {
+      return;
+    }
+    _profileErrorCode = null;
+    notifyListeners();
+  }
+
   void _persistProfile(Map<String, dynamic> data) {
     if (!_supabaseReady) {
       debugPrint(
@@ -305,6 +373,10 @@ class AppController extends ChangeNotifier {
       _pendingEmail = null;
       _authErrorCode = null;
       _loadedPreferencesUserId = null;
+      _displayName = null;
+      _profileCheckInProgress = false;
+      _profileSaveInProgress = false;
+      _profileErrorCode = null;
       _language = AppLanguage.zhCn;
       _themePreference = AppThemePreference.system;
       _notificationPreviewEnabled = false;
@@ -315,8 +387,12 @@ class AppController extends ChangeNotifier {
     _authStatus = AppAuthStatus.authenticated;
     _pendingEmail = null;
     _authErrorCode = null;
+    _profileCheckInProgress = true;
+    _profileErrorCode = null;
     notifyListeners();
-    await loadPreferences();
+    await loadPreferences(force: true);
+    _profileCheckInProgress = false;
+    notifyListeners();
   }
 
   void _setAuthBusy(bool busy) {
@@ -332,9 +408,29 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setProfileError(String errorCode) {
+    _profileErrorCode = errorCode;
+    notifyListeners();
+  }
+
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  bool _isValidDisplayName(String value) {
+    final length = value.characters.length;
+    return length >= 1 &&
+        length <= 40 &&
+        value != defaultDisplayNamePlaceholder;
+  }
+
+  bool _hasCompletedDisplayName(String? value) {
+    final normalizedValue = value?.trim();
+    if (normalizedValue == null || normalizedValue.isEmpty) {
+      return false;
+    }
+    return normalizedValue != defaultDisplayNamePlaceholder;
   }
 
   @visibleForTesting
@@ -343,11 +439,17 @@ class AppController extends ChangeNotifier {
     bool supabaseReady = false,
     String? pendingEmail,
     String? authErrorCode,
+    String? displayName,
+    bool profileCheckInProgress = false,
+    String? profileErrorCode,
   }) {
     _authStatus = status;
     _supabaseReady = supabaseReady;
     _pendingEmail = pendingEmail;
     _authErrorCode = authErrorCode;
+    _displayName = displayName;
+    _profileCheckInProgress = profileCheckInProgress;
+    _profileErrorCode = profileErrorCode;
     notifyListeners();
   }
 

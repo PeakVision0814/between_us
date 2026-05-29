@@ -6,6 +6,7 @@ import 'app_shell.dart';
 import 'app_strings.dart';
 import 'app_theme.dart';
 import '../features/auth/email_otp_sign_in_screen.dart';
+import '../features/auth/first_profile_setup_screen.dart';
 
 class BetweenUsApp extends StatelessWidget {
   const BetweenUsApp({super.key, required this.controller});
@@ -32,12 +33,44 @@ class BetweenUsApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: controller.themeMode,
-            home: switch (controller.authStatus) {
-              AppAuthStatus.authenticated => const AppShell(),
-              _ => const EmailOtpSignInScreen(),
-            },
+            home: _buildHome(controller),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildHome(AppController controller) {
+    return switch (controller.authStatus) {
+      AppAuthStatus.authenticated when controller.profileCheckInProgress =>
+        const _AuthLoadingScreen(),
+      AppAuthStatus.authenticated when controller.requiresDisplayNameSetup =>
+        const FirstProfileSetupScreen(),
+      AppAuthStatus.authenticated => const AppShell(),
+      _ => const EmailOtpSignInScreen(),
+    };
+  }
+}
+
+class _AuthLoadingScreen extends StatelessWidget {
+  const _AuthLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              strings.isChinese ? '正在准备你的资料...' : 'Preparing your profile...',
+            ),
+          ],
+        ),
       ),
     );
   }

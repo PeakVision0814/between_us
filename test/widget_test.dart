@@ -18,10 +18,43 @@ void main() {
     },
   );
 
-  testWidgets('authenticated app keeps the default zh-CN locale', (
+  testWidgets('authenticated users without display name see the profile gate', (
     tester,
   ) async {
     await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
+
+    expect(
+      find.byKey(const ValueKey('profile-display-name-field')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets(
+    'authenticated users with placeholder display name see the profile gate',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: AppController.defaultDisplayNamePlaceholder,
+      );
+
+      expect(
+        find.byKey(const ValueKey('profile-display-name-field')),
+        findsOneWidget,
+      );
+      expect(find.byType(NavigationBar), findsNothing);
+    },
+  );
+
+  testWidgets('authenticated app keeps the default zh-CN locale', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: '小满',
+    );
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
 
@@ -35,6 +68,7 @@ void main() {
       tester,
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
+      displayName: 'Xiaoman',
     );
 
     await tester.tap(
@@ -62,6 +96,7 @@ void main() {
       tester,
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
+      displayName: 'Xiaoman',
     );
 
     await tester.scrollUntilVisible(
@@ -83,6 +118,7 @@ void main() {
       tester,
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
+      displayName: 'Xiaoman',
     );
 
     await tester.scrollUntilVisible(
@@ -105,7 +141,11 @@ void main() {
   testWidgets('authenticated users can enter Us and change language/theme', (
     tester,
   ) async {
-    await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: '小满',
+    );
 
     await tester.tap(
       find.descendant(
@@ -144,6 +184,7 @@ Future<void> _pumpApp(
   required AppAuthStatus authStatus,
   AppLanguage? language,
   bool supabaseReady = false,
+  String? displayName,
 }) async {
   final controller = AppController();
   if (language != null) {
@@ -152,6 +193,7 @@ Future<void> _pumpApp(
   controller.debugSetAuthState(
     status: authStatus,
     supabaseReady: supabaseReady,
+    displayName: displayName,
   );
 
   await tester.pumpWidget(BetweenUsApp(controller: controller));
