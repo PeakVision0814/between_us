@@ -15,6 +15,74 @@ class AppStrings {
   }
 
   String get appName => 'Between Us';
+  String get authSignInTitle => isChinese ? '登录' : 'Sign In';
+  String get authRegisterTitle => isChinese ? '创建账号' : 'Create Account';
+  String get authSignInSubtitle => isChinese
+      ? '登录后才能进入属于你们的情侣共享空间。'
+      : 'Sign in before entering your shared space together.';
+  String get authRegisterSubtitle => isChinese
+      ? '为你们的情侣共享空间创建一个新账号。'
+      : 'Create a new account for your shared couple space.';
+  String get authCheckingSessionLabel =>
+      isChinese ? '正在检查登录状态...' : 'Checking your session...';
+  String get authRetryLabel => isChinese ? '重试' : 'Retry';
+  String get authEmailLabel => isChinese ? '邮箱' : 'Email';
+  String get authEmailHint =>
+      isChinese ? '输入接收验证码的邮箱' : 'Enter the email that should receive the code';
+  String get authOtpLabel => isChinese ? '验证码' : 'Verification code';
+  String get authOtpHint => isChinese ? '输入 6 位数字' : 'Enter 6 digits';
+  String get authChangeEmailLabel => isChinese ? '更换邮箱' : 'Change email';
+  String get authSendSignInCodeLabel =>
+      isChinese ? '发送登录验证码' : 'Send sign-in code';
+  String get authSendRegisterCodeLabel =>
+      isChinese ? '发送注册验证码' : 'Send sign-up code';
+  String get authVerifyAndSignInLabel =>
+      isChinese ? '验证并登录' : 'Verify and sign in';
+  String get authVerifyAndCreateAccountLabel =>
+      isChinese ? '验证并创建账号' : 'Verify and create account';
+  String get authGoRegisterLabel =>
+      isChinese ? '没有账号？去注册' : 'No account? Create one';
+  String get authGoSignInLabel =>
+      isChinese ? '已有账号？去登录' : 'Already have an account? Sign in';
+  String get authOtpStepSubtitle => isChinese
+      ? '请在 App 内输入 6 位验证码完成验证。'
+      : 'Enter the 6-digit code here to complete verification.';
+  String authCodeSentTo(String email) =>
+      isChinese ? '验证码已发送至 $email' : 'A code has been sent to $email';
+  String get authOtpSentToast => isChinese
+      ? '验证码已发送，请在 App 内输入 6 位验证码'
+      : 'Verification code sent. Enter the 6-digit code in the app.';
+  String get authRegisterOtpSentToast => isChinese
+      ? '注册验证码已发送，请在 App 内输入 6 位验证码'
+      : 'Registration code sent. Enter the 6-digit code in the app.';
+  String get authInitializeFailedMessage => isChinese
+      ? '登录服务初始化失败，请检查 Supabase 配置后重试。'
+      : 'Failed to initialize auth. Check Supabase configuration and try again.';
+  String get authInvalidEmailMessage =>
+      isChinese ? '请输入有效的邮箱地址。' : 'Enter a valid email address.';
+  String get authOtpSendFailedMessage => isChinese
+      ? '验证码发送失败，请稍后重试。'
+      : 'Failed to send the verification code. Please try again later.';
+  String get authSignUpSendFailedMessage => isChinese
+      ? '创建账号失败，请稍后重试。'
+      : 'Failed to create the account. Please try again later.';
+  String get authUserNotRegisteredMessage => isChinese
+      ? '该邮箱尚未注册，请先创建账号。'
+      : 'This email is not registered yet. Please create an account first.';
+  String get authUserAlreadyRegisteredMessage => isChinese
+      ? '该邮箱已经注册，请直接登录。'
+      : 'This email is already registered. Please sign in instead.';
+  String get authMissingPendingEmailMessage => isChinese
+      ? '请先输入邮箱并发送验证码。'
+      : 'Enter your email and request a code first.';
+  String get authInvalidTokenLengthMessage =>
+      isChinese ? '请输入 6 位验证码。' : 'Enter the 6-digit verification code.';
+  String get authOtpVerifyFailedMessage => isChinese
+      ? '验证码校验失败，请确认后重试。'
+      : 'Verification failed. Check the code and try again.';
+  String get authUnknownErrorMessage => isChinese
+      ? '认证过程中发生异常，请重试。'
+      : 'Something went wrong during authentication. Please try again.';
 
   String get homeTab => isChinese ? '首页' : 'Home';
   String get calendarTab => isChinese ? '日历' : 'Calendar';
@@ -113,10 +181,8 @@ class AppStrings {
   String get noteModeLeadSubtitle => isChinese
       ? '不用写很多，一句话、一个念头、一点日常碎片都好。'
       : 'A sentence, a thought, a small daily moment — anything counts.';
-  String get switchToNotesHint =>
-      isChinese ? '看看随记' : 'Switch to notes';
-  String get switchToPlansHint =>
-      isChinese ? '看看计划' : 'Switch to plans';
+  String get switchToNotesHint => isChinese ? '看看随记' : 'Switch to notes';
+  String get switchToPlansHint => isChinese ? '看看计划' : 'Switch to plans';
 
   String get usTitle => usTab;
   String get usLeadTitle => isChinese ? '我们的空间' : 'Our shared space';
@@ -154,11 +220,11 @@ class AppStrings {
   String get themeDarkLabel => isChinese ? '深色' : 'Dark';
 
   List<CalendarItemCopy> get calendarItems => [
-        for (final item in calendarUpcomingEntries)
-          calendarItemCopyForOccurrence(item),
-      ];
+    for (final item in calendarUpcomingEntries)
+      calendarItemCopyForOccurrence(item),
+  ];
 
-/*
+  /*
       ? const [
           CalendarItemCopy(
             title: '关系纪念日',
@@ -320,8 +386,7 @@ class AppStrings {
   String get calendarEmptyDaySubtitle => isChinese
       ? '有明确日期的纪念日、约会或提醒，才会出现在这里。'
       : 'Only dated anniversaries, date plans, or reminders will show here.';
-  String get calendarUpcomingTitle =>
-      isChinese ? '近期事项' : 'Coming up soon';
+  String get calendarUpcomingTitle => isChinese ? '近期事项' : 'Coming up soon';
   String get calendarUpcomingHint => isChinese
       ? '按时间顺序往后看，和上面的月历是同一批内容。'
       : 'The next few dated items, in order, from the same calendar data.';
@@ -335,19 +400,16 @@ class AppStrings {
   String get calendarPeriodPlaceholderSubtitle => isChinese
       ? '经期记录之后也会放在日历里，但会单独分区，也不会默认共享。'
       : 'Cycle records will live here later too, but in a clearly separate area and never shared by default.';
-  String get calendarRepeatYearlyLabel =>
-      isChinese ? '每年重复' : 'Repeats yearly';
-  String get calendarRepeatOnceLabel =>
-      isChinese ? '单次安排' : 'One-time';
+  String get calendarRepeatYearlyLabel => isChinese ? '每年重复' : 'Repeats yearly';
+  String get calendarRepeatOnceLabel => isChinese ? '单次安排' : 'One-time';
   String get calendarTodayLabel => isChinese ? '今天' : 'Today';
   String get calendarTomorrowLabel => isChinese ? '明天' : 'Tomorrow';
 
   String calendarTypeLabel(CalendarEntryType type) => switch (type) {
-        CalendarEntryType.anniversary =>
-          isChinese ? '纪念日' : 'Anniversary',
-        CalendarEntryType.datePlan => isChinese ? '约会' : 'Date',
-        CalendarEntryType.reminder => isChinese ? '提醒' : 'Reminder',
-      };
+    CalendarEntryType.anniversary => isChinese ? '纪念日' : 'Anniversary',
+    CalendarEntryType.datePlan => isChinese ? '约会' : 'Date',
+    CalendarEntryType.reminder => isChinese ? '提醒' : 'Reminder',
+  };
 
   String calendarRepeatLabel(CalendarRepeatRule repeatRule) =>
       switch (repeatRule) {
@@ -387,7 +449,8 @@ class AppStrings {
             id: 'relationship-anniversary',
             type: CalendarEntryType.anniversary,
             title: 'Relationship anniversary',
-            description: 'A slow dinner by the riverside sounds right for that night.',
+            description:
+                'A slow dinner by the riverside sounds right for that night.',
             startsAt: DateTime(2025, 6, 6),
             repeatRule: CalendarRepeatRule.yearly,
           ),
@@ -404,7 +467,8 @@ class AppStrings {
             id: 'plant-reminder',
             type: CalendarEntryType.reminder,
             title: 'Water the balcony plants',
-            description: 'Maybe bring back a new little pot while you are at it.',
+            description:
+                'Maybe bring back a new little pot while you are at it.',
             startsAt: DateTime(2026, 5, 27, 20),
             repeatRule: CalendarRepeatRule.none,
           ),
@@ -542,11 +606,9 @@ class AppStrings {
       : _englishWeekdayNames[weekday - 1];
 
   String formatCountdownLabel(DateTime target, DateTime reference) {
-    final difference = DateTime(
-      target.year,
-      target.month,
-      target.day,
-    ).difference(DateTime(reference.year, reference.month, reference.day)).inDays;
+    final difference = DateTime(target.year, target.month, target.day)
+        .difference(DateTime(reference.year, reference.month, reference.day))
+        .inDays;
 
     if (difference <= 0) {
       return calendarTodayLabel;
@@ -559,11 +621,8 @@ class AppStrings {
     return isChinese ? '$difference 天后' : 'In $difference days';
   }
 
-  DateTime _dateOnly(DateTime date) => DateTime(
-    date.year,
-    date.month,
-    date.day,
-  );
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   bool _sameDate(DateTime left, DateTime right) =>
       left.year == right.year &&
@@ -694,7 +753,9 @@ class CalendarEntryData {
       return day.month == startsAt.month && day.day == startsAt.day;
     }
 
-    return day.year == startsAt.year && day.month == startsAt.month && day.day == startsAt.day;
+    return day.year == startsAt.year &&
+        day.month == startsAt.month &&
+        day.day == startsAt.day;
   }
 
   DateTime? nextOccurrenceFrom(DateTime reference) {

@@ -20,6 +20,54 @@ void main() {
     },
   );
 
+  testWidgets('sign-in screen can navigate to register screen', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+  });
+
+  testWidgets('register screen can navigate back to sign-in screen', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('auth-go-login-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-login-title')), findsOneWidget);
+  });
+
+  testWidgets('sign-in screen shows register guidance for unregistered email', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+      authErrorCode: 'user_not_registered',
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('该邮箱尚未注册，请先创建账号。'), findsOneWidget);
+    expect(find.text('没有账号？去注册'), findsWidgets);
+  });
+
   testWidgets('authenticated users without display name see the profile gate', (
     tester,
   ) async {

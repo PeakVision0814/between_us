@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 
-import 'auth_email_flow.dart';
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
-import 'email_register_screen.dart';
+import 'auth_email_flow.dart';
 
-class EmailOtpSignInScreen extends StatefulWidget {
-  const EmailOtpSignInScreen({super.key});
+class EmailRegisterScreen extends StatefulWidget {
+  const EmailRegisterScreen({super.key});
 
   @override
-  State<EmailOtpSignInScreen> createState() => _EmailOtpSignInScreenState();
+  State<EmailRegisterScreen> createState() => _EmailRegisterScreenState();
 }
 
-class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
+class _EmailRegisterScreenState extends State<EmailRegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
 
@@ -23,17 +22,21 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
     super.dispose();
   }
 
-  Future<void> _sendCode() async {
+  Future<void> _signUp() async {
     final controller = AppScope.read(context);
-    final success = await controller.sendEmailOtp(_emailController.text);
+    final success = await controller.signUpWithEmail(_emailController.text);
     if (!mounted || !success) {
       return;
     }
 
-    _codeController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppStrings.of(context).authOtpSentToast)),
-    );
+    if (controller.authStatus == AppAuthStatus.otpSent) {
+      _codeController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.of(context).authRegisterOtpSentToast),
+        ),
+      );
+    }
   }
 
   Future<void> _verifyCode() async {
@@ -41,24 +44,22 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
     await controller.verifyEmailOtp(_codeController.text);
   }
 
-  void _openRegister() {
+  void _backToSignIn() {
     final controller = AppScope.read(context);
     controller.clearAuthError();
     controller.returnToEmailEntry();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const EmailRegisterScreen()),
-    );
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return AuthEmailFlowScaffold(
-      mode: AuthEmailFlowMode.signIn,
+      mode: AuthEmailFlowMode.register,
       emailController: _emailController,
       codeController: _codeController,
-      onPrimarySubmit: _sendCode,
+      onPrimarySubmit: _signUp,
       onVerifyCode: _verifyCode,
-      onSwitchMode: _openRegister,
+      onSwitchMode: _backToSignIn,
     );
   }
 }

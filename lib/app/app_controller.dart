@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -170,14 +171,62 @@ class AppController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Supabase.instance.client.auth.signInWithOtp(email: normalizedEmail);
+      await Supabase.instance.client.auth.signInWithOtp(
+        email: normalizedEmail,
+        shouldCreateUser: false,
+      );
       _pendingEmail = normalizedEmail;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
       return true;
     } catch (error) {
       debugPrint('[Auth] Send email OTP failed: $error');
-      _authErrorCode = 'otp_send_failed';
+      _authErrorCode = _isUserNotRegisteredError(error)
+          ? 'user_not_registered'
+          : 'otp_send_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<bool> signUpWithEmail(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (!_looksLikeEmail(normalizedEmail)) {
+      _setAuthError('invalid_email');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: normalizedEmail,
+        password: _generateRandomPassword(),
+      );
+
+      final session =
+          response.session ?? Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        await _syncSession(session);
+        return isAuthenticated;
+      }
+
+      _pendingEmail = normalizedEmail;
+      _authStatus = AppAuthStatus.otpSent;
+      _authErrorCode = null;
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Sign up with email failed: $error');
+      _authErrorCode = _isUserAlreadyRegisteredError(error)
+          ? 'user_already_registered'
+          : 'signup_send_failed';
       return false;
     } finally {
       _setAuthBusy(false);
@@ -624,6 +673,43 @@ class AppController extends ChangeNotifier {
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  bool _isUserNotRegisteredError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('signups not allowed for otp') ||
+        message.contains('user not found') ||
+        message.contains('not registered');
+  }
+
+  bool _isUserAlreadyRegisteredError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('already registered') ||
+        message.contains('already been registered') ||
+        message.contains('user already exists');
+  }
+
+  String _generateRandomPassword() {
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijkmnopqrstuvwxyz';
+    const digits = '23456789';
+    const symbols = '!@#\$%^&*()-_=+';
+    const all = '$uppercase$lowercase$digits$symbols';
+    final random = Random.secure();
+
+    final chars = <String>[
+      uppercase[random.nextInt(uppercase.length)],
+      lowercase[random.nextInt(lowercase.length)],
+      digits[random.nextInt(digits.length)],
+      symbols[random.nextInt(symbols.length)],
+    ];
+
+    for (var i = chars.length; i < 24; i++) {
+      chars.add(all[random.nextInt(all.length)]);
+    }
+
+    chars.shuffle(random);
+    return chars.join();
   }
 
   bool _isValidDisplayName(String value) {
