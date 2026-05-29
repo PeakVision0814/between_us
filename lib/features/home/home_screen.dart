@@ -97,8 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
             id: 'home-featured',
             title: eventData['title'] as String,
             subtitle: eventData['description'] as String? ?? '',
-            dateLabel: strings.formatCalendarDate(startsAt, includeTime: startsAt.hour != 0),
-            countdownLabel: strings.formatCountdownLabel(startsAt, DateTime.now()),
+            dateLabel: strings.formatCalendarDate(
+              startsAt,
+              includeTime: startsAt.hour != 0,
+            ),
+            countdownLabel: strings.formatCountdownLabel(
+              startsAt,
+              DateTime.now(),
+            ),
             typeLabel: strings.calendarTypeLabel(_mapEventType(eventType)),
           );
         }
@@ -106,7 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _recentPlan = PlanItemCopy(
             title: planData['title'] as String,
             body: planData['body'] as String? ?? '',
-            statusLabel: _mapPlanStatus(planData['status'] as String, strings.isChinese),
+            statusLabel: _mapPlanStatus(
+              planData['status'] as String,
+              strings.isChinese,
+            ),
             helperLabel: strings.isChinese ? '来自计划' : 'From plans',
           );
         }
@@ -120,20 +129,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static String _formatTimeAgo(DateTime dt, bool isChinese) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return isChinese ? '刚刚' : 'Just now';
-    if (diff.inHours < 1) return isChinese ? '${diff.inMinutes} 分钟前' : '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return isChinese ? '${diff.inHours} 小时前' : '${diff.inHours}h ago';
-    if (diff.inDays < 30) return isChinese ? '${diff.inDays} 天前' : '${diff.inDays}d ago';
-    return isChinese ? '${dt.month} 月 ${dt.day} 日' : '${dt.month}/${dt.day}';
+    if (diff.inMinutes < 1) {
+      return isChinese ? '\u521a\u521a' : 'Just now';
+    }
+    if (diff.inHours < 1) {
+      return isChinese
+          ? '${diff.inMinutes} \u5206\u949f\u524d'
+          : '${diff.inMinutes}m ago';
+    }
+    if (diff.inDays < 1) {
+      return isChinese
+          ? '${diff.inHours} \u5c0f\u65f6\u524d'
+          : '${diff.inHours}h ago';
+    }
+    if (diff.inDays < 30) {
+      return isChinese ? '${diff.inDays} \u5929\u524d' : '${diff.inDays}d ago';
+    }
+    return isChinese
+        ? '${dt.month} \u6708${dt.day} \u65e5'
+        : '${dt.month}/${dt.day}';
   }
 
   static CalendarEntryType _mapEventType(String type) => switch (type) {
-        'anniversary' => CalendarEntryType.anniversary,
-        'reminder' => CalendarEntryType.reminder,
-        _ => CalendarEntryType.datePlan,
-      };
+    'anniversary' => CalendarEntryType.anniversary,
+    'reminder' => CalendarEntryType.reminder,
+    _ => CalendarEntryType.datePlan,
+  };
 
-  static String _mapPlanStatus(String status, bool isChinese) => switch (status) {
+  static String _mapPlanStatus(String status, bool isChinese) =>
+      switch (status) {
         'idea' => isChinese ? '想法中' : 'Idea',
         'planned' => isChinese ? '已安排' : 'Planned',
         'done' => isChinese ? '已完成' : 'Done',
@@ -142,18 +166,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AppScope.of(context);
     final strings = AppStrings.of(context);
 
     return AppPage(
       children: [
         _HomeHero(
+          displayName: controller.displayName,
+          memberCount: controller.memberCount,
+          partnerDisplayName: controller.partnerDisplayName,
           nextDate: _nextDate,
           onOpenCalendar: widget.onOpenCalendar,
           onOpenUs: widget.onOpenUs,
           isChinese: strings.isChinese,
         ),
         const SizedBox(height: 22),
-        _NextDatePanel(item: _nextDate, onTap: widget.onOpenCalendar, isChinese: strings.isChinese),
+        _NextDatePanel(
+          item: _nextDate,
+          onTap: widget.onOpenCalendar,
+          isChinese: strings.isChinese,
+        ),
         const SizedBox(height: 22),
         _RecentPreviewPanel(
           note: _recentNote,
@@ -175,12 +207,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HomeHero extends StatelessWidget {
   const _HomeHero({
+    required this.displayName,
+    required this.memberCount,
+    required this.partnerDisplayName,
     required this.nextDate,
     required this.onOpenCalendar,
     required this.onOpenUs,
     required this.isChinese,
   });
 
+  final String? displayName;
+  final int memberCount;
+  final String? partnerDisplayName;
   final CalendarItemCopy? nextDate;
   final VoidCallback onOpenCalendar;
   final VoidCallback onOpenUs;
@@ -190,6 +228,27 @@ class _HomeHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final primaryName =
+        _normalizeName(displayName) ?? (isChinese ? '我们' : 'Us');
+    final partnerName = _normalizeName(partnerDisplayName);
+    final isPaired = memberCount >= 2 && partnerName != null;
+    final coupleNames = isPaired
+        ? isChinese
+              ? '$primaryName 和 $partnerName'
+              : '$primaryName & $partnerName'
+        : isChinese
+        ? '$primaryName · 等待另一半加入'
+        : '$primaryName · Waiting for your partner';
+    final relationshipStatus = isPaired
+        ? (isChinese ? '双人模式' : 'Paired mode')
+        : (isChinese ? '个人模式' : 'Solo mode');
+    final avatarLabelOne = _firstCharacter(
+      primaryName,
+      fallback: isChinese ? '我' : 'M',
+    );
+    final avatarLabelTwo = isPaired
+        ? _firstCharacter(partnerName, fallback: isChinese ? '伴' : 'P')
+        : (isChinese ? '待' : '+');
 
     return Container(
       decoration: BoxDecoration(
@@ -229,17 +288,21 @@ class _HomeHero extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _AvatarPair(labelOne: strings.avatarLabelOne, labelTwo: strings.avatarLabelTwo),
+                    _AvatarPair(
+                      labelOne: avatarLabelOne,
+                      labelTwo: avatarLabelTwo,
+                    ),
                     const Spacer(),
                     _QuietBadge(
                       icon: Icons.favorite_rounded,
-                      label: strings.relationshipStatus,
+                      label: relationshipStatus,
                     ),
                   ],
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  strings.coupleNames,
+                  coupleNames,
+                  key: const ValueKey('home-hero-couple-names'),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontSize: 30,
                     height: 1.08,
@@ -254,7 +317,11 @@ class _HomeHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 22),
-                _HeroMoment(item: nextDate, onOpenCalendar: onOpenCalendar, isChinese: isChinese),
+                _HeroMoment(
+                  item: nextDate,
+                  onOpenCalendar: onOpenCalendar,
+                  isChinese: isChinese,
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -288,10 +355,30 @@ class _HomeHero extends StatelessWidget {
       ),
     );
   }
+
+  static String? _normalizeName(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  static String _firstCharacter(String? value, {required String fallback}) {
+    final normalized = _normalizeName(value);
+    if (normalized == null) {
+      return fallback;
+    }
+    return normalized.characters.first;
+  }
 }
 
 class _HeroMoment extends StatelessWidget {
-  const _HeroMoment({required this.item, required this.onOpenCalendar, required this.isChinese});
+  const _HeroMoment({
+    required this.item,
+    required this.onOpenCalendar,
+    required this.isChinese,
+  });
 
   final CalendarItemCopy? item;
   final VoidCallback onOpenCalendar;
@@ -319,9 +406,8 @@ class _HeroMoment extends StatelessWidget {
                         const Spacer(),
                         Text(
                           item!.countdownLabel,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: colorScheme.primary,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: colorScheme.primary),
                         ),
                       ],
                     ),
@@ -409,7 +495,11 @@ class _PrimaryActions extends StatelessWidget {
 }
 
 class _NextDatePanel extends StatelessWidget {
-  const _NextDatePanel({required this.item, required this.onTap, required this.isChinese});
+  const _NextDatePanel({
+    required this.item,
+    required this.onTap,
+    required this.isChinese,
+  });
 
   final CalendarItemCopy? item;
   final VoidCallback onTap;
@@ -454,18 +544,30 @@ class _RecentPreviewPanel extends StatelessWidget {
       children: [
         _SectionTitle(title: strings.recentUpdateSection),
         const SizedBox(height: 12),
-        _NotePreviewCard(note: note, onWriteNote: onWriteNote, isChinese: isChinese),
+        _NotePreviewCard(
+          note: note,
+          onWriteNote: onWriteNote,
+          isChinese: isChinese,
+        ),
         const SizedBox(height: 14),
         _SectionTitle(title: strings.recentPlanSection),
         const SizedBox(height: 12),
-        _PlanPreviewCard(plan: plan, onTap: onOpenPlansNotes, isChinese: isChinese),
+        _PlanPreviewCard(
+          plan: plan,
+          onTap: onOpenPlansNotes,
+          isChinese: isChinese,
+        ),
       ],
     );
   }
 }
 
 class _DatePreviewCard extends StatelessWidget {
-  const _DatePreviewCard({required this.item, required this.onTap, required this.isChinese});
+  const _DatePreviewCard({
+    required this.item,
+    required this.onTap,
+    required this.isChinese,
+  });
 
   final CalendarItemCopy? item;
   final VoidCallback onTap;
@@ -481,7 +583,10 @@ class _DatePreviewCard extends StatelessWidget {
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _IconTile(icon: Icons.event_available_outlined, color: AppTheme.gold),
+                _IconTile(
+                  icon: Icons.event_available_outlined,
+                  color: AppTheme.gold,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -522,7 +627,11 @@ class _DatePreviewCard extends StatelessWidget {
 }
 
 class _NotePreviewCard extends StatelessWidget {
-  const _NotePreviewCard({required this.note, required this.onWriteNote, required this.isChinese});
+  const _NotePreviewCard({
+    required this.note,
+    required this.onWriteNote,
+    required this.isChinese,
+  });
 
   final NoteItemCopy? note;
   final VoidCallback onWriteNote;
@@ -584,7 +693,11 @@ class _NotePreviewCard extends StatelessWidget {
 }
 
 class _PlanPreviewCard extends StatelessWidget {
-  const _PlanPreviewCard({required this.plan, required this.onTap, required this.isChinese});
+  const _PlanPreviewCard({
+    required this.plan,
+    required this.onTap,
+    required this.isChinese,
+  });
 
   final PlanItemCopy? plan;
   final VoidCallback onTap;
@@ -775,10 +888,18 @@ class _AvatarPair extends StatelessWidget {
       height: 42,
       child: Stack(
         children: [
-          _AvatarDot(label: labelOne, color: AppTheme.blush),
+          _AvatarDot(
+            key: const ValueKey('home-hero-avatar-one'),
+            label: labelOne,
+            color: AppTheme.blush,
+          ),
           Positioned(
             left: 28,
-            child: _AvatarDot(label: labelTwo, color: AppTheme.mint),
+            child: _AvatarDot(
+              key: const ValueKey('home-hero-avatar-two'),
+              label: labelTwo,
+              color: AppTheme.mint,
+            ),
           ),
         ],
       ),
@@ -787,7 +908,7 @@ class _AvatarPair extends StatelessWidget {
 }
 
 class _AvatarDot extends StatelessWidget {
-  const _AvatarDot({required this.label, required this.color});
+  const _AvatarDot({super.key, required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -828,6 +949,7 @@ class _QuietBadge extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
+      key: const ValueKey('home-hero-relationship-status'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.72),

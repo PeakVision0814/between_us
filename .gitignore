@@ -61,3 +61,5 @@ app.*.map.json
 /android/app/release
 
 supabase\config.toml
+
+.agent

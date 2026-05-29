@@ -105,6 +105,85 @@ void main() {
   });
 
   testWidgets(
+    'home hero shows single-user relationship state from AppController',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: '小满',
+        selfProfileId: 'user-1',
+        memberCount: 1,
+      );
+
+      expect(
+        find.byKey(const ValueKey('home-hero-couple-names')),
+        findsOneWidget,
+      );
+      expect(find.text('小满 · 等待另一半加入'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-avatar-one')),
+          matching: find.text('小'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-avatar-two')),
+          matching: find.text('待'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-relationship-status')),
+          matching: find.text('个人模式'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'home hero shows both names when the couple space has two members',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.en,
+        displayName: 'Xiaoman',
+        selfProfileId: 'user-1',
+        currentSpaceId: 'space-1',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+
+      expect(find.text('Xiaoman & Ache'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-avatar-one')),
+          matching: find.text('X'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-avatar-two')),
+          matching: find.text('A'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-hero-relationship-status')),
+          matching: find.text('Paired mode'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'same-user session refresh does not reopen the blocking profile loading screen',
     (tester) async {
       final controller = AppController();
@@ -180,7 +259,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('sign-out-tile')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('sign-out-confirm-button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('sign-out-confirm-button')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('sign-out-confirm-button')));
     await tester.pumpAndSettle();
@@ -316,6 +398,10 @@ Future<void> _pumpApp(
   AppLanguage? language,
   bool supabaseReady = false,
   String? displayName,
+  String? selfProfileId,
+  String? currentSpaceId,
+  int memberCount = 0,
+  String? partnerDisplayName,
 }) async {
   final controller = AppController();
   if (language != null) {
@@ -325,6 +411,10 @@ Future<void> _pumpApp(
     status: authStatus,
     supabaseReady: supabaseReady,
     displayName: displayName,
+    selfProfileId: selfProfileId,
+    currentSpaceId: currentSpaceId,
+    memberCount: memberCount,
+    partnerDisplayName: partnerDisplayName,
   );
 
   await tester.pumpWidget(BetweenUsApp(controller: controller));

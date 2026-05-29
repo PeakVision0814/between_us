@@ -32,6 +32,10 @@ class AppController extends ChangeNotifier {
   bool _authBusy = false;
   String? _loadedPreferencesUserId;
   String? _displayName;
+  String? _selfProfileId;
+  String? _currentSpaceId;
+  int _memberCount = 0;
+  String? _partnerDisplayName;
   bool _profileCheckInProgress = false;
   bool _profileSaveInProgress = false;
   String? _profileErrorCode;
@@ -51,6 +55,10 @@ class AppController extends ChangeNotifier {
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
   bool get signOutInProgress => _authBusy && isAuthenticated;
   String? get displayName => _displayName;
+  String? get selfProfileId => _selfProfileId;
+  String? get currentSpaceId => _currentSpaceId;
+  int get memberCount => _memberCount;
+  String? get partnerDisplayName => _partnerDisplayName;
   bool get profileCheckInProgress => _profileCheckInProgress;
   bool get profileSaveInProgress => _profileSaveInProgress;
   String? get profileErrorCode => _profileErrorCode;
@@ -273,13 +281,16 @@ class AppController extends ChangeNotifier {
     }
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        return;
+      }
       if (!force && _loadedPreferencesUserId == userId) {
         return;
       }
+      final client = Supabase.instance.client;
       Map<String, dynamic>? profile;
       for (var attempt = 0; attempt < 3; attempt++) {
-        profile = await Supabase.instance.client
+        profile = await client
             .from('profiles')
             .select(
               'display_name, preferred_locale, theme_preference, notification_preview_enabled',
@@ -293,11 +304,70 @@ class AppController extends ChangeNotifier {
           await Future<void>.delayed(const Duration(milliseconds: 250));
         }
       }
-      if (profile == null) return;
+      if (profile == null) {
+        return;
+      }
+
+      String? currentSpaceId;
+      var memberCount = 0;
+      String? partnerDisplayName;
+      final membership = await client
+          .from('couple_memberships')
+          .select('couple_space_id')
+          .eq('profile_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+      currentSpaceId = membership?['couple_space_id'] as String?;
+      if (currentSpaceId != null) {
+        final memberships = await client
+            .from('couple_memberships')
+            .select('profile_id')
+            .eq('couple_space_id', currentSpaceId)
+            .eq('status', 'active');
+        final activeMemberships = (memberships as List<dynamic>)
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        memberCount = activeMemberships.length > 2
+            ? 2
+            : activeMemberships.length;
+        String? partnerProfileId;
+        for (final row in activeMemberships) {
+          final profileId = row['profile_id'] as String?;
+          if (profileId != null && profileId != userId) {
+            partnerProfileId = profileId;
+            break;
+          }
+        }
+        if (partnerProfileId != null) {
+          final partnerProfile = await client
+              .from('profiles')
+              .select('display_name')
+              .eq('id', partnerProfileId)
+              .maybeSingle();
+          partnerDisplayName = partnerProfile?['display_name'] as String?;
+        }
+      }
+
       var changed = false;
+      if (_selfProfileId != userId) {
+        _selfProfileId = userId;
+        changed = true;
+      }
       final displayName = profile['display_name'] as String?;
       if (_displayName != displayName) {
         _displayName = displayName;
+        changed = true;
+      }
+      if (_currentSpaceId != currentSpaceId) {
+        _currentSpaceId = currentSpaceId;
+        changed = true;
+      }
+      if (_memberCount != memberCount) {
+        _memberCount = memberCount;
+        changed = true;
+      }
+      if (_partnerDisplayName != partnerDisplayName) {
+        _partnerDisplayName = partnerDisplayName;
         changed = true;
       }
       final locale = profile['preferred_locale'] as String?;
@@ -428,6 +498,10 @@ class AppController extends ChangeNotifier {
       _authErrorCode = null;
       _loadedPreferencesUserId = null;
       _displayName = null;
+      _selfProfileId = null;
+      _currentSpaceId = null;
+      _memberCount = 0;
+      _partnerDisplayName = null;
       _profileCheckInProgress = false;
       _profileSaveInProgress = false;
       _profileErrorCode = null;
@@ -488,9 +562,19 @@ class AppController extends ChangeNotifier {
   }
 
   @visibleForTesting
-  void debugSeedLoadedProfile({required String? userId, String? displayName}) {
+  void debugSeedLoadedProfile({
+    required String? userId,
+    String? displayName,
+    String? currentSpaceId,
+    int memberCount = 0,
+    String? partnerDisplayName,
+  }) {
     _loadedPreferencesUserId = userId;
+    _selfProfileId = userId;
     _displayName = displayName;
+    _currentSpaceId = currentSpaceId;
+    _memberCount = memberCount;
+    _partnerDisplayName = partnerDisplayName;
   }
 
   @visibleForTesting
@@ -564,6 +648,10 @@ class AppController extends ChangeNotifier {
     String? pendingEmail,
     String? authErrorCode,
     String? displayName,
+    String? selfProfileId,
+    String? currentSpaceId,
+    int memberCount = 0,
+    String? partnerDisplayName,
     bool profileCheckInProgress = false,
     String? profileErrorCode,
   }) {
@@ -572,6 +660,10 @@ class AppController extends ChangeNotifier {
     _pendingEmail = pendingEmail;
     _authErrorCode = authErrorCode;
     _displayName = displayName;
+    _selfProfileId = selfProfileId;
+    _currentSpaceId = currentSpaceId;
+    _memberCount = memberCount;
+    _partnerDisplayName = partnerDisplayName;
     _profileCheckInProgress = profileCheckInProgress;
     _profileErrorCode = profileErrorCode;
     notifyListeners();
