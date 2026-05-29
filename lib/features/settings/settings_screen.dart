@@ -187,6 +187,60 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _confirmSignOut() async {
+    final controller = AppScope.read(context);
+    if (controller.signOutInProgress) {
+      return;
+    }
+
+    final strings = AppStrings.of(context);
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.isChinese ? '确认退出登录？' : 'Sign out of this account?'),
+        content: Text(
+          strings.isChinese
+              ? '退出后会清理当前账号的本地登录状态、昵称和偏好，并回到登录页。'
+              : 'This will clear the current account session, nickname, and local preferences, then return to the login screen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('sign-out-confirm-button'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(strings.isChinese ? '退出登录' : 'Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSignOut == true) {
+      await _handleSignOut();
+    }
+  }
+
+  Future<void> _handleSignOut() async {
+    final controller = AppScope.read(context);
+    final success = await controller.signOut();
+    if (!mounted || success) {
+      return;
+    }
+
+    final strings = AppStrings.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          strings.isChinese
+              ? '退出登录失败，请稍后重试。'
+              : 'Failed to sign out. Please try again later.',
+        ),
+      ),
+    );
+  }
+
   void _showEditSpaceNameDialog() {
     final strings = AppStrings.of(context);
     final controller = TextEditingController(text: _spaceName ?? '');
@@ -385,6 +439,32 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                 onChanged: controller.setNotificationPreviewEnabled,
                 title: Text(strings.notificationPreviewTitle),
                 subtitle: Text(strings.notificationPreviewSubtitle),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                key: const ValueKey('sign-out-tile'),
+                leading: Icon(
+                  Icons.logout_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  strings.isChinese ? '退出登录' : 'Sign out',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: Text(
+                  strings.isChinese
+                      ? '安全退出当前账号，并回到邮箱验证码登录页。'
+                      : 'Sign out of this account and return to the email OTP login screen.',
+                ),
+                trailing: controller.signOutInProgress
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                enabled: !controller.signOutInProgress,
+                onTap: _confirmSignOut,
               ),
             ],
           ),

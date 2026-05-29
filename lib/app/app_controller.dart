@@ -37,6 +37,7 @@ class AppController extends ChangeNotifier {
   String? _profileErrorCode;
   StreamSubscription<AuthState>? _authStateSubscription;
   Future<void> _sessionSyncQueue = Future<void>.value();
+  Future<void> Function()? _debugSignOutAction;
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
@@ -48,6 +49,7 @@ class AppController extends ChangeNotifier {
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
+  bool get signOutInProgress => _authBusy && isAuthenticated;
   String? get displayName => _displayName;
   bool get profileCheckInProgress => _profileCheckInProgress;
   bool get profileSaveInProgress => _profileSaveInProgress;
@@ -207,6 +209,36 @@ class AppController extends ChangeNotifier {
     } catch (error) {
       debugPrint('[Auth] Verify email OTP failed: $error');
       _authErrorCode = 'otp_verify_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<bool> signOut() async {
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (_authBusy) {
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      final signOutAction =
+          _debugSignOutAction ??
+          (() => Supabase.instance.client.auth.signOut());
+      await signOutAction();
+      await _syncSession(null);
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Sign out failed: $error');
+      _authErrorCode = 'sign_out_failed';
+      notifyListeners();
       return false;
     } finally {
       _setAuthBusy(false);
@@ -472,6 +504,19 @@ class AppController extends ChangeNotifier {
       forceBlockingProfileCheck: forceBlockingProfileCheck,
       reloadProfile: onReloadProfile ?? ({bool force = false}) async {},
     );
+  }
+
+  @visibleForTesting
+  Future<void> debugClearSessionForTest() {
+    return _applySessionSnapshot(
+      userId: null,
+      reloadProfile: ({bool force = false}) async {},
+    );
+  }
+
+  @visibleForTesting
+  void debugSetSignOutAction(Future<void> Function()? action) {
+    _debugSignOutAction = action;
   }
 
   void _setAuthBusy(bool busy) {

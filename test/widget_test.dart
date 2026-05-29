@@ -45,7 +45,7 @@ void main() {
           await reloadProfileCompleter.future;
           controller.debugSeedLoadedProfile(
             userId: 'user-1',
-            displayName: '灏忔弧',
+            displayName: 'Xiaoman',
           );
         },
       );
@@ -110,9 +110,12 @@ void main() {
       final controller = AppController();
       controller.debugSetAuthState(
         status: AppAuthStatus.authenticated,
-        displayName: '灏忔弧',
+        displayName: 'Xiaoman',
       );
-      controller.debugSeedLoadedProfile(userId: 'user-1', displayName: '灏忔弧');
+      controller.debugSeedLoadedProfile(
+        userId: 'user-1',
+        displayName: 'Xiaoman',
+      );
 
       await tester.pumpWidget(BetweenUsApp(controller: controller));
       await tester.pumpAndSettle();
@@ -140,6 +143,56 @@ void main() {
       );
     },
   );
+
+  testWidgets('sign out returns authenticated users to the email OTP gate', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+    );
+    controller.debugSeedLoadedProfile(userId: 'user-1', displayName: 'Xiaoman');
+    controller.setLanguage(AppLanguage.en);
+    controller.setThemePreference(AppThemePreference.dark);
+    controller.setNotificationPreviewEnabled(true);
+    controller.debugSetSignOutAction(() async {});
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('sign-out-tile')),
+      240,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('sign-out-tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sign-out-confirm-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('sign-out-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(controller.authStatus, AppAuthStatus.unauthenticated);
+    expect(controller.displayName, isNull);
+    expect(controller.language, AppLanguage.zhCn);
+    expect(controller.themePreference, AppThemePreference.system);
+    expect(controller.notificationPreviewEnabled, isFalse);
+  });
 
   testWidgets('home can navigate to the calendar tab', (tester) async {
     await _pumpApp(
