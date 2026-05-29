@@ -374,7 +374,7 @@ class AppController extends ChangeNotifier {
     bool forceBlockingProfileCheck = false,
   }) {
     _sessionSyncQueue = _sessionSyncQueue
-        .catchError((Object _, StackTrace __) {})
+        .catchError((Object _, StackTrace _) {})
         .then(
           (_) => _applySessionSnapshot(
             userId: session?.user.id,
@@ -456,10 +456,7 @@ class AppController extends ChangeNotifier {
   }
 
   @visibleForTesting
-  void debugSeedLoadedProfile({
-    required String? userId,
-    String? displayName,
-  }) {
+  void debugSeedLoadedProfile({required String? userId, String? displayName}) {
     _loadedPreferencesUserId = userId;
     _displayName = displayName;
   }
