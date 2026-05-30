@@ -215,6 +215,34 @@ void main() {
     },
   );
 
+  test('appReady requires authenticated space-backed profile state', () async {
+    final controller = AppController();
+
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+    );
+    expect(controller.appReady, isFalse);
+
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+    );
+    expect(controller.appReady, isTrue);
+
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+      profileCheckInProgress: true,
+    );
+    expect(controller.appReady, isFalse);
+  });
+
   testWidgets('authenticated app keeps the default zh-CN locale', (
     tester,
   ) async {

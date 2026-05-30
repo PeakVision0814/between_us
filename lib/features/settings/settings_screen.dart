@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
-import '../../app/couple_space_guard.dart';
 import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
 import '../../shared/widgets/debug_refresh_diagnostics_card.dart';
@@ -32,13 +31,11 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   DateTime? _currentInviteExpiresAt;
   bool _generatingInvite = false;
   Timer? _spaceRefreshTimer;
-  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
     _loadSpaceData();
     _spaceRefreshTimer = Timer.periodic(
       const Duration(seconds: 5),
@@ -76,7 +73,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
 
     try {
-      _coupleSpaceId = await _ensureCoupleSpaceId();
+      _coupleSpaceId = appController.currentSpaceId;
       if (_coupleSpaceId == null) {
         return;
       }
@@ -115,22 +112,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> _ensureCoupleSpaceId() async {
-    final currentSpaceId = _coupleSpaceId;
-    if (currentSpaceId != null && currentSpaceId.isNotEmpty) {
-      return currentSpaceId;
-    }
-
-    try {
-      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
-      _coupleSpaceId = ensuredSpaceId;
-      return ensuredSpaceId;
-    } catch (error) {
-      debugPrint('[Space] ensure couple space failed: $error');
-      return null;
-    }
-  }
-
   String _generateRandomCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random();
@@ -140,12 +121,12 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   Future<void> _generateInviteCode() async {
     if (_generatingInvite) return;
 
-    final coupleSpaceId = await _ensureCoupleSpaceId();
+    final coupleSpaceId = AppScope.read(context).currentSpaceId;
     if (coupleSpaceId == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('空间未初始化，请重启 App')));
+      ).showSnackBar(const SnackBar(content: Text('请检查网络连接')));
       return;
     }
 

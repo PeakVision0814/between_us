@@ -61,6 +61,11 @@ class AppController extends ChangeNotifier {
   bool get profileCheckInProgress => _profileCheckInProgress;
   bool get profileSaveInProgress => _profileSaveInProgress;
   String? get profileErrorCode => _profileErrorCode;
+  bool get appReady =>
+      _supabaseReady &&
+      isAuthenticated &&
+      _currentSpaceId != null &&
+      !_profileCheckInProgress;
   bool get requiresDisplayNameSetup =>
       isAuthenticated &&
       !_profileCheckInProgress &&
@@ -350,13 +355,7 @@ class AppController extends ChangeNotifier {
       String? currentSpaceId;
       var memberCount = 0;
       String? partnerDisplayName;
-      final membership = await client
-          .from('couple_memberships')
-          .select('couple_space_id')
-          .eq('profile_id', userId)
-          .eq('status', 'active')
-          .maybeSingle();
-      currentSpaceId = membership?['couple_space_id'] as String?;
+      currentSpaceId = await _loadOrCreateCurrentSpaceId(client, userId);
       if (currentSpaceId != null) {
         final memberships = await client
             .from('couple_memberships')
@@ -663,6 +662,48 @@ class AppController extends ChangeNotifier {
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  Future<String?> _loadOrCreateCurrentSpaceId(
+    SupabaseClient client,
+    String userId,
+  ) async {
+    final membership = await _loadCurrentMembership(client, userId);
+    final existingSpaceId = membership?['couple_space_id'] as String?;
+    if (existingSpaceId != null && existingSpaceId.isNotEmpty) {
+      return existingSpaceId;
+    }
+
+    try {
+      final response = await client.rpc('create_couple_space');
+      final createdSpaceId = switch (response) {
+        final String id when id.isNotEmpty => id,
+        final Map<String, dynamic> row => row['id'] as String?,
+        final List<dynamic> rows when rows.isNotEmpty =>
+          (rows.first as Map<String, dynamic>)['id'] as String?,
+        _ => null,
+      };
+      if (createdSpaceId != null && createdSpaceId.isNotEmpty) {
+        return createdSpaceId;
+      }
+    } catch (error) {
+      debugPrint('[Space] create_couple_space failed: $error');
+    }
+
+    final refetchedMembership = await _loadCurrentMembership(client, userId);
+    return refetchedMembership?['couple_space_id'] as String?;
+  }
+
+  Future<Map<String, dynamic>?> _loadCurrentMembership(
+    SupabaseClient client,
+    String userId,
+  ) {
+    return client
+        .from('couple_memberships')
+        .select('couple_space_id')
+        .eq('profile_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
   }
 
   bool _isUserNotRegisteredError(Object error) {

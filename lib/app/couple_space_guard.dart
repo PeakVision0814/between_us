@@ -6,6 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 typedef FetchCurrentCoupleSpaceId = Future<String?> Function();
 typedef CreateCoupleSpace = Future<String?> Function();
 
+@Deprecated(
+  'Runtime code should use AppController.currentSpaceId. '
+  'Keep this helper only for legacy tests.',
+)
 class CoupleSpaceGuard {
   CoupleSpaceGuard({
     required this._fetchCurrentSpaceId,

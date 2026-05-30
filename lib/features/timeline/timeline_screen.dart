@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../app/couple_space_guard.dart';
+import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../data/models/note_record.dart';
 import '../../data/models/plan_record.dart';
@@ -23,44 +23,16 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   late PlansNotesMode _activeMode;
   Future<List<NoteRecord>>? _notesFuture;
   Future<List<PlanRecord>>? _plansFuture;
-  String? _coupleSpaceId;
   bool _submitting = false;
-  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
-    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
     _activeMode = widget.mode == PlansNotesMode.overview
         ? PlansNotesMode.plan
         : widget.mode;
     _notesFuture = _fetchNotes();
     _plansFuture = _fetchPlans();
-    _loadCoupleSpaceId();
-  }
-
-  Future<void> _loadCoupleSpaceId() async {
-    try {
-      _coupleSpaceId = await _coupleSpaceGuard.loadCurrentSpaceId();
-    } catch (_) {
-      // Query failed; will be null.
-    }
-  }
-
-  Future<String?> _ensureCoupleSpaceId() async {
-    final currentSpaceId = _coupleSpaceId;
-    if (currentSpaceId != null) {
-      return currentSpaceId;
-    }
-
-    try {
-      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
-      _coupleSpaceId = ensuredSpaceId;
-      return ensuredSpaceId;
-    } catch (error) {
-      debugPrint('[PlansNotes] ensure couple space failed: $error');
-      return null;
-    }
   }
 
   Future<List<NoteRecord>> _fetchNotes() async {
@@ -113,7 +85,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
-      final coupleSpaceId = await _ensureCoupleSpaceId();
+      final coupleSpaceId = AppScope.read(context).currentSpaceId;
       if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('plans').insert({
@@ -218,7 +190,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
-      final coupleSpaceId = await _ensureCoupleSpaceId();
+      final coupleSpaceId = AppScope.read(context).currentSpaceId;
       if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('notes').insert({

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../app/couple_space_guard.dart';
+import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../data/models/calendar_event_record.dart';
 import '../../shared/widgets/app_page.dart';
@@ -17,15 +17,11 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDate;
   List<CalendarEventRecord> _events = [];
-  String? _coupleSpaceId;
   bool _submitting = false;
-  late final CoupleSpaceGuard _coupleSpaceGuard;
 
   @override
   void initState() {
     super.initState();
-    _coupleSpaceGuard = CoupleSpaceGuard.usingSupabase();
-    _loadCoupleSpaceId();
     _loadEvents();
   }
 
@@ -35,31 +31,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _selectedDate ??= _dateOnly(
       AppStrings.of(context).calendarDefaultSelectedDate,
     );
-  }
-
-  Future<void> _loadCoupleSpaceId() async {
-    try {
-      _coupleSpaceId = await _coupleSpaceGuard.loadCurrentSpaceId();
-    } catch (_) {
-      // Supabase not initialized or query failed
-      _coupleSpaceId = null;
-    }
-  }
-
-  Future<String?> _ensureCoupleSpaceId() async {
-    final currentSpaceId = _coupleSpaceId;
-    if (currentSpaceId != null) {
-      return currentSpaceId;
-    }
-
-    try {
-      final ensuredSpaceId = await _coupleSpaceGuard.ensureSpaceId();
-      _coupleSpaceId = ensuredSpaceId;
-      return ensuredSpaceId;
-    } catch (error) {
-      debugPrint('[Calendar] ensure couple space failed: $error');
-      return null;
-    }
   }
 
   Future<void> _loadEvents() async {
@@ -105,7 +76,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
-      final coupleSpaceId = await _ensureCoupleSpaceId();
+      final coupleSpaceId = AppScope.read(context).currentSpaceId;
       if (coupleSpaceId == null) return false;
 
       await Supabase.instance.client.from('calendar_events').insert({
