@@ -40,6 +40,8 @@
 
 - `id uuid primary key`
 - `display_name text not null`
+- `gender text not null default 'unset'`（约束 check in ('male', 'female', 'unset')，注册时必填）
+- `birthday date null`（可选，用于生日提醒）
 - `avatar_url text null`
 - `timezone text not null`
 - `preferred_locale text not null default 'zh-CN'`
@@ -51,6 +53,8 @@
 
 说明：
 
+- `gender` 决定功能权限：仅 'female' 用户可记录经期，'male' 用户只能查看（需对方授权）
+- `birthday` 用于生日倒计时和提醒功能
 - `preferred_locale` 只影响该用户自己的界面语言
 - `theme_preference` 只影响该用户自己的主题
 - `cycle_sharing_enabled` 用于表达该用户是否愿意把经期相关内容共享给伴侣
