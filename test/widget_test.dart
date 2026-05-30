@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
+import 'package:between_us/features/auth/email_register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +50,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('auth-login-title')), findsOneWidget);
+  });
+
+  testWidgets('register screen shows otp step after successful code send', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.otpSent,
+      supabaseReady: true,
+      pendingEmail: 'new@example.com',
+    );
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: const MaterialApp(home: EmailRegisterScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-verify-code-button')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('new@example.com'), findsOneWidget);
   });
 
   testWidgets('sign-in screen shows register guidance for unregistered email', (

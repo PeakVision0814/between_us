@@ -63,3 +63,4 @@ app.*.map.json
 supabase\config.toml
 
 .agent
+.temp\

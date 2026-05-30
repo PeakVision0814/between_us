@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -206,18 +204,10 @@ class AppController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      await Supabase.instance.client.auth.signInWithOtp(
         email: normalizedEmail,
-        password: _generateRandomPassword(),
+        shouldCreateUser: true,
       );
-
-      final session =
-          response.session ?? Supabase.instance.client.auth.currentSession;
-      if (session != null) {
-        await _syncSession(session);
-        return isAuthenticated;
-      }
-
       _pendingEmail = normalizedEmail;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
@@ -687,29 +677,6 @@ class AppController extends ChangeNotifier {
     return message.contains('already registered') ||
         message.contains('already been registered') ||
         message.contains('user already exists');
-  }
-
-  String _generateRandomPassword() {
-    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowercase = 'abcdefghijkmnopqrstuvwxyz';
-    const digits = '23456789';
-    const symbols = '!@#\$%^&*()-_=+';
-    const all = '$uppercase$lowercase$digits$symbols';
-    final random = Random.secure();
-
-    final chars = <String>[
-      uppercase[random.nextInt(uppercase.length)],
-      lowercase[random.nextInt(lowercase.length)],
-      digits[random.nextInt(digits.length)],
-      symbols[random.nextInt(symbols.length)],
-    ];
-
-    for (var i = chars.length; i < 24; i++) {
-      chars.add(all[random.nextInt(all.length)]);
-    }
-
-    chars.shuffle(random);
-    return chars.join();
   }
 
   bool _isValidDisplayName(String value) {
