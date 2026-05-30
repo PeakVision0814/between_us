@@ -41,7 +41,12 @@ class _EmailRegisterScreenState extends State<EmailRegisterScreen> {
 
   Future<void> _verifyCode() async {
     final controller = AppScope.read(context);
-    await controller.verifyEmailOtp(_codeController.text);
+    final success = await controller.verifyEmailOtp(_codeController.text);
+    if (!mounted || !success || !controller.isAuthenticated) {
+      return;
+    }
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   void _backToSignIn() {

@@ -78,6 +78,58 @@ void main() {
     expect(find.textContaining('new@example.com'), findsOneWidget);
   });
 
+  testWidgets('register verification success returns to app root', (
+    tester,
+  ) async {
+    final controller = _SuccessfulRegisterController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.otpSent,
+      supabaseReady: true,
+      pendingEmail: 'new@example.com',
+    );
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const EmailRegisterScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-otp-field')),
+      '123456',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-verify-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-register-title')), findsNothing);
+    expect(find.text('open'), findsOneWidget);
+    expect(controller.verifyCalls, 1);
+  });
+
   testWidgets('sign-in screen shows register guidance for unregistered email', (
     tester,
   ) async {
@@ -494,4 +546,19 @@ Future<void> _pumpApp(
 
   await tester.pumpWidget(BetweenUsApp(controller: controller));
   await tester.pumpAndSettle();
+}
+
+class _SuccessfulRegisterController extends AppController {
+  int verifyCalls = 0;
+
+  @override
+  Future<bool> verifyEmailOtp(String token) async {
+    verifyCalls += 1;
+    debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+    );
+    return true;
+  }
 }
