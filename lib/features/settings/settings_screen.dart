@@ -616,8 +616,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 4),
                       Text(
                         strings.isChinese
-                            ? '本轮先安全展示昵称，更多资料会在后续同步。'
-                            : 'This round safely shows the nickname first. More details can come later.',
+                            ? '这是 TA 在这里留下的名字。'
+                            : 'This is the name your partner uses here.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -639,8 +639,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ),
               child: Text(
                 strings.isChinese
-                    ? 'TA 的性别、生日等资料本轮还不主动深读，先把结构稳定下来。'
-                    : 'Partner fields like gender and birthday stay out of scope for now while the structure settles first.',
+                    ? '关于 TA 的更多资料，会在你们慢慢补充后出现在这里。'
+                    : 'More about your partner will appear here as your shared space fills in over time.',
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -681,8 +681,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             const SizedBox(height: 12),
             Text(
               strings.isChinese
-                  ? '现在还是单人模式。等 TA 加入后，这里会开始展示属于你们两个人的资料结构。'
-                  : 'You are still in solo mode. Once your partner joins, this section will start showing your shared two-person structure.',
+                  ? '等 TA 加入后，这里会慢慢变成只属于你们两个人的空间。'
+                  : 'Once your partner joins, this space will start to feel like it belongs to the two of you.',
               style: theme.textTheme.bodyMedium,
             ),
             if (_currentInviteCode != null &&
@@ -1081,8 +1081,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   String _singleHeroSubtitle(AppStrings strings) {
     return strings.isChinese
-        ? '先把自己的资料和空间准备好，等 TA 加入后，这里就会自然变成两个人的页面。'
-        : 'Set up your own details and space first. Once your partner joins, this page will naturally turn into a page for two.';
+        ? '先把这里准备好，等 TA 加入后，你们就能一起把这个空间慢慢填满。'
+        : 'Get things ready here first. Once your partner joins, the two of you can start filling this space together.';
   }
 
   String _spaceSummaryLabel(AppStrings strings) {

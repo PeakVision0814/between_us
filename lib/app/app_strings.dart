@@ -191,8 +191,8 @@ class AppStrings {
       : 'Keep your personal preferences and shared space rules together.';
   String get settingsMoreTitle => isChinese ? '设置与更多' : 'Settings & more';
   String get settingsMoreSubtitle => isChinese
-      ? '语言、主题、通知和账号操作都收在这里。'
-      : 'Language, theme, notifications, and account actions live here.';
+      ? '语言、主题、通知和账号相关设置都在这里。'
+      : 'Language, theme, notifications, and account settings are all here.';
   String get preferencesSection => isChinese ? '我的偏好' : 'My preferences';
   String get spaceSection => isChinese ? '我们的空间' : 'Our space';
   String get privacySection => isChinese ? '隐私与共享' : 'Privacy & sharing';
@@ -214,8 +214,8 @@ class AppStrings {
   String get cyclePrivacyTitle => isChinese ? '经期记录共享规则' : 'Cycle sharing rule';
   String get exportUnlinkTitle => isChinese ? '导出与解绑' : 'Export and unlink';
   String get localPrototypeHint => isChinese
-      ? '这些设置现在只在本地原型里生效，真实同步会在共享阶段接入。'
-      : 'These settings only live in the local prototype for now. Real sync comes in the shared stage.';
+      ? '这些设置会应用到你当前使用的设备。'
+      : 'These settings apply to the device you are using now.';
 
   String get chineseLabel => '简体中文';
   String get englishLabel => 'English';
