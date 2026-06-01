@@ -594,6 +594,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-preferences-section')),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('English'), findsOneWidget);
 
     await tester.tap(find.text('English'));
@@ -615,6 +622,113 @@ void main() {
 
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
+  });
+
+  testWidgets('Us screen shows invite structure in single mode', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
+    final birthdayText = tester.widget<Text>(
+      find.byKey(const ValueKey('us-my-profile-birthday')),
+    );
+    expect(birthdayText.data, '还没有填写，之后也可以再补。');
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-invite-placeholder-section')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('us-invite-placeholder-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('us-partner-profile-section')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('us-space-invite-actions')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Us screen shows paired structure and partner nickname', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
+    final displayNameText = tester.widget<Text>(
+      find.byKey(const ValueKey('us-my-profile-display-name')),
+    );
+    expect(displayNameText.data, 'Xiaoman');
+    final genderText = tester.widget<Text>(
+      find.byKey(const ValueKey('us-my-profile-gender')),
+    );
+    expect(genderText.data, 'Female');
+    final birthdayText = tester.widget<Text>(
+      find.byKey(const ValueKey('us-my-profile-birthday')),
+    );
+    expect(birthdayText.data, '1998-06-01');
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-partner-profile-section')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('us-partner-profile-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('us-invite-placeholder-section')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('us-space-invite-actions')), findsNothing);
+    expect(find.byKey(const ValueKey('us-partner-name')), findsOneWidget);
+    expect(find.text('Ache'), findsWidgets);
   });
 }
 

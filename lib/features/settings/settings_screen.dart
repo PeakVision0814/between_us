@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
@@ -24,7 +24,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String? _relationshipStartDate;
   String? _coupleSpaceId;
   int _memberCount = 0;
-  bool _loading = true;
   bool _loadingSpaceData = false;
 
   String? _currentInviteCode;
@@ -66,7 +65,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         '[Space] skip load: supabase not ready (${appController.supabaseFailureReason ?? 'unknown'})',
       );
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() {});
       }
       _loadingSpaceData = false;
       return;
@@ -75,6 +74,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     try {
       _coupleSpaceId = appController.currentSpaceId;
       if (_coupleSpaceId == null) {
+        if (mounted) {
+          setState(() {});
+        }
         return;
       }
 
@@ -108,7 +110,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
 
     if (mounted) {
-      setState(() => _loading = false);
+      setState(() {});
     }
   }
 
@@ -358,268 +360,485 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
     final strings = AppStrings.of(context);
+    final effectiveMemberCount = max(_memberCount, controller.memberCount);
+    final selfName = _resolvedSelfName(controller, strings);
+    final partnerName = _resolvedPartnerName(controller);
+    final isPaired = effectiveMemberCount >= 2 && partnerName != null;
 
     return AppPage(
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.usLeadTitle,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(strings.usLeadSubtitle),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _HeroFact(
-                        title: strings.spaceNameTitle,
-                        value: _spaceName ?? strings.spaceNameValue,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _HeroFact(
-                        title: strings.spaceStatusLabel,
-                        value: _loading
-                            ? '...'
-                            : _memberCount >= 2
-                            ? (strings.isChinese ? '已激活' : 'Active')
-                            : (strings.isChinese
-                                  ? '等待对方加入'
-                                  : 'Waiting for partner'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        _buildRelationshipHero(
+          context,
+          strings,
+          selfName: selfName,
+          partnerName: partnerName,
+          isPaired: isPaired,
+        ),
+        const SizedBox(height: 20),
+        SectionHeader(title: strings.isChinese ? '我的资料' : 'My profile'),
+        _buildMyProfileSection(context, strings, controller),
+        const SizedBox(height: 20),
+        SectionHeader(title: strings.isChinese ? 'TA 的资料' : 'Partner profile'),
+        isPaired
+            ? _buildPartnerProfileSection(context, strings, partnerName)
+            : _buildSingleInviteSection(context, strings),
+        const SizedBox(height: 20),
+        SectionHeader(title: strings.spaceSection),
+        _buildSpaceSection(context, strings, isPaired: isPaired),
+        const SizedBox(height: 20),
+        SectionHeader(title: strings.preferencesSection),
+        _buildPreferencesSection(context, strings, controller),
+        const SizedBox(height: 20),
+        SectionHeader(title: strings.isChinese ? '退出登录' : 'Sign out'),
+        _buildSignOutSection(context, strings, controller),
+        if (!kReleaseMode) ...[
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Debug'),
+          const DebugRefreshDiagnosticsCard(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRelationshipHero(
+    BuildContext context,
+    AppStrings strings, {
+    required String selfName,
+    required String? partnerName,
+    required bool isPaired,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final heroTitle = isPaired
+        ? strings.isChinese
+              ? '$selfName 和 $partnerName'
+              : '$selfName & $partnerName'
+        : strings.isChinese
+        ? '$selfName · 等待另一半'
+        : '$selfName · Waiting for your partner';
+
+    return Card(
+      key: const ValueKey('us-hero-section'),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              colorScheme.primaryContainer.withValues(alpha: 0.95),
+              colorScheme.secondaryContainer.withValues(alpha: 0.88),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.preferencesSection),
-        _PanelCard(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _InfoRow(
-                title: strings.languageTitle,
-                child: RadioGroup<AppLanguage>(
-                  groupValue: controller.language,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.setLanguage(value);
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<AppLanguage>(
-                        title: Text(strings.chineseLabel),
-                        value: AppLanguage.zhCn,
-                      ),
-                      RadioListTile<AppLanguage>(
-                        title: Text(strings.englishLabel),
-                        value: AppLanguage.en,
-                      ),
-                    ],
+              Text(
+                strings.usTitle,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colorScheme.onSecondaryContainer.withValues(
+                    alpha: 0.75,
                   ),
                 ),
               ),
-              const Divider(height: 1),
-              _InfoRow(
-                title: strings.themeTitle,
-                child: RadioGroup<AppThemePreference>(
-                  groupValue: controller.themePreference,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.setThemePreference(value);
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeSystemLabel),
-                        value: AppThemePreference.system,
-                      ),
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeLightLabel),
-                        value: AppThemePreference.light,
-                      ),
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeDarkLabel),
-                        value: AppThemePreference.dark,
-                      ),
-                    ],
+              const SizedBox(height: 8),
+              Text(
+                heroTitle,
+                key: const ValueKey('us-hero-title'),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: colorScheme.onSecondaryContainer,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isPaired
+                    ? _relationshipHeroSubtitle(strings)
+                    : _singleHeroSubtitle(strings),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSecondaryContainer.withValues(
+                    alpha: 0.82,
                   ),
                 ),
               ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.schedule_outlined),
-                title: Text(strings.timeZoneTitle),
-                subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _HeroPersonSlot(
+                      key: const ValueKey('us-hero-self-slot'),
+                      title: strings.isChinese ? '我' : 'Me',
+                      name: selfName,
+                      avatarLabel: _avatarLabel(
+                        selfName,
+                        fallback: strings.isChinese ? '我' : 'M',
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 18,
+                    ),
+                    child: Icon(
+                      isPaired ? Icons.favorite_rounded : Icons.favorite_border,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  Expanded(
+                    child: isPaired
+                        ? _HeroPersonSlot(
+                            key: const ValueKey('us-hero-partner-slot'),
+                            title: strings.isChinese ? 'TA' : 'Partner',
+                            name:
+                                partnerName ??
+                                (strings.isChinese ? 'TA' : 'Partner'),
+                            avatarLabel: _avatarLabel(
+                              partnerName,
+                              fallback: strings.isChinese ? 'TA' : 'P',
+                            ),
+                          )
+                        : _HeroInviteSlot(
+                            key: const ValueKey('us-hero-single-slot'),
+                            title: strings.isChinese
+                                ? '邀请 TA 加入'
+                                : 'Invite your partner',
+                            subtitle: strings.isChinese
+                                ? '等 TA 加入后，这里会开始真正像一个两个人的空间。'
+                                : 'Once they join, this page starts to feel like a space for two.',
+                          ),
+                  ),
+                ],
               ),
-              const Divider(height: 1),
-              SwitchListTile.adaptive(
-                value: controller.notificationPreviewEnabled,
-                onChanged: controller.setNotificationPreviewEnabled,
-                title: Text(strings.notificationPreviewTitle),
-                subtitle: Text(strings.notificationPreviewSubtitle),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                key: const ValueKey('sign-out-tile'),
-                leading: Icon(
-                  Icons.logout_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(
-                  strings.isChinese ? '退出登录' : 'Sign out',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                subtitle: Text(
-                  strings.isChinese
-                      ? '安全退出当前账号，并回到邮箱验证码登录页。'
-                      : 'Sign out of this account and return to the email OTP login screen.',
-                ),
-                trailing: controller.signOutInProgress
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_right),
-                enabled: !controller.signOutInProgress,
-                onTap: _confirmSignOut,
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _HeroChip(
+                    key: const ValueKey('us-hero-status'),
+                    label: _relationshipStatusLabel(
+                      strings,
+                      isPaired: isPaired,
+                    ),
+                  ),
+                  _HeroChip(label: _spaceSummaryLabel(strings)),
+                ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.spaceSection),
-        _PanelCard(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.home_work_outlined),
-                title: Text(strings.spaceNameTitle),
-                subtitle: Text(_spaceName ?? strings.spaceNameValue),
-                trailing: const Icon(Icons.edit_outlined, size: 20),
-                onTap: _showEditSpaceNameDialog,
+      ),
+    );
+  }
+
+  Widget _buildMyProfileSection(
+    BuildContext context,
+    AppStrings strings,
+    AppController controller,
+  ) {
+    return _PanelCard(
+      key: const ValueKey('us-my-profile-section'),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            _SectionValueRow(
+              label: strings.isChinese ? '昵称' : 'Display name',
+              value: _resolvedSelfName(controller, strings),
+              valueKey: const ValueKey('us-my-profile-display-name'),
+            ),
+            const Divider(height: 28),
+            _SectionValueRow(
+              label: strings.isChinese ? '性别' : 'Gender',
+              value: _genderLabel(strings, controller.gender),
+              valueKey: const ValueKey('us-my-profile-gender'),
+            ),
+            const Divider(height: 28),
+            _SectionValueRow(
+              label: strings.isChinese ? '生日' : 'Birthday',
+              value: _birthdayLabel(strings, controller.birthday),
+              valueKey: const ValueKey('us-my-profile-birthday'),
+              isPlaceholder: controller.birthday == null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPartnerProfileSection(
+    BuildContext context,
+    AppStrings strings,
+    String partnerName,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return _PanelCard(
+      key: const ValueKey('us-partner-profile-section'),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _AvatarBadge(
+                  label: _avatarLabel(
+                    partnerName,
+                    fallback: strings.isChinese ? 'TA' : 'P',
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        partnerName,
+                        key: const ValueKey('us-partner-name'),
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        strings.isChinese
+                            ? '本轮先安全展示昵称，更多资料会在后续同步。'
+                            : 'This round safely shows the nickname first. More details can come later.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.45,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.mail_outline),
-                title: Text(strings.inviteStatusTitle),
-                subtitle: Text(
-                  _loading
-                      ? '...'
-                      : _memberCount >= 2
-                      ? (strings.isChinese ? '已激活' : 'Active')
-                      : (strings.isChinese ? '等待对方加入' : 'Waiting for partner'),
+              child: Text(
+                strings.isChinese
+                    ? 'TA 的性别、生日等资料本轮还不主动深读，先把结构稳定下来。'
+                    : 'Partner fields like gender and birthday stay out of scope for now while the structure settles first.',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSingleInviteSection(BuildContext context, AppStrings strings) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return _PanelCard(
+      key: const ValueKey('us-invite-placeholder-section'),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.mark_email_unread_outlined,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    strings.isChinese
+                        ? '先给 TA 留一个位置'
+                        : 'Leave a spot for your partner',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              strings.isChinese
+                  ? '现在还是单人模式。等 TA 加入后，这里会开始展示属于你们两个人的资料结构。'
+                  : 'You are still in solo mode. Once your partner joins, this section will start showing your shared two-person structure.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            if (_currentInviteCode != null &&
+                _currentInviteExpiresAt != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                key: const ValueKey('us-single-invite-code'),
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.45,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.isChinese ? '当前邀请码' : 'Current invite code',
+                      style: theme.textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _currentInviteCode!,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontFamily: 'monospace',
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _inviteExpiryText(strings, _currentInviteExpiresAt!),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ),
-              if (!_loading && _memberCount < 2) ...[
-                const Divider(height: 1),
-                if (_currentInviteCode != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          strings.isChinese ? '邀请码' : 'Invite code',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _currentInviteCode!,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        fontFamily: 'monospace',
-                                        letterSpacing: 2,
-                                      ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.copy, size: 20),
-                                onPressed: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: _currentInviteCode!),
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        strings.isChinese ? '已复制' : 'Copied',
-                                      ),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          strings.isChinese
-                              ? '有效期至：${_currentInviteExpiresAt!.month}月${_currentInviteExpiresAt!.day}日 ${_currentInviteExpiresAt!.hour}:${_currentInviteExpiresAt!.minute.toString().padLeft(2, '0')}'
-                              : 'Expires: ${_currentInviteExpiresAt!.month}/${_currentInviteExpiresAt!.day} ${_currentInviteExpiresAt!.hour}:${_currentInviteExpiresAt!.minute.toString().padLeft(2, '0')}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpaceSection(
+    BuildContext context,
+    AppStrings strings, {
+    required bool isPaired,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return _PanelCard(
+      key: const ValueKey('us-space-section'),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.home_work_outlined),
+            title: Text(strings.spaceNameTitle),
+            subtitle: Text(_spaceName ?? strings.spaceNameValue),
+            trailing: const Icon(Icons.edit_outlined, size: 20),
+            onTap: _showEditSpaceNameDialog,
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: Text(strings.spaceStatusLabel),
+            subtitle: Text(
+              _relationshipStatusLabel(strings, isPaired: isPaired),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.mail_outline),
+            title: Text(strings.inviteStatusTitle),
+            subtitle: Text(_inviteSummaryText(strings, isPaired: isPaired)),
+          ),
+          if (_currentInviteCode != null &&
+              _currentInviteExpiresAt != null) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.45,
                   ),
-                ] else ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            strings.isChinese ? '邀请码摘要' : 'Invite summary',
+                            style: theme.textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _currentInviteCode!,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontFamily: 'monospace',
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _inviteExpiryText(
+                              strings,
+                              _currentInviteExpiresAt!,
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                     ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _generatingInvite
-                            ? null
-                            : _generateInviteCode,
-                        icon: _generatingInvite
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.vpn_key_outlined),
-                        label: Text(
-                          strings.isChinese ? '生成邀请码' : 'Generate invite code',
-                        ),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 20),
+                      onPressed: () {
+                        Clipboard.setData(
+                          ClipboardData(text: _currentInviteCode!),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(strings.isChinese ? '已复制' : 'Copied'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (!isPaired) ...[
+            const Divider(height: 1),
+            Padding(
+              key: const ValueKey('us-space-invite-actions'),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _generatingInvite ? null : _generateInviteCode,
+                      icon: _generatingInvite
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.vpn_key_outlined),
+                      label: Text(
+                        strings.isChinese ? '生成邀请码' : 'Generate invite code',
                       ),
                     ),
                   ),
-                ],
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: SizedBox(
+                  const SizedBox(height: 12),
+                  SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _showInviteCodeDialog,
@@ -631,56 +850,302 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                ),
-              ],
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.rule_folder_outlined),
-                title: Text(strings.sharedRulesTitle),
-                subtitle: Text(strings.sharedRulesValue),
+                ],
               ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.favorite_outline),
-                title: Text(strings.relationshipDateTitle),
-                subtitle: Text(
-                  _relationshipStartDate ?? strings.relationshipDateValue,
-                ),
-              ),
-            ],
+            ),
+          ],
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.rule_folder_outlined),
+            title: Text(strings.sharedRulesTitle),
+            subtitle: Text(strings.sharedRulesValue),
           ),
-        ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.privacySection),
-        _PanelCard(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.shield_outlined),
-                title: Text(strings.cyclePrivacyTitle),
-                subtitle: Text(strings.cyclePrivacyValue),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.link_off_outlined),
-                title: Text(strings.exportUnlinkTitle),
-                subtitle: Text(strings.exportUnlinkValue),
-              ),
-            ],
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.event_outlined),
+            title: Text(strings.relationshipDateTitle),
+            subtitle: Text(_relationshipDateValue(strings)),
           ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          strings.localPrototypeHint,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        if (!kReleaseMode) ...[
-          const SizedBox(height: 18),
-          const SectionHeader(title: 'Debug'),
-          const DebugRefreshDiagnosticsCard(),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.shield_outlined),
+            title: Text(strings.cyclePrivacyTitle),
+            subtitle: Text(strings.cyclePrivacyValue),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.link_off_outlined),
+            title: Text(strings.exportUnlinkTitle),
+            subtitle: Text(strings.exportUnlinkValue),
+          ),
         ],
-      ],
+      ),
     );
+  }
+
+  Widget _buildPreferencesSection(
+    BuildContext context,
+    AppStrings strings,
+    AppController controller,
+  ) {
+    return _PanelCard(
+      key: const ValueKey('us-preferences-section'),
+      child: Column(
+        children: [
+          _PreferenceGroup(
+            title: strings.languageTitle,
+            child: RadioGroup<AppLanguage>(
+              groupValue: controller.language,
+              onChanged: (value) {
+                if (value != null) {
+                  controller.setLanguage(value);
+                }
+              },
+              child: Column(
+                children: [
+                  RadioListTile<AppLanguage>(
+                    title: Text(strings.chineseLabel),
+                    value: AppLanguage.zhCn,
+                  ),
+                  RadioListTile<AppLanguage>(
+                    title: Text(strings.englishLabel),
+                    value: AppLanguage.en,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          _PreferenceGroup(
+            title: strings.themeTitle,
+            child: RadioGroup<AppThemePreference>(
+              groupValue: controller.themePreference,
+              onChanged: (value) {
+                if (value != null) {
+                  controller.setThemePreference(value);
+                }
+              },
+              child: Column(
+                children: [
+                  RadioListTile<AppThemePreference>(
+                    title: Text(strings.themeSystemLabel),
+                    value: AppThemePreference.system,
+                  ),
+                  RadioListTile<AppThemePreference>(
+                    title: Text(strings.themeLightLabel),
+                    value: AppThemePreference.light,
+                  ),
+                  RadioListTile<AppThemePreference>(
+                    title: Text(strings.themeDarkLabel),
+                    value: AppThemePreference.dark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.schedule_outlined),
+            title: Text(strings.timeZoneTitle),
+            subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
+          ),
+          const Divider(height: 1),
+          SwitchListTile.adaptive(
+            value: controller.notificationPreviewEnabled,
+            onChanged: controller.setNotificationPreviewEnabled,
+            title: Text(strings.notificationPreviewTitle),
+            subtitle: Text(strings.notificationPreviewSubtitle),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignOutSection(
+    BuildContext context,
+    AppStrings strings,
+    AppController controller,
+  ) {
+    return _PanelCard(
+      key: const ValueKey('us-signout-section'),
+      child: ListTile(
+        key: const ValueKey('sign-out-tile'),
+        leading: Icon(
+          Icons.logout_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: Text(
+          strings.isChinese ? '退出登录' : 'Sign out',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+        subtitle: Text(
+          strings.isChinese
+              ? '安全退出当前账号，并回到邮箱验证码登录页。'
+              : 'Sign out of this account and return to the email OTP login screen.',
+        ),
+        trailing: controller.signOutInProgress
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.chevron_right),
+        enabled: !controller.signOutInProgress,
+        onTap: _confirmSignOut,
+      ),
+    );
+  }
+
+  String _resolvedSelfName(AppController controller, AppStrings strings) {
+    final normalized = _normalizeName(controller.displayName);
+    return normalized ?? (strings.isChinese ? '我' : 'Me');
+  }
+
+  String? _resolvedPartnerName(AppController controller) {
+    return _normalizeName(controller.partnerDisplayName);
+  }
+
+  String? _normalizeName(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  String _avatarLabel(String? name, {required String fallback}) {
+    final normalized = _normalizeName(name);
+    if (normalized == null) {
+      return fallback.characters.first;
+    }
+    return normalized.characters.first;
+  }
+
+  String _genderLabel(AppStrings strings, String? gender) {
+    return switch (gender) {
+      AppController.genderMale => strings.isChinese ? '男生' : 'Male',
+      AppController.genderFemale => strings.isChinese ? '女生' : 'Female',
+      _ => strings.isChinese ? '尚未补充' : 'Not set yet',
+    };
+  }
+
+  String _birthdayLabel(AppStrings strings, DateTime? birthday) {
+    if (birthday == null) {
+      return strings.isChinese
+          ? '还没有填写，之后也可以再补。'
+          : 'Not added yet. You can fill this in later.';
+    }
+
+    final month = birthday.month.toString().padLeft(2, '0');
+    final day = birthday.day.toString().padLeft(2, '0');
+    return strings.isChinese
+        ? '${birthday.year} 年 $month 月 $day 日'
+        : '${birthday.year}-$month-$day';
+  }
+
+  String _relationshipStatusLabel(
+    AppStrings strings, {
+    required bool isPaired,
+  }) {
+    if (!isPaired) {
+      return strings.isChinese ? '等待另一半加入' : 'Waiting for partner';
+    }
+
+    final relationshipDays = _relationshipDays();
+    if (relationshipDays != null) {
+      return strings.isChinese
+          ? '在一起第 $relationshipDays 天'
+          : 'Day $relationshipDays together';
+    }
+
+    return strings.isChinese ? '已配对' : 'Paired';
+  }
+
+  String _relationshipHeroSubtitle(AppStrings strings) {
+    if (_relationshipStartDate != null) {
+      return strings.isChinese
+          ? '已经有属于你们两个人的空间了，资料、规则和偏好会慢慢长出来。'
+          : 'Your shared space is already in place, and the rest of the profile details can grow from here.';
+    }
+
+    return strings.isChinese
+        ? '你们已经连到同一个空间，接下来会继续补齐更完整的双人信息。'
+        : 'You are already connected to the same space, and fuller two-person details can come next.';
+  }
+
+  String _singleHeroSubtitle(AppStrings strings) {
+    return strings.isChinese
+        ? '先把自己的资料和空间准备好，等 TA 加入后，这里就会自然变成两个人的页面。'
+        : 'Set up your own details and space first. Once your partner joins, this page will naturally turn into a page for two.';
+  }
+
+  String _spaceSummaryLabel(AppStrings strings) {
+    final name = _normalizeName(_spaceName);
+    if (name != null) {
+      return name;
+    }
+    return strings.isChinese ? '共享空间已准备' : 'Shared space ready';
+  }
+
+  String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
+    if (isPaired) {
+      return strings.isChinese
+          ? '空间已进入双人状态，目前不需要新的邀请。'
+          : 'This space is already paired, so no new invite is needed right now.';
+    }
+
+    if (_currentInviteCode != null && _currentInviteExpiresAt != null) {
+      return strings.isChinese
+          ? '邀请码已生成，等待对方输入后加入。'
+          : 'An invite code is ready and waiting for your partner to use.';
+    }
+
+    return strings.isChinese
+        ? '还在单人模式，可以继续生成邀请码或输入对方的邀请码。'
+        : 'You are still in solo mode. You can generate an invite code or join with one here.';
+  }
+
+  String _relationshipDateValue(AppStrings strings) {
+    if (_relationshipStartDate == null) {
+      return strings.isChinese
+          ? '还没有设置关系起点'
+          : 'Relationship date has not been set yet';
+    }
+
+    final parsed = DateTime.tryParse(_relationshipStartDate!);
+    if (parsed == null) {
+      return _relationshipStartDate!;
+    }
+
+    final month = parsed.month.toString().padLeft(2, '0');
+    final day = parsed.day.toString().padLeft(2, '0');
+    return strings.isChinese
+        ? '${parsed.year} 年 $month 月 $day 日'
+        : '${parsed.year}-$month-$day';
+  }
+
+  String _inviteExpiryText(AppStrings strings, DateTime expiresAt) {
+    return strings.isChinese
+        ? '有效期至 ${expiresAt.month} 月 ${expiresAt.day} 日 ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}'
+        : 'Expires ${expiresAt.month}/${expiresAt.day} ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}';
+  }
+
+  int? _relationshipDays() {
+    if (_relationshipStartDate == null) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(_relationshipStartDate!);
+    if (parsed == null) {
+      return null;
+    }
+
+    final start = DateUtils.dateOnly(parsed);
+    final today = DateUtils.dateOnly(DateTime.now());
+    if (start.isAfter(today)) {
+      return null;
+    }
+    return today.difference(start).inDays + 1;
   }
 
   String _timeZoneLabel() {
@@ -695,46 +1160,195 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 }
 
 class _PanelCard extends StatelessWidget {
-  const _PanelCard({required this.child});
+  const _PanelCard({super.key, required this.child});
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(child: child);
+    return Card(clipBehavior: Clip.antiAlias, child: child);
   }
 }
 
-class _HeroFact extends StatelessWidget {
-  const _HeroFact({required this.title, required this.value});
+class _AvatarBadge extends StatelessWidget {
+  const _AvatarBadge({required this.label, this.size = 52});
 
-  final String title;
-  final String value;
+  final String label;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: colorScheme.secondary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        shape: BoxShape.circle,
+        color: colorScheme.primary.withValues(alpha: 0.12),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroPersonSlot extends StatelessWidget {
+  const _HeroPersonSlot({
+    super.key,
+    required this.title,
+    required this.name,
+    required this.avatarLabel,
+  });
+
+  final String title;
+  final String name;
+  final String avatarLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(title, style: Theme.of(context).textTheme.bodySmall),
+          _AvatarBadge(label: avatarLabel),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ],
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.title, required this.child});
+class _HeroInviteSlot extends StatelessWidget {
+  const _HeroInviteSlot({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AvatarBadge(label: '＋', size: 44),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  const _HeroChip({super.key, required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+    );
+  }
+}
+
+class _SectionValueRow extends StatelessWidget {
+  const _SectionValueRow({
+    required this.label,
+    required this.value,
+    this.valueKey,
+    this.isPlaceholder = false,
+  });
+
+  final String label;
+  final String value;
+  final Key? valueKey;
+  final bool isPlaceholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 78,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            key: valueKey,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: isPlaceholder ? colorScheme.onSurfaceVariant : null,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreferenceGroup extends StatelessWidget {
+  const _PreferenceGroup({required this.title, required this.child});
 
   final String title;
   final Widget child;
