@@ -19,6 +19,9 @@ enum AppAuthStatus { initializing, unauthenticated, otpSent, authenticated }
 
 class AppController extends ChangeNotifier {
   static const String defaultDisplayNamePlaceholder = '新的用户';
+  static const String genderUnset = 'unset';
+  static const String genderMale = 'male';
+  static const String genderFemale = 'female';
 
   AppLanguage _language = AppLanguage.zhCn;
   AppThemePreference _themePreference = AppThemePreference.system;
@@ -31,6 +34,8 @@ class AppController extends ChangeNotifier {
   bool _authBusy = false;
   String? _loadedPreferencesUserId;
   String? _displayName;
+  String? _gender;
+  DateTime? _birthday;
   String? _selfProfileId;
   String? _currentSpaceId;
   int _memberCount = 0;
@@ -54,6 +59,8 @@ class AppController extends ChangeNotifier {
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
   bool get signOutInProgress => _authBusy && isAuthenticated;
   String? get displayName => _displayName;
+  String? get gender => _gender;
+  DateTime? get birthday => _birthday;
   String? get selfProfileId => _selfProfileId;
   String? get currentSpaceId => _currentSpaceId;
   int get memberCount => _memberCount;
@@ -66,10 +73,11 @@ class AppController extends ChangeNotifier {
       isAuthenticated &&
       _currentSpaceId != null &&
       !_profileCheckInProgress;
-  bool get requiresDisplayNameSetup =>
+  bool get requiresProfileSetup =>
       isAuthenticated &&
       !_profileCheckInProgress &&
-      !_hasCompletedDisplayName(_displayName);
+      (!_hasCompletedDisplayName(_displayName) ||
+          !_hasCompletedGender(_gender));
 
   Locale get locale => _language.locale;
 
@@ -337,7 +345,7 @@ class AppController extends ChangeNotifier {
         profile = await client
             .from('profiles')
             .select(
-              'display_name, preferred_locale, theme_preference, notification_preview_enabled',
+              'display_name, gender, birthday, preferred_locale, theme_preference, notification_preview_enabled',
             )
             .eq('id', userId)
             .maybeSingle();
@@ -396,6 +404,16 @@ class AppController extends ChangeNotifier {
         _displayName = displayName;
         changed = true;
       }
+      final gender = profile['gender'] as String?;
+      if (_gender != gender) {
+        _gender = gender;
+        changed = true;
+      }
+      final birthday = _parseBirthday(profile['birthday']);
+      if (_birthday != birthday) {
+        _birthday = birthday;
+        changed = true;
+      }
       if (_currentSpaceId != currentSpaceId) {
         _currentSpaceId = currentSpaceId;
         changed = true;
@@ -440,14 +458,26 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<bool> saveDisplayName(String value) async {
-    final normalizedValue = value.trim();
+  Future<bool> saveProfileSetup({
+    required String displayName,
+    required String gender,
+    DateTime? birthday,
+  }) async {
+    final normalizedDisplayName = displayName.trim();
+    final normalizedGender = gender.trim();
+    final normalizedBirthday = birthday == null
+        ? null
+        : DateUtils.dateOnly(birthday);
     if (!_supabaseReady) {
       _setProfileError('initialize_failed');
       return false;
     }
-    if (!_isValidDisplayName(normalizedValue)) {
+    if (!_isValidDisplayName(normalizedDisplayName)) {
       _setProfileError('invalid_display_name');
+      return false;
+    }
+    if (!_isValidGender(normalizedGender)) {
+      _setProfileError('invalid_gender');
       return false;
     }
 
@@ -464,14 +494,20 @@ class AppController extends ChangeNotifier {
     try {
       await Supabase.instance.client
           .from('profiles')
-          .update({'display_name': normalizedValue})
+          .update({
+            'display_name': normalizedDisplayName,
+            'gender': normalizedGender,
+            'birthday': _formatBirthdayForStorage(normalizedBirthday),
+          })
           .eq('id', userId);
-      _displayName = normalizedValue;
+      _displayName = normalizedDisplayName;
+      _gender = normalizedGender;
+      _birthday = normalizedBirthday;
       _profileErrorCode = null;
       notifyListeners();
       return true;
     } catch (error) {
-      debugPrint('[Profile] Save display_name failed: $error');
+      debugPrint('[Profile] Save setup failed: $error');
       _profileErrorCode = 'save_failed';
       notifyListeners();
       return false;
@@ -479,6 +515,14 @@ class AppController extends ChangeNotifier {
       _profileSaveInProgress = false;
       notifyListeners();
     }
+  }
+
+  Future<bool> saveDisplayName(String value) {
+    return saveProfileSetup(
+      displayName: value,
+      gender: _gender ?? genderUnset,
+      birthday: _birthday,
+    );
   }
 
   void clearProfileError() {
@@ -536,6 +580,8 @@ class AppController extends ChangeNotifier {
       _authErrorCode = null;
       _loadedPreferencesUserId = null;
       _displayName = null;
+      _gender = null;
+      _birthday = null;
       _selfProfileId = null;
       _currentSpaceId = null;
       _memberCount = 0;
@@ -603,6 +649,8 @@ class AppController extends ChangeNotifier {
   void debugSeedLoadedProfile({
     required String? userId,
     String? displayName,
+    String? gender,
+    DateTime? birthday,
     String? currentSpaceId,
     int memberCount = 0,
     String? partnerDisplayName,
@@ -610,6 +658,8 @@ class AppController extends ChangeNotifier {
     _loadedPreferencesUserId = userId;
     _selfProfileId = userId;
     _displayName = displayName;
+    _gender = gender;
+    _birthday = birthday;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
@@ -727,12 +777,37 @@ class AppController extends ChangeNotifier {
         value != defaultDisplayNamePlaceholder;
   }
 
+  bool _isValidGender(String value) {
+    return value == genderMale || value == genderFemale;
+  }
+
   bool _hasCompletedDisplayName(String? value) {
     final normalizedValue = value?.trim();
     if (normalizedValue == null || normalizedValue.isEmpty) {
       return false;
     }
     return normalizedValue != defaultDisplayNamePlaceholder;
+  }
+
+  bool _hasCompletedGender(String? value) {
+    return value == genderMale || value == genderFemale;
+  }
+
+  DateTime? _parseBirthday(dynamic value) {
+    if (value is! String || value.trim().isEmpty) {
+      return null;
+    }
+    return DateUtils.dateOnly(DateTime.parse(value));
+  }
+
+  String? _formatBirthdayForStorage(DateTime? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalized = DateUtils.dateOnly(value);
+    final month = normalized.month.toString().padLeft(2, '0');
+    final day = normalized.day.toString().padLeft(2, '0');
+    return '${normalized.year}-$month-$day';
   }
 
   @visibleForTesting
@@ -742,6 +817,8 @@ class AppController extends ChangeNotifier {
     String? pendingEmail,
     String? authErrorCode,
     String? displayName,
+    String? gender,
+    DateTime? birthday,
     String? selfProfileId,
     String? currentSpaceId,
     int memberCount = 0,
@@ -754,6 +831,8 @@ class AppController extends ChangeNotifier {
     _pendingEmail = pendingEmail;
     _authErrorCode = authErrorCode;
     _displayName = displayName;
+    _gender = gender;
+    _birthday = birthday;
     _selfProfileId = selfProfileId;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;

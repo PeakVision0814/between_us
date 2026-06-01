@@ -44,7 +44,7 @@ class BetweenUsApp extends StatelessWidget {
     return switch (controller.authStatus) {
       AppAuthStatus.authenticated when controller.profileCheckInProgress =>
         const _AuthLoadingScreen(),
-      AppAuthStatus.authenticated when controller.requiresDisplayNameSetup =>
+      AppAuthStatus.authenticated when controller.requiresProfileSetup =>
         const FirstProfileSetupScreen(),
       AppAuthStatus.authenticated => const AppShell(),
       _ => const EmailOtpSignInScreen(),

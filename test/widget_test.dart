@@ -156,6 +156,12 @@ void main() {
       find.byKey(const ValueKey('profile-display-name-field')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('profile-gender-male')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-gender-female')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('profile-birthday-button')),
+      findsOneWidget,
+    );
     expect(find.byType(NavigationBar), findsNothing);
   });
 
@@ -173,6 +179,7 @@ void main() {
           controller.debugSeedLoadedProfile(
             userId: 'user-1',
             displayName: 'Xiaoman',
+            gender: AppController.genderFemale,
           );
         },
       );
@@ -214,6 +221,63 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
     },
   );
+
+  testWidgets('authenticated users with unset gender see the profile gate', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      gender: AppController.genderUnset,
+    );
+
+    expect(
+      find.byKey(const ValueKey('profile-display-name-field')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets(
+    'profile setup keeps an existing display name when gender is unset',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        gender: AppController.genderUnset,
+      );
+
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('profile-display-name-field')),
+      );
+      expect(field.controller?.text, 'Xiaoman');
+    },
+  );
+
+  testWidgets('profile setup requires display name and gender before submit', (
+    tester,
+  ) async {
+    await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
+
+    var button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('profile-save-button')),
+    );
+    expect(button.onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('profile-display-name-field')),
+      'Xiaoman',
+    );
+    await tester.tap(find.byKey(const ValueKey('profile-gender-female')));
+    await tester.pumpAndSettle();
+
+    button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('profile-save-button')),
+    );
+    expect(button.onPressed, isNotNull);
+  });
 
   test('appReady requires authenticated space-backed profile state', () async {
     final controller = AppController();
@@ -345,10 +409,12 @@ void main() {
       controller.debugSetAuthState(
         status: AppAuthStatus.authenticated,
         displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
       );
       controller.debugSeedLoadedProfile(
         userId: 'user-1',
         displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
       );
 
       await tester.pumpWidget(BetweenUsApp(controller: controller));
@@ -386,8 +452,13 @@ void main() {
       status: AppAuthStatus.authenticated,
       supabaseReady: true,
       displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
     );
-    controller.debugSeedLoadedProfile(userId: 'user-1', displayName: 'Xiaoman');
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
     controller.setLanguage(AppLanguage.en);
     controller.setThemePreference(AppThemePreference.dark);
     controller.setNotificationPreviewEnabled(true);
@@ -553,6 +624,8 @@ Future<void> _pumpApp(
   AppLanguage? language,
   bool supabaseReady = false,
   String? displayName,
+  String? gender,
+  DateTime? birthday,
   String? selfProfileId,
   String? currentSpaceId,
   int memberCount = 0,
@@ -566,6 +639,8 @@ Future<void> _pumpApp(
     status: authStatus,
     supabaseReady: supabaseReady,
     displayName: displayName,
+    gender: gender ?? (displayName != null ? AppController.genderFemale : null),
+    birthday: birthday,
     selfProfileId: selfProfileId,
     currentSpaceId: currentSpaceId,
     memberCount: memberCount,
@@ -586,6 +661,7 @@ class _SuccessfulRegisterController extends AppController {
       status: AppAuthStatus.authenticated,
       supabaseReady: true,
       displayName: 'Xiaoman',
+      gender: AppController.genderUnset,
     );
     return true;
   }
