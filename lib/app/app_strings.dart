@@ -189,6 +189,10 @@ class AppStrings {
   String get usLeadSubtitle => isChinese
       ? '把自己的偏好和两个人一起用的规则，都放在同一个地方。'
       : 'Keep your personal preferences and shared space rules together.';
+  String get settingsMoreTitle => isChinese ? '设置与更多' : 'Settings & more';
+  String get settingsMoreSubtitle => isChinese
+      ? '语言、主题、通知和账号操作都收在这里。'
+      : 'Language, theme, notifications, and account actions live here.';
   String get preferencesSection => isChinese ? '我的偏好' : 'My preferences';
   String get spaceSection => isChinese ? '我们的空间' : 'Our space';
   String get privacySection => isChinese ? '隐私与共享' : 'Privacy & sharing';

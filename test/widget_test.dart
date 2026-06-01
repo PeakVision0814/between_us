@@ -476,9 +476,21 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('open-settings-more-tile')),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
+
+    await tester.scrollUntilVisible(
       find.byKey(const ValueKey('sign-out-tile')),
       240,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
 
@@ -595,11 +607,28 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-preferences-section')),
+      find.byKey(const ValueKey('us-settings-entry-section')),
       240,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('us-settings-entry-section')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('us-preferences-section')), findsNothing);
+    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
+    expect(find.text('Debug'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('us-preferences-section')),
+      findsOneWidget,
+    );
 
     expect(find.text('English'), findsOneWidget);
 
@@ -608,7 +637,7 @@ void main() {
 
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('en'));
-    expect(find.text('My preferences'), findsOneWidget);
+    expect(find.text('Settings & more'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Dark'),
@@ -671,6 +700,19 @@ void main() {
       find.byKey(const ValueKey('us-space-invite-actions')),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-settings-entry-section')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('us-settings-entry-section')),
+      findsOneWidget,
+    );
+    expect(find.text('Debug'), findsNothing);
+    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
 
   testWidgets('Us screen shows paired structure and partner nickname', (
@@ -729,6 +771,19 @@ void main() {
     expect(find.byKey(const ValueKey('us-space-invite-actions')), findsNothing);
     expect(find.byKey(const ValueKey('us-partner-name')), findsOneWidget);
     expect(find.text('Ache'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-settings-entry-section')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('us-settings-entry-section')),
+      findsOneWidget,
+    );
+    expect(find.text('Debug'), findsNothing);
+    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
 }
 

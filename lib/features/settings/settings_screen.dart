@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,8 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/debug_refresh_diagnostics_card.dart';
 import '../../shared/widgets/section_header.dart';
+import 'settings_more_screen.dart';
 
 class UsScreen extends StatefulWidget {
   const UsScreen({super.key});
@@ -264,6 +263,25 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _openSettingsMore() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SettingsMoreScreen(
+          buildPreferencesSection: (context) => _buildPreferencesSection(
+            context,
+            AppStrings.of(context),
+            AppScope.of(context),
+          ),
+          buildSignOutSection: (context) => _buildSignOutSection(
+            context,
+            AppStrings.of(context),
+            AppScope.of(context),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showEditSpaceNameDialog() {
     final strings = AppStrings.of(context);
     final controller = TextEditingController(text: _spaceName ?? '');
@@ -386,16 +404,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         SectionHeader(title: strings.spaceSection),
         _buildSpaceSection(context, strings, isPaired: isPaired),
         const SizedBox(height: 20),
-        SectionHeader(title: strings.preferencesSection),
-        _buildPreferencesSection(context, strings, controller),
-        const SizedBox(height: 20),
-        SectionHeader(title: strings.isChinese ? '退出登录' : 'Sign out'),
-        _buildSignOutSection(context, strings, controller),
-        if (!kReleaseMode) ...[
-          const SizedBox(height: 20),
-          const SectionHeader(title: 'Debug'),
-          const DebugRefreshDiagnosticsCard(),
-        ],
+        SectionHeader(title: strings.settingsMoreTitle),
+        _buildSettingsEntrySection(context, strings),
       ],
     );
   }
@@ -856,29 +866,25 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           ],
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.rule_folder_outlined),
-            title: Text(strings.sharedRulesTitle),
-            subtitle: Text(strings.sharedRulesValue),
-          ),
-          const Divider(height: 1),
-          ListTile(
             leading: const Icon(Icons.event_outlined),
             title: Text(strings.relationshipDateTitle),
             subtitle: Text(_relationshipDateValue(strings)),
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.shield_outlined),
-            title: Text(strings.cyclePrivacyTitle),
-            subtitle: Text(strings.cyclePrivacyValue),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.link_off_outlined),
-            title: Text(strings.exportUnlinkTitle),
-            subtitle: Text(strings.exportUnlinkValue),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsEntrySection(BuildContext context, AppStrings strings) {
+    return _PanelCard(
+      key: const ValueKey('us-settings-entry-section'),
+      child: ListTile(
+        key: const ValueKey('open-settings-more-tile'),
+        leading: const Icon(Icons.tune_rounded),
+        title: Text(strings.settingsMoreTitle),
+        subtitle: Text(strings.settingsMoreSubtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _openSettingsMore,
       ),
     );
   }
