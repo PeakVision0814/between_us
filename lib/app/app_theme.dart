@@ -66,8 +66,42 @@ class AppTheme {
   static const Color cardSurfaceLight = Color(0xFFFFFDFB);
   static const Color cardBorderLight = Color(0x1A000000);
   static const Color cardBorderDark = Color(0x30FFFFFF);
+  static const Color surfaceBorderLight = Color(0x20D8CABC);
+  static const Color surfaceBorderLightSoft = Color(0x30E7DBD0);
+  static const Color surfaceBorderLightStrong = Color(0x3AD8C6BA);
+  static const Color surfaceBorderDark = Color(0x32F6CCFF);
+  static const Color surfaceBorderDarkSoft = Color(0x24D6B7EA);
+  static const Color surfaceBorderDarkStrong = Color(0x44FF8EC5);
 
   // ─── Gradients ─────────────────────────────────────────────────────
+  static const LinearGradient pageBackgroundLight = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFFFFBF7), Color(0xFFFEF7F0), Color(0xFFFFFCF9)],
+    stops: [0, 0.4, 1],
+  );
+
+  static const LinearGradient pageBackgroundDark = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF110D17), Color(0xFF17121F), Color(0xFF0D0A12)],
+    stops: [0, 0.45, 1],
+  );
+
+  static const RadialGradient pageAtmosphereLight = RadialGradient(
+    center: Alignment(-0.7, -0.92),
+    radius: 1.15,
+    colors: [Color(0x36F7CCD1), Color(0x18F6E2C8), Color(0x00FFFFFF)],
+    stops: [0, 0.52, 1],
+  );
+
+  static const RadialGradient pageAtmosphereDark = RadialGradient(
+    center: Alignment(0.45, -0.82),
+    radius: 1.08,
+    colors: [Color(0x386E4A88), Color(0x14251A34), Color(0x000D0A12)],
+    stops: [0, 0.56, 1],
+  );
+
   static const LinearGradient authBackgroundLight = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -90,6 +124,68 @@ class AppTheme {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [heroDeepPurple, heroNightAccent],
+  );
+
+  static const RadialGradient heroAtmosphereLight = RadialGradient(
+    center: Alignment(0.18, -0.18),
+    radius: 0.95,
+    colors: [Color(0x66FFFFFF), Color(0x24FFF6F2), Color(0x00FFFFFF)],
+    stops: [0, 0.55, 1],
+  );
+
+  static const RadialGradient heroAtmosphereDark = RadialGradient(
+    center: Alignment(0.12, -0.08),
+    radius: 0.9,
+    colors: [Color(0x30F58AB1), Color(0x186E4A88), Color(0x001C1428)],
+    stops: [0, 0.58, 1],
+  );
+
+  static const LinearGradient surfaceCardGradientLight = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFEFD), Color(0xFFFFF6EF)],
+  );
+
+  static const LinearGradient surfaceCardGradientLightAlt = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFCFA), Color(0xFFFDF4EC)],
+  );
+
+  static const LinearGradient surfaceCardGradientLightTertiary = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFDFB), Color(0xFFFCEFE9)],
+  );
+
+  static const LinearGradient surfaceCardGradientDark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF201A28), Color(0xFF17131F)],
+  );
+
+  static const LinearGradient surfaceCardGradientDarkAlt = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF231D2D), Color(0xFF16121D)],
+  );
+
+  static const LinearGradient surfaceCardGradientDarkTertiary = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF281F31), Color(0xFF17121D)],
+  );
+
+  static const LinearGradient surfaceInsetGradientLight = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFAF6), Color(0xFFFDF1EA)],
+  );
+
+  static const LinearGradient surfaceInsetGradientDark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF251C2F), Color(0xFF1A1422)],
   );
 
   // ─── Auth decorative accents ───────────────────────────────────────
@@ -118,24 +214,12 @@ class AppTheme {
 
   // ─── Shadow ────────────────────────────────────────────────────────
   static const List<BoxShadow> shadowSm = [
-    BoxShadow(
-      color: Color(0x0A000000),
-      offset: Offset(0, 2),
-      blurRadius: 8,
-    ),
+    BoxShadow(color: Color(0x0A000000), offset: Offset(0, 2), blurRadius: 8),
   ];
 
   static const List<BoxShadow> shadowHeroLight = [
-    BoxShadow(
-      color: Color(0x12000000),
-      offset: Offset(0, 4),
-      blurRadius: 20,
-    ),
-    BoxShadow(
-      color: Color(0x08000000),
-      offset: Offset(0, 1),
-      blurRadius: 6,
-    ),
+    BoxShadow(color: Color(0x12000000), offset: Offset(0, 4), blurRadius: 20),
+    BoxShadow(color: Color(0x08000000), offset: Offset(0, 1), blurRadius: 6),
   ];
 
   static const List<BoxShadow> shadowHeroDark = [
@@ -145,26 +229,57 @@ class AppTheme {
       blurRadius: 24,
       spreadRadius: -2,
     ),
-    BoxShadow(
-      color: Color(0x205030A0),
-      offset: Offset(0, 4),
-      blurRadius: 16,
-    ),
+    BoxShadow(color: Color(0x205030A0), offset: Offset(0, 4), blurRadius: 16),
   ];
 
   static const List<BoxShadow> shadowCardLight = [
+    BoxShadow(color: Color(0x08000000), offset: Offset(0, 2), blurRadius: 12),
+  ];
+
+  static const List<BoxShadow> shadowCardLightSoft = [
     BoxShadow(
-      color: Color(0x08000000),
-      offset: Offset(0, 2),
-      blurRadius: 12,
+      color: Color(0x0AEECEC4),
+      offset: Offset(0, 12),
+      blurRadius: 24,
+      spreadRadius: -16,
     ),
   ];
 
-  static const List<BoxShadow> shadowCardDark = [
+  static const List<BoxShadow> shadowCardLightStrong = [
     BoxShadow(
-      color: Color(0x187040A0),
+      color: Color(0x14E8CDC8),
+      offset: Offset(0, 14),
+      blurRadius: 28,
+      spreadRadius: -18,
+    ),
+    BoxShadow(color: Color(0x08000000), offset: Offset(0, 4), blurRadius: 12),
+  ];
+
+  static const List<BoxShadow> shadowCardDark = [
+    BoxShadow(color: Color(0x187040A0), offset: Offset(0, 0), blurRadius: 12),
+  ];
+
+  static const List<BoxShadow> shadowCardDarkSoft = [
+    BoxShadow(
+      color: Color(0x205F3A8B),
+      offset: Offset(0, 14),
+      blurRadius: 26,
+      spreadRadius: -18,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowCardDarkStrong = [
+    BoxShadow(
+      color: Color(0x246E3E95),
+      offset: Offset(0, 16),
+      blurRadius: 30,
+      spreadRadius: -18,
+    ),
+    BoxShadow(
+      color: Color(0x18F086B6),
       offset: Offset(0, 0),
-      blurRadius: 12,
+      blurRadius: 18,
+      spreadRadius: -12,
     ),
   ];
 
@@ -320,10 +435,7 @@ class AppTheme {
       // ── Chips ────────────────────────────────────────────────────
       chipTheme: ChipThemeData(
         selectedColor: isLight ? blushLight : darkBlush,
-        labelStyle: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+        labelStyle: TextStyle(color: textColor, fontWeight: FontWeight.w500),
         secondaryLabelStyle: TextStyle(
           color: isLight ? const Color(0xFF6B3A42) : const Color(0xFFEACDD2),
           fontWeight: FontWeight.w600,
@@ -345,15 +457,11 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius2xl),
-          borderSide: BorderSide(
-            color: isLight ? warmGray200 : nightBorder,
-          ),
+          borderSide: BorderSide(color: isLight ? warmGray200 : nightBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius2xl),
-          borderSide: BorderSide(
-            color: isLight ? warmGray200 : nightBorder,
-          ),
+          borderSide: BorderSide(color: isLight ? warmGray200 : nightBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius2xl),
@@ -370,10 +478,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(radius2xl),
           borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
-        labelStyle: TextStyle(
-          color: mutedTextColor,
-          fontSize: 14,
-        ),
+        labelStyle: TextStyle(color: mutedTextColor, fontSize: 14),
         hintStyle: TextStyle(
           color: mutedTextColor.withValues(alpha: 0.65),
           fontSize: 14,
@@ -444,19 +549,12 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           height: 1.35,
         ),
-        bodyLarge: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          height: 1.5,
-        ),
+        bodyLarge: TextStyle(color: textColor, fontSize: 16, height: 1.5),
         bodyMedium: TextStyle(
           color: textColor.withValues(alpha: 0.88),
           height: 1.45,
         ),
-        bodySmall: TextStyle(
-          color: mutedTextColor,
-          height: 1.4,
-        ),
+        bodySmall: TextStyle(color: mutedTextColor, height: 1.4),
         labelLarge: TextStyle(
           color: textColor,
           fontSize: 14,
