@@ -65,6 +65,12 @@ class AppTheme {
     colors: [Color(0xFF1A1520), Color(0xFF1E1A22)],
   );
 
+  // ─── Auth decorative accents ───────────────────────────────────────
+  static const Color authAccentCircleLight1 = Color(0xFFEACFD5);
+  static const Color authAccentCircleLight2 = Color(0xFFF5DFC8);
+  static const Color authAccentCircleDark1 = Color(0xFF3D2E42);
+  static const Color authAccentCircleDark2 = Color(0xFF2E2840);
+
   // ─── Spacing ───────────────────────────────────────────────────────
   static const double spaceXs = 4;
   static const double spaceSm = 8;
