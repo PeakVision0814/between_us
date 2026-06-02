@@ -458,7 +458,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final spaceName = _normalizeName(_spaceName) ?? strings.spaceNameValue;
-    final relationLabel = _heroRelationshipLabel(strings, isPaired: isPaired);
     final selfGenderIcon = _genderIcon(selfGender);
     final partnerLabel = partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
 
@@ -505,49 +504,53 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  Center(
-                    child: _HeroAvatarPair(
-                      selfAvatarLabel: _avatarLabel(
-                        selfName,
-                        fallback: strings.isChinese ? '我' : 'M',
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: 174,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _HeroAvatarPair(
+                              selfAvatarLabel: _avatarLabel(
+                                selfName,
+                                fallback: strings.isChinese ? '我' : 'M',
+                              ),
+                              partnerAvatarLabel: _avatarLabel(
+                                partnerName,
+                                fallback: strings.isChinese ? 'TA' : 'P',
+                              ),
+                              isPaired: isPaired,
+                              isDark: isDark,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: _HeroNameLabel(
+                                    name: selfName,
+                                    genderIcon: selfGenderIcon,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _HeroNameLabel(
+                                    name: isPaired ? partnerLabel : '—',
+                                    genderIcon: null,
+                                    isPlaceholder: !isPaired,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      partnerAvatarLabel: _avatarLabel(
-                        partnerName,
-                        fallback: strings.isChinese ? 'TA' : 'P',
-                      ),
-                      isPaired: isPaired,
-                      isDark: isDark,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _HeroNameLabel(
-                        key: const ValueKey('us-hero-self-slot'),
-                        name: selfName,
-                        genderIcon: selfGenderIcon,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 22),
-                      _HeroNameLabel(
-                        key: const ValueKey('us-hero-partner-slot'),
-                        name: isPaired ? partnerLabel : '—',
-                        genderIcon: null,
-                        isPlaceholder: !isPaired,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _HeroRelationInfoBlock(
-                      key: const ValueKey('us-hero-status'),
-                      label: relationLabel,
-                      isPaired: isPaired,
-                      isDark: isDark,
                     ),
                   ),
                 ],
@@ -1087,21 +1090,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     return strings.isChinese ? '已配对' : 'Paired';
   }
 
-  String _heroRelationshipLabel(AppStrings strings, {required bool isPaired}) {
-    if (!isPaired) {
-      return strings.isChinese ? '单人空间' : 'Solo space';
-    }
-
-    final relationshipDays = _relationshipDays();
-    if (relationshipDays != null) {
-      return strings.isChinese
-          ? '在一起第 $relationshipDays 天'
-          : 'Day $relationshipDays together';
-    }
-
-    return strings.isChinese ? '双人空间' : 'Paired space';
-  }
-
   String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
     if (isPaired) {
       return strings.isChinese
@@ -1387,6 +1375,7 @@ class _HeroAvatarPair extends StatelessWidget {
           Positioned(
             left: 18,
             child: _HeroRelationshipAvatar(
+              key: const ValueKey('us-hero-self-slot'),
               label: selfAvatarLabel,
               isDark: isDark,
             ),
@@ -1395,6 +1384,7 @@ class _HeroAvatarPair extends StatelessWidget {
             right: 18,
             child: isPaired
                 ? _HeroRelationshipAvatar(
+                    key: const ValueKey('us-hero-partner-slot'),
                     label: partnerAvatarLabel,
                     isDark: isDark,
                     alignRight: true,
@@ -1436,6 +1426,7 @@ class _HeroAvatarPair extends StatelessWidget {
 
 class _HeroRelationshipAvatar extends StatelessWidget {
   const _HeroRelationshipAvatar({
+    super.key,
     required this.label,
     required this.isDark,
     this.alignRight = false,
@@ -1537,7 +1528,6 @@ class _HeroEmptyAvatar extends StatelessWidget {
 
 class _HeroNameLabel extends StatelessWidget {
   const _HeroNameLabel({
-    super.key,
     required this.name,
     required this.genderIcon,
     required this.isDark,
@@ -1553,86 +1543,30 @@ class _HeroNameLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 72, maxWidth: 120),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(
-              name,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: isPlaceholder
-                    ? (isDark
-                          ? AppTheme.warmWhite60
-                          : colorScheme.onSurfaceVariant)
-                    : (isDark ? AppTheme.warmWhite90 : null),
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          if (genderIcon != null) ...[
-            const SizedBox(width: 4),
-            Icon(genderIcon, size: 16, color: colorScheme.primary),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroRelationInfoBlock extends StatelessWidget {
-  const _HeroRelationInfoBlock({
-    super.key,
-    required this.label,
-    required this.isPaired,
-    required this.isDark,
-  });
-
-  final String label;
-  final bool isPaired;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.68),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.55),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PageIconBadge(
-            icon: isPaired ? Icons.favorite_rounded : Icons.home_work_outlined,
-            color: isDark ? AppTheme.heroGlowBlush : colorScheme.primary,
-            size: 30,
-          ),
-          const SizedBox(width: 9),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: isDark ? AppTheme.warmWhite90 : null,
-              fontSize: 13,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            name,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: isPlaceholder
+                  ? (isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant)
+                  : (isDark ? AppTheme.warmWhite90 : null),
               fontWeight: FontWeight.w800,
             ),
           ),
+        ),
+        if (genderIcon != null) ...[
+          const SizedBox(width: 4),
+          Icon(genderIcon, size: 16, color: colorScheme.primary),
         ],
-      ),
+      ],
     );
   }
 }
