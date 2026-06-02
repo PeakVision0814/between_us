@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
+import 'auth_page_visuals.dart';
 
 class AuthEmailFlowScaffold extends StatelessWidget {
   const AuthEmailFlowScaffold({
@@ -33,9 +34,11 @@ class AuthEmailFlowScaffold extends StatelessWidget {
     final errorCode = controller.authErrorCode;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
+      backgroundColor: Colors.transparent,
+      body: AuthPageBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
@@ -49,14 +52,14 @@ class AuthEmailFlowScaffold extends StatelessWidget {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(18),
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(22),
                         ),
                         child: Icon(
                           mode == AuthEmailFlowMode.signIn
                               ? Icons.lock_open_rounded
                               : Icons.person_add_alt_1_rounded,
-                          color: colorScheme.primary,
+                          color: colorScheme.onPrimaryContainer,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -152,6 +155,7 @@ class AuthEmailFlowScaffold extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

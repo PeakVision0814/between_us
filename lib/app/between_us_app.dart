@@ -5,6 +5,7 @@ import 'app_controller.dart';
 import 'app_shell.dart';
 import 'app_strings.dart';
 import 'app_theme.dart';
+import '../features/auth/auth_page_visuals.dart';
 import '../features/auth/email_otp_sign_in_screen.dart';
 import '../features/auth/first_profile_setup_screen.dart';
 
@@ -61,16 +62,21 @@ class _AuthLoadingScreen extends StatelessWidget {
 
     return Scaffold(
       key: const ValueKey('auth-profile-loading-screen'),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              strings.isChinese ? '正在准备你的资料...' : 'Preparing your profile...',
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      body: AuthPageBackground(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                strings.isChinese
+                    ? '正在准备你的资料...'
+                    : 'Preparing your profile...',
+              ),
+            ],
+          ),
         ),
       ),
     );

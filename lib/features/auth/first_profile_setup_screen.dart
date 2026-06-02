@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
+import 'auth_page_visuals.dart';
 
 class FirstProfileSetupScreen extends StatefulWidget {
   const FirstProfileSetupScreen({super.key});
@@ -94,8 +95,10 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
     final isChinese = strings.isChinese;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
+      backgroundColor: Colors.transparent,
+      body: AuthPageBackground(
+        child: SafeArea(
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
@@ -243,6 +246,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
