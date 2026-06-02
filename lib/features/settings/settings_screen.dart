@@ -458,8 +458,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final spaceName = _normalizeName(_spaceName) ?? strings.spaceNameValue;
-    final relationLabel = _relationshipStatusLabel(strings, isPaired: isPaired);
+    final relationLabel = _heroRelationshipLabel(strings, isPaired: isPaired);
     final selfGenderIcon = _genderIcon(selfGender);
+    final partnerLabel = partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
 
     return Container(
       key: const ValueKey('us-hero-section'),
@@ -505,54 +506,47 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 22),
+                  Center(
+                    child: _HeroAvatarPair(
+                      selfAvatarLabel: _avatarLabel(
+                        selfName,
+                        fallback: strings.isChinese ? '我' : 'M',
+                      ),
+                      partnerAvatarLabel: _avatarLabel(
+                        partnerName,
+                        fallback: strings.isChinese ? 'TA' : 'P',
+                      ),
+                      isPaired: isPaired,
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: _HeroPersonSlot(
-                          key: const ValueKey('us-hero-self-slot'),
-                          name: selfName,
-                          avatarLabel: _avatarLabel(
-                            selfName,
-                            fallback: strings.isChinese ? '我' : 'M',
-                          ),
-                          genderIcon: selfGenderIcon,
-                          isDark: isDark,
-                        ),
+                      _HeroNameLabel(
+                        key: const ValueKey('us-hero-self-slot'),
+                        name: selfName,
+                        genderIcon: selfGenderIcon,
+                        isDark: isDark,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 16,
-                        ),
-                        child: _HeroRelationMark(isPaired: isPaired),
-                      ),
-                      Expanded(
-                        child: isPaired
-                            ? _HeroPersonSlot(
-                                key: const ValueKey('us-hero-partner-slot'),
-                                name:
-                                    partnerName ??
-                                    (strings.isChinese ? 'TA' : 'Partner'),
-                                avatarLabel: _avatarLabel(
-                                  partnerName,
-                                  fallback: strings.isChinese ? 'TA' : 'P',
-                                ),
-                                genderIcon: null,
-                                isDark: isDark,
-                              )
-                            : _HeroInviteSlot(
-                                key: const ValueKey('us-hero-single-slot'),
-                                isDark: isDark,
-                              ),
+                      const SizedBox(width: 22),
+                      _HeroNameLabel(
+                        key: const ValueKey('us-hero-partner-slot'),
+                        name: isPaired ? partnerLabel : '—',
+                        genderIcon: null,
+                        isPlaceholder: !isPaired,
+                        isDark: isDark,
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Center(
-                    child: _HeroChip(
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _HeroRelationInfoBlock(
                       key: const ValueKey('us-hero-status'),
                       label: relationLabel,
+                      isPaired: isPaired,
                       isDark: isDark,
                     ),
                   ),
@@ -1093,6 +1087,21 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     return strings.isChinese ? '已配对' : 'Paired';
   }
 
+  String _heroRelationshipLabel(AppStrings strings, {required bool isPaired}) {
+    if (!isPaired) {
+      return strings.isChinese ? '单人空间' : 'Solo space';
+    }
+
+    final relationshipDays = _relationshipDays();
+    if (relationshipDays != null) {
+      return strings.isChinese
+          ? '在一起第 $relationshipDays 天'
+          : 'Day $relationshipDays together';
+    }
+
+    return strings.isChinese ? '双人空间' : 'Paired space';
+  }
+
   String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
     if (isPaired) {
       return strings.isChinese
@@ -1351,64 +1360,73 @@ class _SoftAvatar extends StatelessWidget {
   }
 }
 
-/// Hero person slot — frosted glass feel.
-class _HeroPersonSlot extends StatelessWidget {
-  const _HeroPersonSlot({
-    super.key,
-    required this.name,
-    required this.avatarLabel,
-    required this.genderIcon,
+class _HeroAvatarPair extends StatelessWidget {
+  const _HeroAvatarPair({
+    required this.selfAvatarLabel,
+    required this.partnerAvatarLabel,
+    required this.isPaired,
     required this.isDark,
   });
 
-  final String name;
-  final String avatarLabel;
-  final IconData? genderIcon;
+  final String selfAvatarLabel;
+  final String partnerAvatarLabel;
+  final bool isPaired;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final heartColor = isDark ? AppTheme.heroGlowBlush : colorScheme.primary;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.6),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    return SizedBox(
+      width: 170,
+      height: 72,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          _HeroAvatar(label: avatarLabel, isDark: isDark),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isDark ? AppTheme.warmWhite90 : null,
-                    fontWeight: FontWeight.w800,
+          Positioned(
+            left: 18,
+            child: _HeroRelationshipAvatar(
+              label: selfAvatarLabel,
+              isDark: isDark,
+            ),
+          ),
+          Positioned(
+            right: 18,
+            child: isPaired
+                ? _HeroRelationshipAvatar(
+                    label: partnerAvatarLabel,
+                    isDark: isDark,
+                    alignRight: true,
+                  )
+                : _HeroEmptyAvatar(
+                    key: const ValueKey('us-hero-single-slot'),
+                    isDark: isDark,
                   ),
+          ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.82),
+              boxShadow: [
+                BoxShadow(
+                  color: heartColor.withValues(alpha: isDark ? 0.24 : 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                  spreadRadius: -8,
                 ),
-              ),
-              if (genderIcon != null) ...[
-                const SizedBox(width: 4),
-                Icon(genderIcon, size: 16, color: colorScheme.primary),
               ],
-            ],
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isPaired ? Icons.favorite_rounded : Icons.favorite_border,
+              color: heartColor,
+              size: 18,
+            ),
           ),
         ],
       ),
@@ -1416,64 +1434,72 @@ class _HeroPersonSlot extends StatelessWidget {
   }
 }
 
-/// Hero avatar with gradient background.
-class _HeroAvatar extends StatelessWidget {
-  const _HeroAvatar({required this.label, required this.isDark});
+class _HeroRelationshipAvatar extends StatelessWidget {
+  const _HeroRelationshipAvatar({
+    required this.label,
+    required this.isDark,
+    this.alignRight = false,
+  });
 
   final String label;
   final bool isDark;
+  final bool alignRight;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: 52,
-      height: 52,
+      width: 64,
+      height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: isDark
             ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: alignRight ? Alignment.topRight : Alignment.topLeft,
+                end: alignRight ? Alignment.bottomLeft : Alignment.bottomRight,
                 colors: [
-                  colorScheme.primary.withValues(alpha: 0.3),
+                  colorScheme.primary.withValues(alpha: 0.34),
                   AppTheme.heroGlowPurple.withValues(alpha: 0.2),
                 ],
               )
             : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: alignRight ? Alignment.topRight : Alignment.topLeft,
+                end: alignRight ? Alignment.bottomLeft : Alignment.bottomRight,
                 colors: [
-                  colorScheme.primary.withValues(alpha: 0.15),
-                  AppTheme.heroPeachLight.withValues(alpha: 0.5),
+                  colorScheme.primary.withValues(alpha: 0.16),
+                  AppTheme.heroPeachLight.withValues(alpha: 0.58),
                 ],
               ),
-        boxShadow: isDark
-            ? [
-                BoxShadow(
-                  color: colorScheme.primary.withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  spreadRadius: -2,
-                ),
-              ]
-            : null,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.16)
+              : Colors.white.withValues(alpha: 0.86),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: isDark ? 0.18 : 0.1),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+            spreadRadius: -10,
+          ),
+        ],
       ),
       alignment: Alignment.center,
       child: Text(
         label,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
           color: colorScheme.primary,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 }
 
-/// Hero invite slot for single state.
-class _HeroInviteSlot extends StatelessWidget {
-  const _HeroInviteSlot({super.key, required this.isDark});
+class _HeroEmptyAvatar extends StatelessWidget {
+  const _HeroEmptyAvatar({super.key, required this.isDark});
 
   final bool isDark;
 
@@ -1482,141 +1508,130 @@ class _HeroInviteSlot extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: 64,
+      height: 64,
       decoration: BoxDecoration(
+        shape: BoxShape.circle,
         color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.46),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.6),
-          width: 0.5,
+              ? AppTheme.warmWhite25
+              : colorScheme.primary.withValues(alpha: 0.16),
+          width: 1.4,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.white.withValues(alpha: 0.42),
-              border: Border.all(
-                color: isDark
-                    ? AppTheme.warmWhite25
-                    : colorScheme.primary.withValues(alpha: 0.18),
-                width: 1.2,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Container(
-              width: 18,
-              height: 2,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.warmWhite60
-                    : colorScheme.onSurfaceVariant,
-                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: 32,
-            height: 2,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppTheme.warmWhite25
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.42),
-              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-            ),
-          ),
-        ],
+      alignment: Alignment.center,
+      child: Container(
+        width: 20,
+        height: 2,
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        ),
       ),
     );
   }
 }
 
-class _HeroRelationMark extends StatelessWidget {
-  const _HeroRelationMark({required this.isPaired});
+class _HeroNameLabel extends StatelessWidget {
+  const _HeroNameLabel({
+    super.key,
+    required this.name,
+    required this.genderIcon,
+    required this.isDark,
+    this.isPlaceholder = false,
+  });
 
-  final bool isPaired;
+  final String name;
+  final IconData? genderIcon;
+  final bool isDark;
+  final bool isPlaceholder;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final colorScheme = theme.colorScheme;
-    final color = isDark ? AppTheme.heroGlowBlush : colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      width: 46,
-      height: 70,
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.07)
-            : Colors.white.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-        border: Border.all(
-          color: isDark
-              ? AppTheme.heroGlowBlush.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.7),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: isDark ? 0.24 : 0.1),
-            blurRadius: isDark ? 24 : 16,
-            offset: const Offset(0, 10),
-            spreadRadius: -12,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 72, maxWidth: 120),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              name,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: isPlaceholder
+                    ? (isDark
+                          ? AppTheme.warmWhite60
+                          : colorScheme.onSurfaceVariant)
+                    : (isDark ? AppTheme.warmWhite90 : null),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
+          if (genderIcon != null) ...[
+            const SizedBox(width: 4),
+            Icon(genderIcon, size: 16, color: colorScheme.primary),
+          ],
         ],
-      ),
-      child: Icon(
-        isPaired ? Icons.favorite_rounded : Icons.favorite_border,
-        color: color,
-        size: 22,
-        shadows: isDark
-            ? [Shadow(color: color.withValues(alpha: 0.5), blurRadius: 10)]
-            : null,
       ),
     );
   }
 }
 
-/// Hero status chip — soft translucent.
-class _HeroChip extends StatelessWidget {
-  const _HeroChip({super.key, required this.label, required this.isDark});
+class _HeroRelationInfoBlock extends StatelessWidget {
+  const _HeroRelationInfoBlock({
+    super.key,
+    required this.label,
+    required this.isPaired,
+    required this.isDark,
+  });
 
   final String label;
+  final bool isPaired;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+            : Colors.white.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.5),
+              : Colors.white.withValues(alpha: 0.55),
           width: 0.5,
         ),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          fontSize: 13,
-          color: isDark ? AppTheme.warmWhite90 : null,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PageIconBadge(
+            icon: isPaired ? Icons.favorite_rounded : Icons.home_work_outlined,
+            color: isDark ? AppTheme.heroGlowBlush : colorScheme.primary,
+            size: 30,
+          ),
+          const SizedBox(width: 9),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : null,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
