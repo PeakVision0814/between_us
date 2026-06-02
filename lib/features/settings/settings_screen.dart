@@ -443,9 +443,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         ? strings.isChinese
               ? '$selfName 和 $partnerName'
               : '$selfName & $partnerName'
-        : strings.isChinese
-        ? '$selfName · 等待另一半'
-        : '$selfName · Waiting for your partner';
+        : selfName;
 
     return Container(
       key: const ValueKey('us-hero-section'),
@@ -490,19 +488,20 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             const SizedBox(height: 6),
 
             // ── Subtitle ──
-            Text(
-              isPaired
-                  ? _relationshipHeroSubtitle(strings)
-                  : _singleHeroSubtitle(strings),
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark
-                    ? AppTheme.warmWhite60
-                    : colorScheme.onSurfaceVariant,
-                height: 1.5,
+            if (isPaired) ...[
+              Text(
+                _relationshipHeroSubtitle(strings),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 22),
+              const SizedBox(height: 22),
+            ] else
+              const SizedBox(height: 28),
 
             // ── Person slots ──
             Row(
@@ -557,12 +556,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                         )
                       : _HeroInviteSlot(
                           key: const ValueKey('us-hero-single-slot'),
-                          title: strings.isChinese
-                              ? '邀请 TA 加入'
-                              : 'Invite your partner',
-                          subtitle: strings.isChinese
-                              ? '等 TA 加入后，这里会开始真正像一个两个人的空间。'
-                              : 'Once they join, this page starts to feel like a space for two.',
+                          title: strings.isChinese ? '邀请 TA' : 'Invite',
+                          subtitle: '',
                           isDark: isDark,
                         ),
                 ),
@@ -582,10 +577,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                     strings,
                     isPaired: isPaired,
                   ),
-                  isDark: isDark,
-                ),
-                _HeroChip(
-                  label: _spaceSummaryLabel(strings),
                   isDark: isDark,
                 ),
               ],
@@ -707,8 +698,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ),
               child: Text(
                 strings.isChinese
-                    ? '关于 TA 的更多资料，会在你们慢慢补充后出现在这里。'
-                    : 'More about your partner will appear here as your shared space fills in over time.',
+                    ? '关于 TA 的更多资料，会出现在这里。'
+                    : 'More about your partner will appear here.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark
                       ? AppTheme.warmWhite60
@@ -1131,27 +1122,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String _relationshipHeroSubtitle(AppStrings strings) {
     if (_relationshipStartDate != null) {
       return strings.isChinese
-          ? '已经有属于你们两个人的空间了，资料、规则和偏好会慢慢长出来。'
-          : 'Your shared space is already in place, and the rest of the profile details can grow from here.';
+          ? '属于你们两个人的空间。'
+          : 'A space that belongs to both of you.';
     }
 
     return strings.isChinese
-        ? '你们已经连到同一个空间，接下来会继续补齐更完整的双人信息。'
-        : 'You are already connected to the same space, and fuller two-person details can come next.';
-  }
-
-  String _singleHeroSubtitle(AppStrings strings) {
-    return strings.isChinese
-        ? '先把这里准备好，等 TA 加入后，你们就能一起把这个空间慢慢填满。'
-        : 'Get things ready here first. Once your partner joins, the two of you can start filling this space together.';
-  }
-
-  String _spaceSummaryLabel(AppStrings strings) {
-    final name = _normalizeName(_spaceName);
-    if (name != null) {
-      return name;
-    }
-    return strings.isChinese ? '共享空间已准备' : 'Shared space ready';
+        ? '你们已经拥有一个共同空间。'
+        : 'You already share a space together.';
   }
 
   String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
@@ -1692,16 +1669,18 @@ class _HeroInviteSlot extends StatelessWidget {
               color: isDark ? AppTheme.warmWhite90 : null,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : colorScheme.onSurfaceVariant,
-              height: 1.45,
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
