@@ -475,14 +475,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('open-settings-more-tile')),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
@@ -606,22 +599,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
     expect(find.byKey(const ValueKey('us-preferences-section')), findsNothing);
     expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
     expect(find.text('Debug'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);

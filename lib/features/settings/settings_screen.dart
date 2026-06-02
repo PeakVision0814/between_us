@@ -9,7 +9,6 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
-import 'settings_more_screen.dart';
 
 class UsScreen extends StatefulWidget {
   const UsScreen({super.key});
@@ -207,81 +206,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _confirmSignOut() async {
-    final controller = AppScope.read(context);
-    if (controller.signOutInProgress) {
-      return;
-    }
-
-    final strings = AppStrings.of(context);
-    final shouldSignOut = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          strings.isChinese ? '确认退出登录？' : 'Sign out of this account?',
-        ),
-        content: Text(
-          strings.isChinese
-              ? '退出后会清理当前账号的本地登录状态、昵称和偏好，并回到登录页。'
-              : 'This will clear the current account session, nickname, and local preferences, then return to the login screen.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
-          ),
-          FilledButton(
-            key: const ValueKey('sign-out-confirm-button'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(strings.isChinese ? '退出登录' : 'Sign out'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldSignOut == true) {
-      await _handleSignOut();
-    }
-  }
-
-  Future<void> _handleSignOut() async {
-    final controller = AppScope.read(context);
-    final success = await controller.signOut();
-    if (!mounted || success) {
-      return;
-    }
-
-    final strings = AppStrings.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          strings.isChinese
-              ? '退出登录失败，请稍后重试。'
-              : 'Failed to sign out. Please try again later.',
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openSettingsMore() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => SettingsMoreScreen(
-          buildPreferencesSection: (context) => _buildPreferencesSection(
-            context,
-            AppStrings.of(context),
-            AppScope.of(context),
-          ),
-          buildSignOutSection: (context) => _buildSignOutSection(
-            context,
-            AppStrings.of(context),
-            AppScope.of(context),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _openProfileScreen(AppController controller, AppStrings strings) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -442,13 +366,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             isPaired: isPaired,
             isDark: isDark,
           ),
-          const SizedBox(height: 24),
-          PageSectionHeader(
-            title: strings.settingsMoreTitle,
-            subtitle: strings.isChinese ? '偏好与账户' : 'Preferences and account',
-          ),
-          const SizedBox(height: 10),
-          _buildSettingsEntrySection(context, strings, isDark: isDark),
         ],
       ),
     );
@@ -585,7 +502,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _HeroNameLabel(
-                                    name: isPaired ? partnerLabel : '—',
+                                    name: isPaired
+                                        ? partnerLabel
+                                        : (strings.isChinese ? '邀请 TA' : 'Invite'),
                                     genderIcon: null,
                                     isPlaceholder: !isPaired,
                                     isDark: isDark,
@@ -727,166 +646,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
-  // ─── Settings Entry ─────────────────────────────────────────────────
-
-  Widget _buildSettingsEntrySection(
-    BuildContext context,
-    AppStrings strings, {
-    required bool isDark,
-  }) {
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.tertiary,
-      key: const ValueKey('us-settings-entry-section'),
-      child: _SpaceListTile(
-        key: const ValueKey('open-settings-more-tile'),
-        icon: Icons.tune_rounded,
-        title: strings.settingsMoreTitle,
-        subtitle: strings.settingsMoreSubtitle,
-        trailing: Icon(
-          Icons.chevron_right,
-          size: 20,
-          color: isDark
-              ? AppTheme.warmWhite25
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        onTap: _openSettingsMore,
-        isDark: isDark,
-        isLast: true,
-      ),
-    );
-  }
-
-  // ─── Preferences Section (for SettingsMoreScreen) ───────────────────
-
-  Widget _buildPreferencesSection(
-    BuildContext context,
-    AppStrings strings,
-    AppController controller,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.primary,
-      key: const ValueKey('us-preferences-section'),
-      child: Column(
-        children: [
-          _PreferenceGroup(
-            title: strings.languageTitle,
-            isDark: isDark,
-            child: RadioGroup<AppLanguage>(
-              groupValue: controller.language,
-              onChanged: (value) {
-                if (value != null) {
-                  controller.setLanguage(value);
-                }
-              },
-              child: Column(
-                children: [
-                  RadioListTile<AppLanguage>(
-                    title: Text(strings.chineseLabel),
-                    value: AppLanguage.zhCn,
-                  ),
-                  RadioListTile<AppLanguage>(
-                    title: Text(strings.englishLabel),
-                    value: AppLanguage.en,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _UsDivider(isDark: isDark),
-          _PreferenceGroup(
-            title: strings.themeTitle,
-            isDark: isDark,
-            child: RadioGroup<AppThemePreference>(
-              groupValue: controller.themePreference,
-              onChanged: (value) {
-                if (value != null) {
-                  controller.setThemePreference(value);
-                }
-              },
-              child: Column(
-                children: [
-                  RadioListTile<AppThemePreference>(
-                    title: Text(strings.themeSystemLabel),
-                    value: AppThemePreference.system,
-                  ),
-                  RadioListTile<AppThemePreference>(
-                    title: Text(strings.themeLightLabel),
-                    value: AppThemePreference.light,
-                  ),
-                  RadioListTile<AppThemePreference>(
-                    title: Text(strings.themeDarkLabel),
-                    value: AppThemePreference.dark,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _UsDivider(isDark: isDark),
-          _SpaceListTile(
-            icon: Icons.schedule_outlined,
-            title: strings.timeZoneTitle,
-            subtitle: '${_timeZoneLabel()} · ${strings.timeZoneHint}',
-            isDark: isDark,
-          ),
-          _UsDivider(isDark: isDark),
-          SwitchListTile.adaptive(
-            value: controller.notificationPreviewEnabled,
-            onChanged: controller.setNotificationPreviewEnabled,
-            title: Text(strings.notificationPreviewTitle),
-            subtitle: Text(strings.notificationPreviewSubtitle),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Sign Out Section (for SettingsMoreScreen) ──────────────────────
-
-  Widget _buildSignOutSection(
-    BuildContext context,
-    AppStrings strings,
-    AppController controller,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.tertiary,
-      key: const ValueKey('us-signout-section'),
-      child: _SpaceListTile(
-        key: const ValueKey('sign-out-tile'),
-        icon: Icons.logout_rounded,
-        iconColor: Theme.of(context).colorScheme.error,
-        title: strings.isChinese ? '退出登录' : 'Sign out',
-        titleColor: Theme.of(context).colorScheme.error,
-        subtitle: strings.isChinese
-            ? '安全退出当前账号，并回到邮箱验证码登录页。'
-            : 'Sign out of this account and return to the email OTP login screen.',
-        trailing: controller.signOutInProgress
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: isDark
-                    ? AppTheme.warmWhite25
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        enabled: !controller.signOutInProgress,
-        onTap: _confirmSignOut,
-        isDark: isDark,
-        isLast: true,
-      ),
-    );
-  }
-
   // ─── Helper methods ─────────────────────────────────────────────────
 
   String _resolvedSelfName(AppController controller, AppStrings strings) {
@@ -1001,15 +760,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     return today.difference(start).inDays + 1;
   }
 
-  String _timeZoneLabel() {
-    final offset = DateTime.now().timeZoneOffset;
-    final sign = offset.isNegative ? '-' : '+';
-    final totalMinutes = offset.inMinutes.abs();
-    final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
-    final minutes = (totalMinutes % 60).toString().padLeft(2, '0');
-    final name = DateTime.now().timeZoneName;
-    return '$name (UTC$sign$hours:$minutes)';
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1466,49 +1216,40 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-/// List tile used in Space section and Settings entry.
+/// List tile used in Space section.
 class _SpaceListTile extends StatelessWidget {
   const _SpaceListTile({
-    super.key,
     required this.title,
     required this.isDark,
     this.icon,
-    this.iconColor,
     this.subtitle,
     this.trailing,
-    this.titleColor,
     this.onTap,
-    this.enabled = true,
     this.isLast = false,
   });
 
   final IconData? icon;
-  final Color? iconColor;
   final String title;
-  final Color? titleColor;
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  final bool enabled;
   final bool isDark;
   final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final effectiveIconColor = iconColor ?? colorScheme.primary;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 2, 18, isLast ? 10 : 2),
       child: PageListItem(
-        onTap: enabled ? onTap : null,
+        onTap: onTap,
         title: title,
-        titleColor: titleColor,
         subtitle: subtitle,
         trailing: trailing,
         leading: icon == null
             ? null
-            : PageIconBadge(icon: icon!, color: effectiveIconColor, size: 38),
+            : PageIconBadge(icon: icon!, color: colorScheme.primary, size: 38),
       ),
     );
   }
@@ -1853,35 +1594,3 @@ class _InviteCodeBox extends StatelessWidget {
   }
 }
 
-/// Preference group wrapper for settings.
-class _PreferenceGroup extends StatelessWidget {
-  const _PreferenceGroup({
-    required this.title,
-    required this.child,
-    required this.isDark,
-  });
-
-  final String title;
-  final Widget child;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: isDark ? AppTheme.warmWhite90 : null,
-            ),
-          ),
-          const SizedBox(height: 4),
-          child,
-        ],
-      ),
-    );
-  }
-}
