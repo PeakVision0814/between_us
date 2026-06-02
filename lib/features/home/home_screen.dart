@@ -1,10 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../app/app_controller.dart';
-import '../../shared/widgets/app_page.dart';
+import '../../shared/widgets/page_visual_language.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -130,24 +132,18 @@ class _HomeScreenState extends State<HomeScreen> {
   static String _formatTimeAgo(DateTime dt, bool isChinese) {
     final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 1) {
-      return isChinese ? '\u521a\u521a' : 'Just now';
+      return isChinese ? '刚刚' : 'Just now';
     }
     if (diff.inHours < 1) {
-      return isChinese
-          ? '${diff.inMinutes} \u5206\u949f\u524d'
-          : '${diff.inMinutes}m ago';
+      return isChinese ? '${diff.inMinutes} 分钟前' : '${diff.inMinutes}m ago';
     }
     if (diff.inDays < 1) {
-      return isChinese
-          ? '${diff.inHours} \u5c0f\u65f6\u524d'
-          : '${diff.inHours}h ago';
+      return isChinese ? '${diff.inHours} 小时前' : '${diff.inHours}h ago';
     }
     if (diff.inDays < 30) {
-      return isChinese ? '${diff.inDays} \u5929\u524d' : '${diff.inDays}d ago';
+      return isChinese ? '${diff.inDays} 天前' : '${diff.inDays}d ago';
     }
-    return isChinese
-        ? '${dt.month} \u6708${dt.day} \u65e5'
-        : '${dt.month}/${dt.day}';
+    return isChinese ? '${dt.month} 月${dt.day} 日' : '${dt.month}/${dt.day}';
   }
 
   static CalendarEntryType _mapEventType(String type) => switch (type) {
@@ -169,41 +165,62 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = AppScope.of(context);
     final strings = AppStrings.of(context);
 
-    return AppPage(
-      children: [
-        _HomeHero(
-          displayName: controller.displayName,
-          memberCount: controller.memberCount,
-          partnerDisplayName: controller.partnerDisplayName,
-          nextDate: _nextDate,
-          onOpenCalendar: widget.onOpenCalendar,
-          onOpenUs: widget.onOpenUs,
-          isChinese: strings.isChinese,
-        ),
-        const SizedBox(height: 22),
-        _NextDatePanel(
-          item: _nextDate,
-          onTap: widget.onOpenCalendar,
-          isChinese: strings.isChinese,
-        ),
-        const SizedBox(height: 22),
-        _RecentPreviewPanel(
-          note: _recentNote,
-          plan: _recentPlan,
-          onOpenPlansNotes: widget.onOpenPlansNotes,
-          onWriteNote: widget.onWriteNote,
-          isChinese: strings.isChinese,
-        ),
-        const SizedBox(height: 22),
-        _PrimaryActions(
-          onOpenCalendar: widget.onOpenCalendar,
-          onCreatePlan: widget.onCreatePlan,
-          onWriteNote: widget.onWriteNote,
-        ),
-      ],
+    return PageAtmosphere(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HomeHero(
+            displayName: controller.displayName,
+            memberCount: controller.memberCount,
+            partnerDisplayName: controller.partnerDisplayName,
+            nextDate: _nextDate,
+            onOpenCalendar: widget.onOpenCalendar,
+            onOpenUs: widget.onOpenUs,
+            isChinese: strings.isChinese,
+          ),
+          const SizedBox(height: 24),
+          PageSectionHeader(title: strings.nextDateSection),
+          const SizedBox(height: 10),
+          _DatePreviewCard(
+            item: _nextDate,
+            onTap: widget.onOpenCalendar,
+            isChinese: strings.isChinese,
+          ),
+          const SizedBox(height: 24),
+          PageSectionHeader(title: strings.recentUpdateSection),
+          const SizedBox(height: 10),
+          _NotePreviewCard(
+            note: _recentNote,
+            onWriteNote: widget.onWriteNote,
+            isChinese: strings.isChinese,
+          ),
+          const SizedBox(height: 24),
+          PageSectionHeader(title: strings.recentPlanSection),
+          const SizedBox(height: 10),
+          _PlanPreviewCard(
+            plan: _recentPlan,
+            onTap: widget.onOpenPlansNotes,
+            isChinese: strings.isChinese,
+          ),
+          const SizedBox(height: 24),
+          PageSectionHeader(
+            title: strings.quickLinksSection,
+            subtitle: strings.homeSubtitle,
+          ),
+          const SizedBox(height: 10),
+          _QuickActions(
+            onOpenCalendar: widget.onOpenCalendar,
+            onCreatePlan: widget.onCreatePlan,
+            onWriteNote: widget.onWriteNote,
+          ),
+        ],
+      ),
     );
   }
 }
+
+// ─── Home Hero ───────────────────────────────────────────────────────────
 
 class _HomeHero extends StatelessWidget {
   const _HomeHero({
@@ -226,8 +243,11 @@ class _HomeHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final strings = AppStrings.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
     final primaryName =
         _normalizeName(displayName) ?? (isChinese ? '我们' : 'Us');
     final partnerName = _normalizeName(partnerDisplayName);
@@ -250,108 +270,163 @@ class _HomeHero extends StatelessWidget {
         ? _firstCharacter(partnerName, fallback: isChinese ? '伴' : 'P')
         : (isChinese ? '待' : '+');
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colorScheme.brightness == Brightness.light
-              ? const [Color(0xFFFFEFE7), Color(0xFFFFF9F1), Color(0xFFEAF7F2)]
-              : const [Color(0xFF2A2024), Color(0xFF1C181A), Color(0xFF172421)],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? AppTheme.heroGradientDark
+              : AppTheme.heroGradientLight,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          border: isDark
+              ? Border.all(
+                  color: AppTheme.heroGlowPurple.withValues(alpha: 0.2),
+                  width: 1,
+                )
+              : null,
+          boxShadow: isDark
+              ? AppTheme.shadowHeroDark
+              : AppTheme.shadowHeroLight,
         ),
-        border: Border.all(color: colorScheme.outline),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.18),
-            blurRadius: 28,
-            offset: const Offset(0, 18),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          const Positioned(
-            right: -36,
-            top: -34,
-            child: _SoftDisc(size: 142, color: AppTheme.blush),
-          ),
-          const Positioned(
-            left: -28,
-            bottom: -44,
-            child: _SoftDisc(size: 118, color: AppTheme.mint),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _AvatarPair(
-                      labelOne: avatarLabelOne,
-                      labelTwo: avatarLabelTwo,
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Avatars + status badge ──
+              Row(
+                children: [
+                  _HeroAvatarSlot(
+                    key: const ValueKey('home-hero-avatar-one'),
+                    label: avatarLabelOne,
+                    isDark: isDark,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      isPaired
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border,
+                      color: isDark
+                          ? AppTheme.heroGlowBlush
+                          : colorScheme.primary,
+                      size: 20,
+                      shadows: isDark
+                          ? [
+                              Shadow(
+                                color: AppTheme.heroGlowBlush.withValues(
+                                  alpha: 0.5,
+                                ),
+                                blurRadius: 8,
+                              ),
+                            ]
+                          : null,
                     ),
-                    const Spacer(),
-                    _QuietBadge(
-                      icon: Icons.favorite_rounded,
-                      label: relationshipStatus,
-                    ),
-                  ],
+                  ),
+                  _HeroAvatarSlot(
+                    key: const ValueKey('home-hero-avatar-two'),
+                    label: avatarLabelTwo,
+                    isDark: isDark,
+                  ),
+                  const Spacer(),
+                  _HeroStatusBadge(
+                    key: const ValueKey('home-hero-relationship-status'),
+                    icon: Icons.favorite_rounded,
+                    label: relationshipStatus,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+
+              // ── Couple names ──
+              Text(
+                coupleNames,
+                key: const ValueKey('home-hero-couple-names'),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+                  height: 1.25,
                 ),
-                const SizedBox(height: 22),
-                Text(
-                  coupleNames,
-                  key: const ValueKey('home-hero-couple-names'),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontSize: 30,
-                    height: 1.08,
+              ),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Text(
+                  strings.relationshipMood,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Text(
-                    strings.relationshipMood,
-                    style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 22),
+
+              // ── Hero moment (frosted inset) ──
+              _HeroMomentPanel(
+                item: nextDate,
+                onOpenCalendar: onOpenCalendar,
+                isChinese: isChinese,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+
+              // ── Mini status slots ──
+              Row(
+                children: [
+                  Expanded(
+                    child: _HeroMiniSlot(
+                      icon: Icons.home_work_outlined,
+                      label: strings.spaceStatusLabel,
+                      value: strings.spaceStatusValue,
+                      isDark: isDark,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 22),
-                _HeroMoment(
-                  item: nextDate,
-                  onOpenCalendar: onOpenCalendar,
-                  isChinese: isChinese,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MiniStatus(
-                        icon: Icons.home_work_outlined,
-                        label: strings.spaceStatusLabel,
-                        value: strings.spaceStatusValue,
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _HeroMiniSlot(
+                      icon: Icons.nightlight_round,
+                      label: strings.overviewChipOne,
+                      value: strings.overviewChipTwo,
+                      isDark: isDark,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _MiniStatus(
-                        icon: Icons.nightlight_round,
-                        label: strings.overviewChipOne,
-                        value: strings.overviewChipTwo,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // ── Go to Us page ──
+              SizedBox(
+                width: double.infinity,
+                child: _HeroGlassButton(
                   onPressed: onOpenUs,
-                  icon: const Icon(Icons.favorite_border),
-                  label: Text(strings.goUsLabel),
+                  isDark: isDark,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        size: 18,
+                        color: isDark
+                            ? AppTheme.warmWhite90
+                            : colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        strings.goUsLabel,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: isDark
+                              ? AppTheme.warmWhite90
+                              : colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -373,71 +448,589 @@ class _HomeHero extends StatelessWidget {
   }
 }
 
-class _HeroMoment extends StatelessWidget {
-  const _HeroMoment({
-    required this.item,
-    required this.onOpenCalendar,
-    required this.isChinese,
+// ─── Hero Avatar Slot ────────────────────────────────────────────────────
+
+class _HeroAvatarSlot extends StatelessWidget {
+  const _HeroAvatarSlot({
+    super.key,
+    required this.label,
+    required this.isDark,
   });
 
-  final CalendarItemCopy? item;
-  final VoidCallback onOpenCalendar;
-  final bool isChinese;
+  final String label;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Material(
-      color: colorScheme.surface.withValues(alpha: 0.72),
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onOpenCalendar,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: item != null
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _TypeBadge(label: item!.typeLabel),
-                        const Spacer(),
-                        Text(
-                          item!.countdownLabel,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: colorScheme.primary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      item!.title,
-                      key: ValueKey('home-featured-calendar-title-${item!.id}'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(item!.subtitle),
-                    const SizedBox(height: 8),
-                    Text(
-                      item!.dateLabel,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.6),
+          width: 0.5,
+        ),
+      ),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: isDark
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.3),
+                    AppTheme.heroGlowPurple.withValues(alpha: 0.2),
                   ],
                 )
-              : Text(
-                  isChinese ? '暂无即将到来的日历事件' : 'No upcoming calendar events',
-                  style: Theme.of(context).textTheme.bodyMedium,
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.15),
+                    AppTheme.heroPeachLight.withValues(alpha: 0.5),
+                  ],
                 ),
+          boxShadow: isDark
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    spreadRadius: -2,
+                  ),
+                ]
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
   }
 }
 
-class _PrimaryActions extends StatelessWidget {
-  const _PrimaryActions({
+// ─── Hero Status Badge ──────────────────────────────────────────────────
+
+class _HeroStatusBadge extends StatelessWidget {
+  const _HeroStatusBadge({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.5),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: colorScheme.primary),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppTheme.warmWhite90 : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Hero Moment Panel (frosted inset) ──────────────────────────────────
+
+class _HeroMomentPanel extends StatelessWidget {
+  const _HeroMomentPanel({
+    required this.item,
+    required this.onOpenCalendar,
+    required this.isChinese,
+    required this.isDark,
+  });
+
+  final CalendarItemCopy? item;
+  final VoidCallback onOpenCalendar;
+  final bool isChinese;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppTheme.surfaceInsetGradientDark
+                : AppTheme.surfaceInsetGradientLight,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(
+              color: isDark
+                  ? AppTheme.surfaceBorderDarkSoft
+                  : AppTheme.surfaceBorderLightSoft,
+            ),
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              onTap: onOpenCalendar,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: item != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              _TypeBadge(label: item!.typeLabel),
+                              const Spacer(),
+                              Text(
+                                item!.countdownLabel,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            item!.title,
+                            key: ValueKey(
+                              'home-featured-calendar-title-${item!.id}',
+                            ),
+                            style: theme.textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            item!.subtitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: isDark
+                                  ? AppTheme.warmWhite60
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item!.dateLabel,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      )
+                    : Text(
+                        isChinese
+                            ? '暂无即将到来的日历事件'
+                            : 'No upcoming calendar events',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Hero Mini Slot ─────────────────────────────────────────────────────
+
+class _HeroMiniSlot extends StatelessWidget {
+  const _HeroMiniSlot({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.6),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isDark ? AppTheme.heroGlowBlush : colorScheme.secondary,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : null,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Hero Glass Button ──────────────────────────────────────────────────
+
+class _HeroGlassButton extends StatelessWidget {
+  const _HeroGlassButton({
+    required this.onPressed,
+    required this.isDark,
+    required this.child,
+  });
+
+  final VoidCallback onPressed;
+  final bool isDark;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.5),
+              width: 0.5,
+            ),
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+              onTap: onPressed,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Date Preview Card ──────────────────────────────────────────────────
+
+class _DatePreviewCard extends StatelessWidget {
+  const _DatePreviewCard({
+    required this.item,
+    required this.onTap,
+    required this.isChinese,
+  });
+
+  final CalendarItemCopy? item;
+  final VoidCallback onTap;
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return PageSurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: item != null
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PageIconBadge(
+                        icon: Icons.event_available_outlined,
+                        color: AppTheme.gold,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _TypeBadge(label: item!.typeLabel),
+                            const SizedBox(height: 10),
+                            Text(
+                              item!.title,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              item!.subtitle,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              item!.dateLabel,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        item!.countdownLabel,
+                        textAlign: TextAlign.right,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    isChinese
+                        ? '暂无即将到来的日历事件'
+                        : 'No upcoming calendar events',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Note Preview Card ──────────────────────────────────────────────────
+
+class _NotePreviewCard extends StatelessWidget {
+  const _NotePreviewCard({
+    required this.note,
+    required this.onWriteNote,
+    required this.isChinese,
+  });
+
+  final NoteItemCopy? note;
+  final VoidCallback onWriteNote;
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final strings = AppStrings.of(context);
+
+    return PageSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (note != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PageIconBadge(
+                  icon: Icons.notes_rounded,
+                  color: AppTheme.blush,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(note!.timeLabel, style: theme.textTheme.bodySmall),
+                      const SizedBox(height: 7),
+                      Text(
+                        note!.text,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Text(
+              isChinese ? '还没有随记，写一条吧' : 'No notes yet — write one',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.tonalIcon(
+              onPressed: onWriteNote,
+              icon: const Icon(Icons.mode_edit_outline_outlined),
+              label: Text(strings.writeNoteLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Plan Preview Card ──────────────────────────────────────────────────
+
+class _PlanPreviewCard extends StatelessWidget {
+  const _PlanPreviewCard({
+    required this.plan,
+    required this.onTap,
+    required this.isChinese,
+  });
+
+  final PlanItemCopy? plan;
+  final VoidCallback onTap;
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return PageSurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: plan != null
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PageIconBadge(
+                        icon: Icons.route_outlined,
+                        color: AppTheme.mint,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _TypeBadge(label: plan!.statusLabel),
+                            const SizedBox(height: 10),
+                            Text(
+                              plan!.title,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            if (plan!.body.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                plan!.body,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isDark
+                                      ? AppTheme.warmWhite60
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Text(
+                              plan!.helperLabel,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  )
+                : Text(
+                    isChinese ? '还没有计划，新建一个吧' : 'No plans yet — create one',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Quick Actions ──────────────────────────────────────────────────────
+
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({
     required this.onOpenCalendar,
     required this.onCreatePlan,
     required this.onWriteNote,
@@ -452,19 +1045,14 @@ class _PrimaryActions extends StatelessWidget {
     final strings = AppStrings.of(context);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(
-          title: strings.quickLinksSection,
-          subtitle: strings.homeSubtitle,
-        ),
-        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _ActionTile(
+              child: _QuickActionTile(
                 icon: Icons.add_task_outlined,
                 title: strings.createPlanLabel,
+                titleKey: const ValueKey('home-quick-action-plan'),
                 subtitle: strings.plansSectionTitle,
                 color: AppTheme.mint,
                 onTap: onCreatePlan,
@@ -472,9 +1060,10 @@ class _PrimaryActions extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _ActionTile(
+              child: _QuickActionTile(
                 icon: Icons.edit_note_outlined,
                 title: strings.writeNoteLabel,
+                titleKey: const ValueKey('home-quick-action-note'),
                 subtitle: strings.notesSectionTitle,
                 color: AppTheme.blush,
                 onTap: onWriteNote,
@@ -494,284 +1083,11 @@ class _PrimaryActions extends StatelessWidget {
   }
 }
 
-class _NextDatePanel extends StatelessWidget {
-  const _NextDatePanel({
-    required this.item,
-    required this.onTap,
-    required this.isChinese,
-  });
-
-  final CalendarItemCopy? item;
-  final VoidCallback onTap;
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitle(title: strings.nextDateSection),
-        const SizedBox(height: 12),
-        _DatePreviewCard(item: item, onTap: onTap, isChinese: isChinese),
-      ],
-    );
-  }
-}
-
-class _RecentPreviewPanel extends StatelessWidget {
-  const _RecentPreviewPanel({
-    required this.note,
-    required this.plan,
-    required this.onOpenPlansNotes,
-    required this.onWriteNote,
-    required this.isChinese,
-  });
-
-  final NoteItemCopy? note;
-  final PlanItemCopy? plan;
-  final VoidCallback onOpenPlansNotes;
-  final VoidCallback onWriteNote;
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitle(title: strings.recentUpdateSection),
-        const SizedBox(height: 12),
-        _NotePreviewCard(
-          note: note,
-          onWriteNote: onWriteNote,
-          isChinese: isChinese,
-        ),
-        const SizedBox(height: 14),
-        _SectionTitle(title: strings.recentPlanSection),
-        const SizedBox(height: 12),
-        _PlanPreviewCard(
-          plan: plan,
-          onTap: onOpenPlansNotes,
-          isChinese: isChinese,
-        ),
-      ],
-    );
-  }
-}
-
-class _DatePreviewCard extends StatelessWidget {
-  const _DatePreviewCard({
-    required this.item,
-    required this.onTap,
-    required this.isChinese,
-  });
-
-  final CalendarItemCopy? item;
-  final VoidCallback onTap;
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return _SurfacePanel(
-      onTap: onTap,
-      child: item != null
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IconTile(
-                  icon: Icons.event_available_outlined,
-                  color: AppTheme.gold,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _TypeBadge(label: item!.typeLabel),
-                      const SizedBox(height: 10),
-                      Text(
-                        item!.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 5),
-                      Text(item!.subtitle),
-                      const SizedBox(height: 10),
-                      Text(
-                        item!.dateLabel,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  item!.countdownLabel,
-                  textAlign: TextAlign.right,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: colorScheme.primary),
-                ),
-              ],
-            )
-          : Text(
-              isChinese ? '暂无即将到来的日历事件' : 'No upcoming calendar events',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-    );
-  }
-}
-
-class _NotePreviewCard extends StatelessWidget {
-  const _NotePreviewCard({
-    required this.note,
-    required this.onWriteNote,
-    required this.isChinese,
-  });
-
-  final NoteItemCopy? note;
-  final VoidCallback onWriteNote;
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-
-    return _SurfacePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (note != null) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IconTile(icon: Icons.notes_rounded, color: AppTheme.blush),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        note!.timeLabel,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        note!.text,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(height: 1.35),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            Text(
-              isChinese ? '还没有随记，写一条吧' : 'No notes yet — write one',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonalIcon(
-              onPressed: onWriteNote,
-              icon: const Icon(Icons.mode_edit_outline_outlined),
-              label: Text(strings.writeNoteLabel),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlanPreviewCard extends StatelessWidget {
-  const _PlanPreviewCard({
-    required this.plan,
-    required this.onTap,
-    required this.isChinese,
-  });
-
-  final PlanItemCopy? plan;
-  final VoidCallback onTap;
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SurfacePanel(
-      onTap: onTap,
-      child: plan != null
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IconTile(icon: Icons.route_outlined, color: AppTheme.mint),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _TypeBadge(label: plan!.statusLabel),
-                      const SizedBox(height: 10),
-                      Text(
-                        plan!.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (plan!.body.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(plan!.body),
-                      ],
-                      const SizedBox(height: 10),
-                      Text(
-                        plan!.helperLabel,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right_rounded),
-              ],
-            )
-          : Text(
-              isChinese ? '还没有计划，新建一个吧' : 'No plans yet — create one',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.subtitle});
-
-  final String title;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        if (subtitle != null) ...[
-          const SizedBox(height: 4),
-          Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ],
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
     required this.icon,
     required this.title,
+    required this.titleKey,
     required this.subtitle,
     required this.color,
     required this.onTap,
@@ -779,24 +1095,32 @@ class _ActionTile extends StatelessWidget {
 
   final IconData icon;
   final String title;
+  final Key? titleKey;
   final String subtitle;
   final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return _SurfacePanel(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconTile(icon: icon, color: color),
-          const SizedBox(height: 14),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-        ],
+    return PageSurfaceCard(
+      padding: EdgeInsets.zero,
+      variant: PageSurfaceVariant.secondary,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: PageListItem(
+              title: title,
+              titleKey: titleKey,
+              subtitle: subtitle,
+              leading: PageIconBadge(icon: icon, color: color, size: 40),
+              compact: true,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -817,241 +1141,60 @@ class _WideActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SurfacePanel(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          _IconTile(icon: icon, color: AppTheme.gold),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return PageSurfaceCard(
+      padding: EdgeInsets.zero,
+      variant: PageSurfaceVariant.tertiary,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 3),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                PageIconBadge(icon: icon, color: AppTheme.gold, size: 40),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppTheme.warmWhite60
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
-      ),
-    );
-  }
-}
-
-class _SurfacePanel extends StatelessWidget {
-  const _SurfacePanel({
-    required this.child,
-    this.onTap,
-    this.padding = const EdgeInsets.all(18),
-  });
-
-  final Widget child;
-  final VoidCallback? onTap;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: colorScheme.outline),
-          ),
-          child: child,
         ),
       ),
     );
   }
 }
 
-class _AvatarPair extends StatelessWidget {
-  const _AvatarPair({required this.labelOne, required this.labelTwo});
-
-  final String labelOne;
-  final String labelTwo;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 70,
-      height: 42,
-      child: Stack(
-        children: [
-          _AvatarDot(
-            key: const ValueKey('home-hero-avatar-one'),
-            label: labelOne,
-            color: AppTheme.blush,
-          ),
-          Positioned(
-            left: 28,
-            child: _AvatarDot(
-              key: const ValueKey('home-hero-avatar-two'),
-              label: labelTwo,
-              color: AppTheme.mint,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AvatarDot extends StatelessWidget {
-  const _AvatarDot({super.key, required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Theme.of(context).colorScheme.surface,
-          width: 3,
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _QuietBadge extends StatelessWidget {
-  const _QuietBadge({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      key: const ValueKey('home-hero-relationship-status'),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colorScheme.outline),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStatus extends StatelessWidget {
-  const _MiniStatus({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: colorScheme.secondary),
-          const SizedBox(height: 8),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon, required this.color});
-
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: color),
-    );
-  }
-}
-
-class _SoftDisc extends StatelessWidget {
-  const _SoftDisc({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-}
+// ─── Type Badge ─────────────────────────────────────────────────────────
 
 class _TypeBadge extends StatelessWidget {
   const _TypeBadge({required this.label});
@@ -1066,7 +1209,7 @@ class _TypeBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
       child: Text(
         label,
@@ -1077,4 +1220,50 @@ class _TypeBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Data models ────────────────────────────────────────────────────────
+
+class CalendarItemCopy {
+  const CalendarItemCopy({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.dateLabel,
+    required this.countdownLabel,
+    required this.typeLabel,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final String dateLabel;
+  final String countdownLabel;
+  final String typeLabel;
+}
+
+class NoteItemCopy {
+  const NoteItemCopy({
+    required this.author,
+    required this.timeLabel,
+    required this.text,
+  });
+
+  final String author;
+  final String timeLabel;
+  final String text;
+}
+
+class PlanItemCopy {
+  const PlanItemCopy({
+    required this.title,
+    required this.body,
+    required this.statusLabel,
+    required this.helperLabel,
+  });
+
+  final String title;
+  final String body;
+  final String statusLabel;
+  final String helperLabel;
 }

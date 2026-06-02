@@ -573,13 +573,13 @@ void main() {
     );
 
     await tester.scrollUntilVisible(
-      find.text('Write a note'),
+      find.byKey(const ValueKey('home-quick-action-note')),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Write a note').first);
+    await tester.tap(find.byKey(const ValueKey('home-quick-action-note')));
     await tester.pumpAndSettle();
 
     expect(
