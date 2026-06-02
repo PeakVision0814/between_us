@@ -282,6 +282,14 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _openProfileScreen(AppController controller, AppStrings strings) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ProfileScreen(controller: controller),
+      ),
+    );
+  }
+
   void _showEditSpaceNameDialog() {
     final strings = AppStrings.of(context);
     final controller = TextEditingController(text: _spaceName ?? '');
@@ -393,19 +401,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           _buildRelationshipHero(
             context,
             strings,
+            controller: controller,
             selfName: selfName,
             partnerName: partnerName,
             isPaired: isPaired,
             isDark: isDark,
             selfGender: controller.gender,
           ),
-          const SizedBox(height: 24),
-          PageSectionHeader(
-            title: strings.isChinese ? '我的资料' : 'My profile',
-            subtitle: strings.isChinese ? '关于我' : 'About me',
-          ),
-          const SizedBox(height: 10),
-          _buildMyProfileSection(context, strings, controller, isDark: isDark),
           const SizedBox(height: 24),
           PageSectionHeader(
             title: strings.isChinese ? 'TA 的资料' : 'Partner profile',
@@ -449,6 +451,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   Widget _buildRelationshipHero(
     BuildContext context,
     AppStrings strings, {
+    required AppController controller,
     required String selfName,
     required String? partnerName,
     required bool isPaired,
@@ -486,6 +489,34 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                   gradient: isDark
                       ? AppTheme.heroAtmosphereDark
                       : AppTheme.heroAtmosphereLight,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  onTap: () => _openProfileScreen(controller, strings),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.white.withValues(alpha: 0.55),
+                    ),
+                    child: Icon(
+                      Icons.person_outline,
+                      size: 20,
+                      color: isDark
+                          ? AppTheme.warmWhite60
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -558,47 +589,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ─── My Profile ─────────────────────────────────────────────────────
-
-  Widget _buildMyProfileSection(
-    BuildContext context,
-    AppStrings strings,
-    AppController controller, {
-    required bool isDark,
-  }) {
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.secondary,
-      key: const ValueKey('us-my-profile-section'),
-      child: Column(
-        children: [
-          _ProfileRow(
-            label: strings.isChinese ? '昵称' : 'Display name',
-            value: _resolvedSelfName(controller, strings),
-            valueKey: const ValueKey('us-my-profile-display-name'),
-            isDark: isDark,
-          ),
-          _UsDivider(isDark: isDark),
-          _ProfileRow(
-            label: strings.isChinese ? '性别' : 'Gender',
-            value: _genderLabel(strings, controller.gender),
-            valueKey: const ValueKey('us-my-profile-gender'),
-            isDark: isDark,
-          ),
-          _UsDivider(isDark: isDark),
-          _ProfileRow(
-            label: strings.isChinese ? '生日' : 'Birthday',
-            value: _birthdayLabel(strings, controller.birthday),
-            valueKey: const ValueKey('us-my-profile-birthday'),
-            isPlaceholder: controller.birthday == null,
-            isDark: isDark,
-            isLast: true,
-          ),
-        ],
       ),
     );
   }
@@ -1042,34 +1032,12 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     return normalized.characters.first;
   }
 
-  String _genderLabel(AppStrings strings, String? gender) {
-    return switch (gender) {
-      AppController.genderMale => strings.isChinese ? '男生' : 'Male',
-      AppController.genderFemale => strings.isChinese ? '女生' : 'Female',
-      _ => strings.isChinese ? '尚未补充' : 'Not set yet',
-    };
-  }
-
   IconData? _genderIcon(String? gender) {
     return switch (gender) {
       AppController.genderMale => Icons.male,
       AppController.genderFemale => Icons.female,
       _ => null,
     };
-  }
-
-  String _birthdayLabel(AppStrings strings, DateTime? birthday) {
-    if (birthday == null) {
-      return strings.isChinese
-          ? '还没有填写，之后也可以再补。'
-          : 'Not added yet. You can fill this in later.';
-    }
-
-    final month = birthday.month.toString().padLeft(2, '0');
-    final day = birthday.day.toString().padLeft(2, '0');
-    return strings.isChinese
-        ? '${birthday.year} 年 $month 月 $day 日'
-        : '${birthday.year}-$month-$day';
   }
 
   String _relationshipStatusLabel(
@@ -1163,10 +1131,119 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// Profile Screen (secondary page)
+// ═══════════════════════════════════════════════════════════════════════
+
+class _ProfileScreen extends StatelessWidget {
+  const _ProfileScreen({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          strings.isChinese ? '个人资料' : 'My profile',
+          style: TextStyle(color: isDark ? AppTheme.warmWhite90 : null),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: PageAtmosphere(
+        padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageSectionHeader(
+              title: strings.isChinese ? '关于我' : 'About me',
+              subtitle: strings.isChinese ? '基本资料' : 'Basic info',
+            ),
+            const SizedBox(height: 10),
+            _UsCard(
+              isDark: isDark,
+              variant: PageSurfaceVariant.secondary,
+              child: Column(
+                children: [
+                  _ProfileRow(
+                    label: strings.isChinese ? '昵称' : 'Display name',
+                    value: _resolvedSelfName(controller, strings),
+                    valueKey: const ValueKey('profile-display-name'),
+                    isDark: isDark,
+                  ),
+                  _UsDivider(isDark: isDark),
+                  _ProfileRow(
+                    label: strings.isChinese ? '性别' : 'Gender',
+                    value: _genderLabel(strings, controller.gender),
+                    valueKey: const ValueKey('profile-gender'),
+                    isDark: isDark,
+                  ),
+                  _UsDivider(isDark: isDark),
+                  _ProfileRow(
+                    label: strings.isChinese ? '生日' : 'Birthday',
+                    value: _birthdayLabel(strings, controller.birthday),
+                    valueKey: const ValueKey('profile-birthday'),
+                    isPlaceholder: controller.birthday == null,
+                    isDark: isDark,
+                    isLast: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _resolvedSelfName(AppController controller, AppStrings strings) {
+    final normalized = _normalizeName(controller.displayName);
+    return normalized ?? (strings.isChinese ? '我' : 'Me');
+  }
+
+  String? _normalizeName(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  String _genderLabel(AppStrings strings, String? gender) {
+    return switch (gender) {
+      AppController.genderMale => strings.isChinese ? '男生' : 'Male',
+      AppController.genderFemale => strings.isChinese ? '女生' : 'Female',
+      _ => strings.isChinese ? '尚未补充' : 'Not set yet',
+    };
+  }
+
+  String _birthdayLabel(AppStrings strings, DateTime? birthday) {
+    if (birthday == null) {
+      return strings.isChinese
+          ? '还没有填写'
+          : 'Not added yet. You can fill this in later.';
+    }
+
+    final month = birthday.month.toString().padLeft(2, '0');
+    final day = birthday.day.toString().padLeft(2, '0');
+    return strings.isChinese
+        ? '${birthday.year} 年 $month 月 $day 日'
+        : '${birthday.year}-$month-$day';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // Private visual components
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Section label — softer than the old SectionHeader.
 /// Unified card for the Us page — clean borders, soft elevation.
 class _UsCard extends StatelessWidget {
   const _UsCard({

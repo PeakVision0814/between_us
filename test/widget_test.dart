@@ -674,11 +674,6 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
-    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
-    final birthdayText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-birthday')),
-    );
-    expect(birthdayText.data, '还没有填写，之后也可以再补。');
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('us-invite-placeholder-section')),
@@ -739,19 +734,6 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
-    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
-    final displayNameText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-display-name')),
-    );
-    expect(displayNameText.data, 'Xiaoman');
-    final genderText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-gender')),
-    );
-    expect(genderText.data, 'Female');
-    final birthdayText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-birthday')),
-    );
-    expect(birthdayText.data, '1998-06-01');
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('us-partner-profile-section')),
