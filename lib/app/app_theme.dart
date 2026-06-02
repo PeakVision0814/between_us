@@ -52,6 +52,21 @@ class AppTheme {
   static const Color warning = Color(0xFFE1A955);
   static const Color warningDark = Color(0xFFF0C070);
 
+  // ─── Us-page hero & surface colors ──────────────────────────────────
+  static const Color heroBlushLight = Color(0xFFF8E0E4);
+  static const Color heroPeachLight = Color(0xFFFBE8D8);
+  static const Color heroFogLight = Color(0xFFEDE2F2);
+  static const Color heroCreamOverlay = Color(0xFFFDF8F3);
+
+  static const Color heroDeepPurple = Color(0xFF1C1428);
+  static const Color heroNightAccent = Color(0xFF2A1E38);
+  static const Color heroGlowPurple = Color(0xFF6E4A88);
+  static const Color heroGlowBlush = Color(0xFFB87A88);
+
+  static const Color cardSurfaceLight = Color(0xFFFFFDFB);
+  static const Color cardBorderLight = Color(0x1A000000);
+  static const Color cardBorderDark = Color(0x30FFFFFF);
+
   // ─── Gradients ─────────────────────────────────────────────────────
   static const LinearGradient authBackgroundLight = LinearGradient(
     begin: Alignment.topLeft,
@@ -63,6 +78,18 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF1A1520), Color(0xFF1E1A22)],
+  );
+
+  static const LinearGradient heroGradientLight = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [heroBlushLight, heroPeachLight, heroFogLight],
+  );
+
+  static const LinearGradient heroGradientDark = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [heroDeepPurple, heroNightAccent],
   );
 
   // ─── Auth decorative accents ───────────────────────────────────────
@@ -95,6 +122,49 @@ class AppTheme {
       color: Color(0x0A000000),
       offset: Offset(0, 2),
       blurRadius: 8,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowHeroLight = [
+    BoxShadow(
+      color: Color(0x12000000),
+      offset: Offset(0, 4),
+      blurRadius: 20,
+    ),
+    BoxShadow(
+      color: Color(0x08000000),
+      offset: Offset(0, 1),
+      blurRadius: 6,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowHeroDark = [
+    BoxShadow(
+      color: Color(0x407040A0),
+      offset: Offset(0, 0),
+      blurRadius: 24,
+      spreadRadius: -2,
+    ),
+    BoxShadow(
+      color: Color(0x205030A0),
+      offset: Offset(0, 4),
+      blurRadius: 16,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowCardLight = [
+    BoxShadow(
+      color: Color(0x08000000),
+      offset: Offset(0, 2),
+      blurRadius: 12,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowCardDark = [
+    BoxShadow(
+      color: Color(0x187040A0),
+      offset: Offset(0, 0),
+      blurRadius: 12,
     ),
   ];
 

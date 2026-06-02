@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
-import '../../shared/widgets/app_page.dart';
+import '../../app/app_theme.dart';
 
 class SettingsMoreScreen extends StatelessWidget {
   const SettingsMoreScreen({
@@ -27,17 +27,29 @@ class SettingsMoreScreen extends StatelessWidget {
       });
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       key: const ValueKey('settings-more-screen'),
-      appBar: AppBar(title: Text(strings.settingsMoreTitle)),
-      body: SafeArea(
-        child: AppPage(
-          children: [
-            buildPreferencesSection(context),
-            const SizedBox(height: 20),
-            buildSignOutSection(context),
-          ],
+      appBar: AppBar(
+        title: Text(
+          strings.settingsMoreTitle,
+          style: TextStyle(
+            color: isDark ? AppTheme.warmWhite90 : null,
+          ),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        children: [
+          // ── Preferences section ──
+          buildPreferencesSection(context),
+          const SizedBox(height: 24),
+          // ── Sign out section ──
+          buildSignOutSection(context),
+        ],
       ),
     );
   }

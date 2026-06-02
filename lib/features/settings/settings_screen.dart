@@ -7,8 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
-import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/section_header.dart';
+import '../../app/app_theme.dart';
 import 'settings_more_screen.dart';
 
 class UsScreen extends StatefulWidget {
@@ -382,8 +381,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     final selfName = _resolvedSelfName(controller, strings);
     final partnerName = _resolvedPartnerName(controller);
     final isPaired = effectiveMemberCount >= 2 && partnerName != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return AppPage(
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16, isDark ? 8 : 4, 16, 32),
       children: [
         _buildRelationshipHero(
           context,
@@ -391,24 +392,42 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           selfName: selfName,
           partnerName: partnerName,
           isPaired: isPaired,
+          isDark: isDark,
         ),
-        const SizedBox(height: 20),
-        SectionHeader(title: strings.isChinese ? '我的资料' : 'My profile'),
-        _buildMyProfileSection(context, strings, controller),
-        const SizedBox(height: 20),
-        SectionHeader(title: strings.isChinese ? 'TA 的资料' : 'Partner profile'),
+        const SizedBox(height: 24),
+        _SectionLabel(
+          title: strings.isChinese ? '我的资料' : 'My profile',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 10),
+        _buildMyProfileSection(context, strings, controller, isDark: isDark),
+        const SizedBox(height: 24),
+        _SectionLabel(
+          title: strings.isChinese ? 'TA 的资料' : 'Partner profile',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 10),
         isPaired
-            ? _buildPartnerProfileSection(context, strings, partnerName)
-            : _buildSingleInviteSection(context, strings),
-        const SizedBox(height: 20),
-        SectionHeader(title: strings.spaceSection),
-        _buildSpaceSection(context, strings, isPaired: isPaired),
-        const SizedBox(height: 20),
-        SectionHeader(title: strings.settingsMoreTitle),
-        _buildSettingsEntrySection(context, strings),
+            ? _buildPartnerProfileSection(
+                context,
+                strings,
+                partnerName,
+                isDark: isDark,
+              )
+            : _buildSingleInviteSection(context, strings, isDark: isDark),
+        const SizedBox(height: 24),
+        _SectionLabel(title: strings.spaceSection, isDark: isDark),
+        const SizedBox(height: 10),
+        _buildSpaceSection(context, strings, isPaired: isPaired, isDark: isDark),
+        const SizedBox(height: 24),
+        _SectionLabel(title: strings.settingsMoreTitle, isDark: isDark),
+        const SizedBox(height: 10),
+        _buildSettingsEntrySection(context, strings, isDark: isDark),
       ],
     );
   }
+
+  // ─── Relationship Hero ──────────────────────────────────────────────
 
   Widget _buildRelationshipHero(
     BuildContext context,
@@ -416,6 +435,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     required String selfName,
     required String? partnerName,
     required bool isPaired,
+    required bool isDark,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -427,152 +447,148 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         ? '$selfName · 等待另一半'
         : '$selfName · Waiting for your partner';
 
-    return Card(
+    return Container(
       key: const ValueKey('us-hero-section'),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              colorScheme.primaryContainer.withValues(alpha: 0.95),
-              colorScheme.secondaryContainer.withValues(alpha: 0.88),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                strings.usTitle,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onSecondaryContainer.withValues(
-                    alpha: 0.75,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                heroTitle,
-                key: const ValueKey('us-hero-title'),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: colorScheme.onSecondaryContainer,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isPaired
-                    ? _relationshipHeroSubtitle(strings)
-                    : _singleHeroSubtitle(strings),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSecondaryContainer.withValues(
-                    alpha: 0.82,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _HeroPersonSlot(
-                      key: const ValueKey('us-hero-self-slot'),
-                      title: strings.isChinese ? '我' : 'Me',
-                      name: selfName,
-                      avatarLabel: _avatarLabel(
-                        selfName,
-                        fallback: strings.isChinese ? '我' : 'M',
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 18,
-                    ),
-                    child: Icon(
-                      isPaired ? Icons.favorite_rounded : Icons.favorite_border,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  Expanded(
-                    child: isPaired
-                        ? _HeroPersonSlot(
-                            key: const ValueKey('us-hero-partner-slot'),
-                            title: strings.isChinese ? 'TA' : 'Partner',
-                            name:
-                                partnerName ??
-                                (strings.isChinese ? 'TA' : 'Partner'),
-                            avatarLabel: _avatarLabel(
-                              partnerName,
-                              fallback: strings.isChinese ? 'TA' : 'P',
-                            ),
-                          )
-                        : _HeroInviteSlot(
-                            key: const ValueKey('us-hero-single-slot'),
-                            title: strings.isChinese
-                                ? '邀请 TA 加入'
-                                : 'Invite your partner',
-                            subtitle: strings.isChinese
-                                ? '等 TA 加入后，这里会开始真正像一个两个人的空间。'
-                                : 'Once they join, this page starts to feel like a space for two.',
-                          ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _HeroChip(
-                    key: const ValueKey('us-hero-status'),
-                    label: _relationshipStatusLabel(
-                      strings,
-                      isPaired: isPaired,
-                    ),
-                  ),
-                  _HeroChip(label: _spaceSummaryLabel(strings)),
-                ],
-              ),
-            ],
-          ),
-        ),
+      decoration: BoxDecoration(
+        gradient: isDark ? AppTheme.heroGradientDark : AppTheme.heroGradientLight,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: isDark ? AppTheme.shadowHeroDark : AppTheme.shadowHeroLight,
+        border: isDark
+            ? Border.all(
+                color: AppTheme.heroGlowPurple.withValues(alpha: 0.2),
+                width: 1,
+              )
+            : null,
       ),
-    );
-  }
-
-  Widget _buildMyProfileSection(
-    BuildContext context,
-    AppStrings strings,
-    AppController controller,
-  ) {
-    return _PanelCard(
-      key: const ValueKey('us-my-profile-section'),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _SectionValueRow(
-              label: strings.isChinese ? '昵称' : 'Display name',
-              value: _resolvedSelfName(controller, strings),
-              valueKey: const ValueKey('us-my-profile-display-name'),
+            // ── Page label ──
+            Text(
+              strings.usTitle,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
             ),
-            const Divider(height: 28),
-            _SectionValueRow(
-              label: strings.isChinese ? '性别' : 'Gender',
-              value: _genderLabel(strings, controller.gender),
-              valueKey: const ValueKey('us-my-profile-gender'),
+            const SizedBox(height: 6),
+
+            // ── Couple title ──
+            Text(
+              heroTitle,
+              key: const ValueKey('us-hero-title'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+                height: 1.3,
+              ),
             ),
-            const Divider(height: 28),
-            _SectionValueRow(
-              label: strings.isChinese ? '生日' : 'Birthday',
-              value: _birthdayLabel(strings, controller.birthday),
-              valueKey: const ValueKey('us-my-profile-birthday'),
-              isPlaceholder: controller.birthday == null,
+            const SizedBox(height: 6),
+
+            // ── Subtitle ──
+            Text(
+              isPaired
+                  ? _relationshipHeroSubtitle(strings)
+                  : _singleHeroSubtitle(strings),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // ── Person slots ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _HeroPersonSlot(
+                    key: const ValueKey('us-hero-self-slot'),
+                    title: strings.isChinese ? '我' : 'Me',
+                    name: selfName,
+                    avatarLabel: _avatarLabel(
+                      selfName,
+                      fallback: strings.isChinese ? '我' : 'M',
+                    ),
+                    isDark: isDark,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 22,
+                  ),
+                  child: Icon(
+                    isPaired ? Icons.favorite_rounded : Icons.favorite_border,
+                    color: isDark
+                        ? AppTheme.heroGlowBlush
+                        : colorScheme.primary,
+                    size: 22,
+                    shadows: isDark
+                        ? [
+                            Shadow(
+                              color: AppTheme.heroGlowBlush.withValues(
+                                alpha: 0.5,
+                              ),
+                              blurRadius: 8,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+                Expanded(
+                  child: isPaired
+                      ? _HeroPersonSlot(
+                          key: const ValueKey('us-hero-partner-slot'),
+                          title: strings.isChinese ? 'TA' : 'Partner',
+                          name: partnerName ?? (strings.isChinese ? 'TA' : 'Partner'),
+                          avatarLabel: _avatarLabel(
+                            partnerName,
+                            fallback: strings.isChinese ? 'TA' : 'P',
+                          ),
+                          isDark: isDark,
+                        )
+                      : _HeroInviteSlot(
+                          key: const ValueKey('us-hero-single-slot'),
+                          title: strings.isChinese
+                              ? '邀请 TA 加入'
+                              : 'Invite your partner',
+                          subtitle: strings.isChinese
+                              ? '等 TA 加入后，这里会开始真正像一个两个人的空间。'
+                              : 'Once they join, this page starts to feel like a space for two.',
+                          isDark: isDark,
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // ── Status chips ──
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                _HeroChip(
+                  key: const ValueKey('us-hero-status'),
+                  label: _relationshipStatusLabel(
+                    strings,
+                    isPaired: isPaired,
+                  ),
+                  isDark: isDark,
+                ),
+                _HeroChip(
+                  label: _spaceSummaryLabel(strings),
+                  isDark: isDark,
+                ),
+              ],
             ),
           ],
         ),
@@ -580,28 +596,76 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ─── My Profile ─────────────────────────────────────────────────────
+
+  Widget _buildMyProfileSection(
+    BuildContext context,
+    AppStrings strings,
+    AppController controller, {
+    required bool isDark,
+  }) {
+    return _UsCard(
+      isDark: isDark,
+      key: const ValueKey('us-my-profile-section'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Column(
+          children: [
+            _ProfileRow(
+              label: strings.isChinese ? '昵称' : 'Display name',
+              value: _resolvedSelfName(controller, strings),
+              valueKey: const ValueKey('us-my-profile-display-name'),
+              isDark: isDark,
+            ),
+            _UsDivider(isDark: isDark),
+            _ProfileRow(
+              label: strings.isChinese ? '性别' : 'Gender',
+              value: _genderLabel(strings, controller.gender),
+              valueKey: const ValueKey('us-my-profile-gender'),
+              isDark: isDark,
+            ),
+            _UsDivider(isDark: isDark),
+            _ProfileRow(
+              label: strings.isChinese ? '生日' : 'Birthday',
+              value: _birthdayLabel(strings, controller.birthday),
+              valueKey: const ValueKey('us-my-profile-birthday'),
+              isPlaceholder: controller.birthday == null,
+              isDark: isDark,
+              isLast: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Partner Profile ────────────────────────────────────────────────
+
   Widget _buildPartnerProfileSection(
     BuildContext context,
     AppStrings strings,
-    String partnerName,
-  ) {
+    String partnerName, {
+    required bool isDark,
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return _PanelCard(
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-partner-profile-section'),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                _AvatarBadge(
+                _SoftAvatar(
                   label: _avatarLabel(
                     partnerName,
                     fallback: strings.isChinese ? 'TA' : 'P',
                   ),
+                  isDark: isDark,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -613,13 +677,15 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                         key: const ValueKey('us-partner-name'),
                         style: theme.textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         strings.isChinese
                             ? '这是 TA 在这里留下的名字。'
                             : 'This is the name your partner uses here.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                          color: isDark
+                              ? AppTheme.warmWhite60
+                              : colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -627,21 +693,27 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.45,
-                ),
-                borderRadius: BorderRadius.circular(16),
+                color: isDark
+                    ? AppTheme.nightMuted.withValues(alpha: 0.4)
+                    : colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.35,
+                      ),
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
               ),
               child: Text(
                 strings.isChinese
                     ? '关于 TA 的更多资料，会在你们慢慢补充后出现在这里。'
                     : 'More about your partner will appear here as your shared space fills in over time.',
-                style: theme.textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -650,24 +722,31 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildSingleInviteSection(BuildContext context, AppStrings strings) {
+  // ─── Single Invite Section ──────────────────────────────────────────
+
+  Widget _buildSingleInviteSection(
+    BuildContext context,
+    AppStrings strings, {
+    required bool isDark,
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return _PanelCard(
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-invite-placeholder-section'),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.mark_email_unread_outlined,
-                  color: colorScheme.primary,
+                _IconContainer(
+                  icon: Icons.mark_email_unread_outlined,
+                  isDark: isDark,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     strings.isChinese
@@ -683,43 +762,19 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               strings.isChinese
                   ? '等 TA 加入后，这里会慢慢变成只属于你们两个人的空间。'
                   : 'Once your partner joins, this space will start to feel like it belongs to the two of you.',
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+              ),
             ),
             if (_currentInviteCode != null &&
                 _currentInviteExpiresAt != null) ...[
               const SizedBox(height: 16),
-              Container(
-                key: const ValueKey('us-single-invite-code'),
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.45,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      strings.isChinese ? '当前邀请码' : 'Current invite code',
-                      style: theme.textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _currentInviteCode!,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontFamily: 'monospace',
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _inviteExpiryText(strings, _currentInviteExpiresAt!),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
+              _InviteCodeBox(
+                code: _currentInviteCode!,
+                expiryText: _inviteExpiryText(strings, _currentInviteExpiresAt!),
+                isDark: isDark,
               ),
             ],
           ],
@@ -728,107 +783,79 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ─── Space Section ──────────────────────────────────────────────────
+
   Widget _buildSpaceSection(
     BuildContext context,
     AppStrings strings, {
     required bool isPaired,
+    required bool isDark,
   }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return _PanelCard(
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-space-section'),
       child: Column(
         children: [
-          ListTile(
-            leading: const Icon(Icons.home_work_outlined),
-            title: Text(strings.spaceNameTitle),
-            subtitle: Text(_spaceName ?? strings.spaceNameValue),
-            trailing: const Icon(Icons.edit_outlined, size: 20),
-            onTap: _showEditSpaceNameDialog,
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.favorite_outline),
-            title: Text(strings.spaceStatusLabel),
-            subtitle: Text(
-              _relationshipStatusLabel(strings, isPaired: isPaired),
+          _SpaceListTile(
+            icon: Icons.home_work_outlined,
+            title: strings.spaceNameTitle,
+            subtitle: _spaceName ?? strings.spaceNameValue,
+            trailing: Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: isDark
+                  ? AppTheme.warmWhite25
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+            onTap: _showEditSpaceNameDialog,
+            isDark: isDark,
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: Text(strings.inviteStatusTitle),
-            subtitle: Text(_inviteSummaryText(strings, isPaired: isPaired)),
+          _UsDivider(isDark: isDark),
+          _SpaceListTile(
+            icon: Icons.favorite_outline,
+            title: strings.spaceStatusLabel,
+            subtitle: _relationshipStatusLabel(strings, isPaired: isPaired),
+            isDark: isDark,
+          ),
+          _UsDivider(isDark: isDark),
+          _SpaceListTile(
+            icon: Icons.mail_outline,
+            title: strings.inviteStatusTitle,
+            subtitle: _inviteSummaryText(strings, isPaired: isPaired),
+            isDark: isDark,
           ),
           if (_currentInviteCode != null &&
               _currentInviteExpiresAt != null) ...[
-            const Divider(height: 1),
+            _UsDivider(isDark: isDark),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.45,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: _InviteCodeBox(
+                code: _currentInviteCode!,
+                expiryText: _inviteExpiryText(
+                  strings,
+                  _currentInviteExpiresAt!,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            strings.isChinese ? '邀请码摘要' : 'Invite summary',
-                            style: theme.textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _currentInviteCode!,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontFamily: 'monospace',
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _inviteExpiryText(
-                              strings,
-                              _currentInviteExpiresAt!,
-                            ),
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                isDark: isDark,
+                showCopy: true,
+                onCopy: () {
+                  Clipboard.setData(
+                    ClipboardData(text: _currentInviteCode!),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(strings.isChinese ? '已复制' : 'Copied'),
+                      duration: const Duration(seconds: 2),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 20),
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(text: _currentInviteCode!),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(strings.isChinese ? '已复制' : 'Copied'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
           if (!isPaired) ...[
-            const Divider(height: 1),
+            _UsDivider(isDark: isDark),
             Padding(
               key: const ValueKey('us-space-invite-actions'),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Column(
                 children: [
                   SizedBox(
@@ -847,7 +874,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -864,42 +891,65 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ),
             ),
           ],
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.event_outlined),
-            title: Text(strings.relationshipDateTitle),
-            subtitle: Text(_relationshipDateValue(strings)),
+          _UsDivider(isDark: isDark),
+          _SpaceListTile(
+            icon: Icons.event_outlined,
+            title: strings.relationshipDateTitle,
+            subtitle: _relationshipDateValue(strings),
+            isDark: isDark,
+            isLast: true,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsEntrySection(BuildContext context, AppStrings strings) {
-    return _PanelCard(
+  // ─── Settings Entry ─────────────────────────────────────────────────
+
+  Widget _buildSettingsEntrySection(
+    BuildContext context,
+    AppStrings strings, {
+    required bool isDark,
+  }) {
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-settings-entry-section'),
-      child: ListTile(
+      child: _SpaceListTile(
         key: const ValueKey('open-settings-more-tile'),
-        leading: const Icon(Icons.tune_rounded),
-        title: Text(strings.settingsMoreTitle),
-        subtitle: Text(strings.settingsMoreSubtitle),
-        trailing: const Icon(Icons.chevron_right),
+        icon: Icons.tune_rounded,
+        title: strings.settingsMoreTitle,
+        subtitle: strings.settingsMoreSubtitle,
+        trailing: Icon(
+          Icons.chevron_right,
+          size: 20,
+          color: isDark
+              ? AppTheme.warmWhite25
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         onTap: _openSettingsMore,
+        isDark: isDark,
+        isLast: true,
       ),
     );
   }
+
+  // ─── Preferences Section (for SettingsMoreScreen) ───────────────────
 
   Widget _buildPreferencesSection(
     BuildContext context,
     AppStrings strings,
     AppController controller,
   ) {
-    return _PanelCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-preferences-section'),
       child: Column(
         children: [
           _PreferenceGroup(
             title: strings.languageTitle,
+            isDark: isDark,
             child: RadioGroup<AppLanguage>(
               groupValue: controller.language,
               onChanged: (value) {
@@ -921,9 +971,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          const Divider(height: 1),
+          _UsDivider(isDark: isDark),
           _PreferenceGroup(
             title: strings.themeTitle,
+            isDark: isDark,
             child: RadioGroup<AppThemePreference>(
               groupValue: controller.themePreference,
               onChanged: (value) {
@@ -949,13 +1000,14 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.schedule_outlined),
-            title: Text(strings.timeZoneTitle),
-            subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
+          _UsDivider(isDark: isDark),
+          _SpaceListTile(
+            icon: Icons.schedule_outlined,
+            title: strings.timeZoneTitle,
+            subtitle: '${_timeZoneLabel()} · ${strings.timeZoneHint}',
+            isDark: isDark,
           ),
-          const Divider(height: 1),
+          _UsDivider(isDark: isDark),
           SwitchListTile.adaptive(
             value: controller.notificationPreviewEnabled,
             onChanged: controller.setNotificationPreviewEnabled,
@@ -967,40 +1019,49 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ─── Sign Out Section (for SettingsMoreScreen) ──────────────────────
+
   Widget _buildSignOutSection(
     BuildContext context,
     AppStrings strings,
     AppController controller,
   ) {
-    return _PanelCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return _UsCard(
+      isDark: isDark,
       key: const ValueKey('us-signout-section'),
-      child: ListTile(
+      child: _SpaceListTile(
         key: const ValueKey('sign-out-tile'),
-        leading: Icon(
-          Icons.logout_rounded,
-          color: Theme.of(context).colorScheme.error,
-        ),
-        title: Text(
-          strings.isChinese ? '退出登录' : 'Sign out',
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-        subtitle: Text(
-          strings.isChinese
-              ? '安全退出当前账号，并回到邮箱验证码登录页。'
-              : 'Sign out of this account and return to the email OTP login screen.',
-        ),
+        icon: Icons.logout_rounded,
+        iconColor: Theme.of(context).colorScheme.error,
+        title: strings.isChinese ? '退出登录' : 'Sign out',
+        titleColor: Theme.of(context).colorScheme.error,
+        subtitle: strings.isChinese
+            ? '安全退出当前账号，并回到邮箱验证码登录页。'
+            : 'Sign out of this account and return to the email OTP login screen.',
         trailing: controller.signOutInProgress
             ? const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.chevron_right),
+            : Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: isDark
+                    ? AppTheme.warmWhite25
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         enabled: !controller.signOutInProgress,
         onTap: _confirmSignOut,
+        isDark: isDark,
+        isLast: true,
       ),
     );
   }
+
+  // ─── Helper methods ─────────────────────────────────────────────────
 
   String _resolvedSelfName(AppController controller, AppStrings strings) {
     final normalized = _normalizeName(controller.displayName);
@@ -1165,33 +1226,288 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   }
 }
 
-class _PanelCard extends StatelessWidget {
-  const _PanelCard({super.key, required this.child});
+// ═══════════════════════════════════════════════════════════════════════
+// Private visual components
+// ═══════════════════════════════════════════════════════════════════════
 
-  final Widget child;
+/// Section label — softer than the old SectionHeader.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.title, required this.isDark});
+
+  final String title;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    return Card(clipBehavior: Clip.antiAlias, child: child);
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+        color: isDark ? AppTheme.warmWhite60 : null,
+        letterSpacing: 0.2,
+      ),
+    );
   }
 }
 
-class _AvatarBadge extends StatelessWidget {
-  const _AvatarBadge({required this.label, this.size = 52});
+/// Unified card for the Us page — clean borders, soft elevation.
+class _UsCard extends StatelessWidget {
+  const _UsCard({super.key, required this.child, this.isDark = false});
+
+  final Widget child;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      color: isDark ? AppTheme.nightElevated : AppTheme.cardSurfaceLight,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        side: BorderSide(
+          color: isDark
+              ? AppTheme.cardBorderDark
+              : AppTheme.cardBorderLight,
+          width: 0.5,
+        ),
+      ),
+      shadowColor: Colors.transparent,
+      margin: EdgeInsets.zero,
+      child: child,
+    );
+  }
+}
+
+/// Divider between card rows — thin and warm.
+class _UsDivider extends StatelessWidget {
+  const _UsDivider({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 0.5,
+      indent: 20,
+      endIndent: 20,
+      color: isDark
+          ? AppTheme.nightBorder.withValues(alpha: 0.5)
+          : AppTheme.warmGray200.withValues(alpha: 0.5),
+    );
+  }
+}
+
+/// Profile row for "My Profile" section.
+class _ProfileRow extends StatelessWidget {
+  const _ProfileRow({
+    required this.label,
+    required this.value,
+    this.valueKey,
+    this.isPlaceholder = false,
+    this.isDark = false,
+    this.isLast = false,
+  });
 
   final String label;
-  final double size;
+  final String value;
+  final Key? valueKey;
+  final bool isPlaceholder;
+  final bool isDark;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 4,
+        right: 4,
+        top: 16,
+        bottom: isLast ? 16 : 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              key: valueKey,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: isPlaceholder
+                    ? (isDark
+                        ? AppTheme.warmWhite25
+                        : Theme.of(context).colorScheme.onSurfaceVariant)
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// List tile used in Space section and Settings entry.
+class _SpaceListTile extends StatelessWidget {
+  const _SpaceListTile({
+    super.key,
+    required this.title,
+    required this.isDark,
+    this.icon,
+    this.iconColor,
+    this.subtitle,
+    this.trailing,
+    this.titleColor,
+    this.onTap,
+    this.enabled = true,
+    this.isLast = false,
+  });
+
+  final IconData? icon;
+  final Color? iconColor;
+  final String title;
+  final Color? titleColor;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final bool enabled;
+  final bool isDark;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final effectiveIconColor = iconColor ?? colorScheme.primary;
+
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 14,
+          bottom: isLast ? 18 : 14,
+        ),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              _IconContainer(
+                icon: icon!,
+                color: effectiveIconColor,
+                isDark: isDark,
+              ),
+              const SizedBox(width: 14),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[trailing!],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small icon container used in cards.
+class _IconContainer extends StatelessWidget {
+  const _IconContainer({
+    required this.icon,
+    required this.isDark,
+    this.color,
+  });
+
+  final IconData icon;
+  final Color? color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      ),
+      child: Icon(icon, color: effectiveColor, size: 20),
+    );
+  }
+}
+
+/// Soft avatar circle for partner profile.
+class _SoftAvatar extends StatelessWidget {
+  const _SoftAvatar({required this.label, required this.isDark});
+
+  final String label;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: size,
-      height: size,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: colorScheme.primary.withValues(alpha: 0.12),
+        gradient: isDark
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary.withValues(alpha: 0.25),
+                  AppTheme.heroGlowPurple.withValues(alpha: 0.15),
+                ],
+              )
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary.withValues(alpha: 0.12),
+                  colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+                ],
+              ),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -1205,44 +1521,60 @@ class _AvatarBadge extends StatelessWidget {
   }
 }
 
+/// Hero person slot — frosted glass feel.
 class _HeroPersonSlot extends StatelessWidget {
   const _HeroPersonSlot({
     super.key,
     required this.title,
     required this.name,
     required this.avatarLabel,
+    required this.isDark,
   });
 
   final String title;
   final String name;
   final String avatarLabel;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.6),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _AvatarBadge(label: avatarLabel),
-          const SizedBox(height: 12),
+          _HeroAvatar(label: avatarLabel, isDark: isDark),
+          const SizedBox(height: 10),
           Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : colorScheme.onSurfaceVariant,
+              fontSize: 13,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             name,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : null,
+            ),
           ),
         ],
       ),
@@ -1250,37 +1582,124 @@ class _HeroPersonSlot extends StatelessWidget {
   }
 }
 
+/// Hero avatar with gradient background.
+class _HeroAvatar extends StatelessWidget {
+  const _HeroAvatar({required this.label, required this.isDark});
+
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: isDark
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary.withValues(alpha: 0.3),
+                  AppTheme.heroGlowPurple.withValues(alpha: 0.2),
+                ],
+              )
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary.withValues(alpha: 0.15),
+                  AppTheme.heroPeachLight.withValues(alpha: 0.5),
+                ],
+              ),
+        boxShadow: isDark
+            ? [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                  spreadRadius: -2,
+                ),
+              ]
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// Hero invite slot for single state.
 class _HeroInviteSlot extends StatelessWidget {
   const _HeroInviteSlot({
     super.key,
     required this.title,
     required this.subtitle,
+    required this.isDark,
   });
 
   final String title;
   final String subtitle;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.6),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AvatarBadge(label: '＋', size: 44),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.1),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.add,
+              color: colorScheme.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : null,
+            ),
+          ),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : colorScheme.onSurfaceVariant,
+              height: 1.45,
             ),
           ),
         ],
@@ -1289,85 +1708,136 @@ class _HeroInviteSlot extends StatelessWidget {
   }
 }
 
+/// Hero status chip — soft translucent.
 class _HeroChip extends StatelessWidget {
-  const _HeroChip({super.key, required this.label});
+  const _HeroChip({super.key, required this.label, required this.isDark});
 
   final String label;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(999),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.5),
+          width: 0.5,
+        ),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontSize: 13,
+          color: isDark ? AppTheme.warmWhite90 : null,
+        ),
+      ),
     );
   }
 }
 
-class _SectionValueRow extends StatelessWidget {
-  const _SectionValueRow({
-    required this.label,
-    required this.value,
-    this.valueKey,
-    this.isPlaceholder = false,
+/// Invite code display box.
+class _InviteCodeBox extends StatelessWidget {
+  const _InviteCodeBox({
+    required this.code,
+    required this.expiryText,
+    required this.isDark,
+    this.showCopy = false,
+    this.onCopy,
   });
 
-  final String label;
-  final String value;
-  final Key? valueKey;
-  final bool isPlaceholder;
+  final String code;
+  final String expiryText;
+  final bool isDark;
+  final bool showCopy;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 78,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppTheme.nightMuted.withValues(alpha: 0.4)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.of(context).isChinese
+                      ? '当前邀请码'
+                      : 'Current invite code',
+                  style: theme.textTheme.labelLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  code,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFamily: 'monospace',
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  expiryText,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value,
-            key: valueKey,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: isPlaceholder ? colorScheme.onSurfaceVariant : null,
+          if (showCopy && onCopy != null)
+            IconButton(
+              icon: const Icon(Icons.copy, size: 20),
+              onPressed: onCopy,
             ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
+/// Preference group wrapper for settings.
 class _PreferenceGroup extends StatelessWidget {
-  const _PreferenceGroup({required this.title, required this.child});
+  const _PreferenceGroup({
+    required this.title,
+    required this.child,
+    required this.isDark,
+  });
 
   final String title;
   final Widget child;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : null,
+            ),
+          ),
+          const SizedBox(height: 4),
           child,
         ],
       ),
