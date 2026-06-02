@@ -290,6 +290,28 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _openPartnerScreen(
+    AppController controller,
+    AppStrings strings, {
+    required bool isPaired,
+    required String? partnerName,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _PartnerScreen(
+          controller: controller,
+          isPaired: isPaired,
+          partnerName: partnerName,
+          currentInviteCode: _currentInviteCode,
+          currentInviteExpiresAt: _currentInviteExpiresAt,
+          generatingInvite: _generatingInvite,
+          onGenerateInvite: _generateInviteCode,
+          onShowInviteDialog: _showInviteCodeDialog,
+        ),
+      ),
+    );
+  }
+
   void _showEditSpaceNameDialog() {
     final strings = AppStrings.of(context);
     final controller = TextEditingController(text: _spaceName ?? '');
@@ -408,20 +430,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             isDark: isDark,
             selfGender: controller.gender,
           ),
-          const SizedBox(height: 24),
-          PageSectionHeader(
-            title: strings.isChinese ? 'TA 的资料' : 'Partner profile',
-            subtitle: strings.isChinese ? '关于关系另一侧' : 'The other side of us',
-          ),
-          const SizedBox(height: 10),
-          isPaired
-              ? _buildPartnerProfileSection(
-                  context,
-                  strings,
-                  partnerName,
-                  isDark: isDark,
-                )
-              : _buildSingleInviteSection(context, strings, isDark: isDark),
           const SizedBox(height: 24),
           PageSectionHeader(
             title: strings.spaceSection,
@@ -556,6 +564,12 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                               ),
                               isPaired: isPaired,
                               isDark: isDark,
+                              onTapPartner: () => _openPartnerScreen(
+                                controller,
+                                strings,
+                                isPaired: isPaired,
+                                partnerName: partnerName,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -589,138 +603,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ─── Partner Profile ────────────────────────────────────────────────
-
-  Widget _buildPartnerProfileSection(
-    BuildContext context,
-    AppStrings strings,
-    String partnerName, {
-    required bool isDark,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.secondary,
-      key: const ValueKey('us-partner-profile-section'),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _SoftAvatar(
-                label: _avatarLabel(
-                  partnerName,
-                  fallback: strings.isChinese ? 'TA' : 'P',
-                ),
-                isDark: isDark,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      partnerName,
-                      key: const ValueKey('us-partner-name'),
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      strings.isChinese
-                          ? '这是 TA 在这里留下的名字。'
-                          : 'This is the name your partner uses here.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? AppTheme.warmWhite60
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          PageInsetPanel(
-            child: Text(
-              strings.isChinese
-                  ? '关于 TA 的更多资料，会出现在这里。'
-                  : 'More about your partner will appear here.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark
-                    ? AppTheme.warmWhite60
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Single Invite Section ──────────────────────────────────────────
-
-  Widget _buildSingleInviteSection(
-    BuildContext context,
-    AppStrings strings, {
-    required bool isDark,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.secondary,
-      key: const ValueKey('us-invite-placeholder-section'),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              PageIconBadge(
-                icon: Icons.mark_email_unread_outlined,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  strings.isChinese
-                      ? '先给 TA 留一个位置'
-                      : 'Leave a spot for your partner',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            strings.isChinese
-                ? '等 TA 加入后，这里会慢慢变成只属于你们两个人的空间。'
-                : 'Once your partner joins, this space will start to feel like it belongs to the two of you.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : colorScheme.onSurfaceVariant,
-            ),
-          ),
-          if (_currentInviteCode != null &&
-              _currentInviteExpiresAt != null) ...[
-            const SizedBox(height: 16),
-            _InviteCodeBox(
-              code: _currentInviteCode!,
-              expiryText: _inviteExpiryText(strings, _currentInviteExpiresAt!),
-              isDark: isDark,
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -1227,9 +1109,7 @@ class _ProfileScreen extends StatelessWidget {
 
   String _birthdayLabel(AppStrings strings, DateTime? birthday) {
     if (birthday == null) {
-      return strings.isChinese
-          ? '还没有填写'
-          : 'Not added yet. You can fill this in later.';
+      return strings.isChinese ? '还没有填写' : 'Not added yet.';
     }
 
     final month = birthday.month.toString().padLeft(2, '0');
@@ -1237,6 +1117,262 @@ class _ProfileScreen extends StatelessWidget {
     return strings.isChinese
         ? '${birthday.year} 年 $month 月 $day 日'
         : '${birthday.year}-$month-$day';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Partner Screen (secondary page)
+// ═══════════════════════════════════════════════════════════════════════
+
+class _PartnerScreen extends StatelessWidget {
+  const _PartnerScreen({
+    required this.controller,
+    required this.isPaired,
+    required this.partnerName,
+    required this.currentInviteCode,
+    required this.currentInviteExpiresAt,
+    required this.generatingInvite,
+    required this.onGenerateInvite,
+    required this.onShowInviteDialog,
+  });
+
+  final AppController controller;
+  final bool isPaired;
+  final String? partnerName;
+  final String? currentInviteCode;
+  final DateTime? currentInviteExpiresAt;
+  final bool generatingInvite;
+  final VoidCallback onGenerateInvite;
+  final VoidCallback onShowInviteDialog;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          strings.isChinese ? 'TA 的资料' : 'Partner profile',
+          style: TextStyle(color: isDark ? AppTheme.warmWhite90 : null),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: PageAtmosphere(
+        padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
+        child: isPaired
+            ? _buildPairedContent(context, strings, isDark)
+            : _buildSingleContent(context, strings, isDark),
+      ),
+    );
+  }
+
+  Widget _buildPairedContent(
+    BuildContext context,
+    AppStrings strings,
+    bool isDark,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final name = partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PageSectionHeader(
+          title: strings.isChinese ? '关于 TA' : 'About partner',
+          subtitle: strings.isChinese ? '已加入空间' : 'Joined the space',
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.secondary,
+          key: const ValueKey('us-partner-profile-section'),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _SoftAvatar(
+                    label: name.characters.first,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          key: const ValueKey('us-partner-name'),
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          strings.isChinese
+                              ? '已加入空间'
+                              : 'Has joined the space',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppTheme.warmWhite60
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              PageInsetPanel(
+                child: Text(
+                  strings.isChinese
+                      ? '关于 TA 的更多资料，会出现在这里。'
+                      : 'More about your partner will appear here.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleContent(
+    BuildContext context,
+    AppStrings strings,
+    bool isDark,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PageSectionHeader(
+          title: strings.isChinese ? '邀请 TA' : 'Invite your partner',
+          subtitle: strings.isChinese
+              ? '先给 TA 留一个位置'
+              : 'Leave a spot for your partner',
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.secondary,
+          key: const ValueKey('us-invite-placeholder-section'),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  PageIconBadge(
+                    icon: Icons.mark_email_unread_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      strings.isChinese
+                          ? '先给 TA 留一个位置'
+                          : 'Leave a spot for your partner',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                strings.isChinese
+                    ? '等 TA 加入后，这里会慢慢变成只属于你们两个人的空间。'
+                    : 'Once your partner joins, this space will start to feel like it belongs to the two of you.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (currentInviteCode != null &&
+                  currentInviteExpiresAt != null) ...[
+                const SizedBox(height: 16),
+                _InviteCodeBox(
+                  code: currentInviteCode!,
+                  expiryText: _inviteExpiryText(strings, currentInviteExpiresAt!),
+                  isDark: isDark,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        PageSectionHeader(
+          title: strings.isChinese ? '邀请操作' : 'Invite actions',
+          subtitle: strings.isChinese
+              ? '生成或输入邀请码'
+              : 'Generate or enter an invite code',
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.primary,
+          key: const ValueKey('us-space-invite-actions'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: generatingInvite ? null : onGenerateInvite,
+                    icon: generatingInvite
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.vpn_key_outlined),
+                    label: Text(
+                      strings.isChinese ? '生成邀请码' : 'Generate invite code',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onShowInviteDialog,
+                    icon: const Icon(Icons.login),
+                    label: Text(
+                      strings.isChinese
+                          ? '输入邀请码加入'
+                          : 'Enter invite code to join',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _inviteExpiryText(AppStrings strings, DateTime expiresAt) {
+    return strings.isChinese
+        ? '有效期至 ${expiresAt.month} 月 ${expiresAt.day} 日 ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}'
+        : 'Expires ${expiresAt.month}/${expiresAt.day} ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -1431,12 +1567,14 @@ class _HeroAvatarPair extends StatelessWidget {
     required this.partnerAvatarLabel,
     required this.isPaired,
     required this.isDark,
+    required this.onTapPartner,
   });
 
   final String selfAvatarLabel;
   final String partnerAvatarLabel;
   final bool isPaired;
   final bool isDark;
+  final VoidCallback onTapPartner;
 
   @override
   Widget build(BuildContext context) {
@@ -1459,17 +1597,20 @@ class _HeroAvatarPair extends StatelessWidget {
           ),
           Positioned(
             right: 18,
-            child: isPaired
-                ? _HeroRelationshipAvatar(
-                    key: const ValueKey('us-hero-partner-slot'),
-                    label: partnerAvatarLabel,
-                    isDark: isDark,
-                    alignRight: true,
-                  )
-                : _HeroEmptyAvatar(
-                    key: const ValueKey('us-hero-single-slot'),
-                    isDark: isDark,
-                  ),
+            child: GestureDetector(
+              onTap: onTapPartner,
+              child: isPaired
+                  ? _HeroRelationshipAvatar(
+                      key: const ValueKey('us-hero-partner-slot'),
+                      label: partnerAvatarLabel,
+                      isDark: isDark,
+                      alignRight: true,
+                    )
+                  : _HeroAddAvatar(
+                      key: const ValueKey('us-hero-single-slot'),
+                      isDark: isDark,
+                    ),
+            ),
           ),
           Container(
             width: 34,
@@ -1566,8 +1707,8 @@ class _HeroRelationshipAvatar extends StatelessWidget {
   }
 }
 
-class _HeroEmptyAvatar extends StatelessWidget {
-  const _HeroEmptyAvatar({super.key, required this.isDark});
+class _HeroAddAvatar extends StatelessWidget {
+  const _HeroAddAvatar({super.key, required this.isDark});
 
   final bool isDark;
 
@@ -1591,13 +1732,10 @@ class _HeroEmptyAvatar extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: Container(
-        width: 20,
-        height: 2,
-        decoration: BoxDecoration(
-          color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
-          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-        ),
+      child: Icon(
+        Icons.add,
+        size: 24,
+        color: isDark ? AppTheme.warmWhite60 : colorScheme.primary,
       ),
     );
   }

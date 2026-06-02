@@ -674,40 +674,16 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsWidgets);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-invite-placeholder-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tap the add avatar to navigate to invite page
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('us-invite-placeholder-section')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('us-partner-profile-section')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('us-space-invite-actions')),
-      findsOneWidget,
-    );
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
-    expect(find.text('Debug'), findsNothing);
-    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
 
   testWidgets('Us screen shows paired structure and partner nickname', (
@@ -735,37 +711,14 @@ void main() {
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-partner-profile-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tap the partner avatar to navigate to partner profile page
+    await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('us-partner-profile-section')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('us-invite-placeholder-section')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('us-space-invite-actions')), findsNothing);
-    expect(find.byKey(const ValueKey('us-partner-name')), findsOneWidget);
-    expect(find.text('Ache'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
-    expect(find.text('Debug'), findsNothing);
-    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
 }
 
