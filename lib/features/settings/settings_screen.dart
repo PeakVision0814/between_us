@@ -397,6 +397,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             partnerName: partnerName,
             isPaired: isPaired,
             isDark: isDark,
+            selfGender: controller.gender,
           ),
           const SizedBox(height: 24),
           PageSectionHeader(
@@ -452,14 +453,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     required String? partnerName,
     required bool isPaired,
     required bool isDark,
+    required String? selfGender,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final heroTitle = isPaired
-        ? strings.isChinese
-              ? '$selfName 和 $partnerName'
-              : '$selfName & $partnerName'
-        : selfName;
+    final spaceName = _normalizeName(_spaceName) ?? strings.spaceNameValue;
+    final relationLabel = _relationshipStatusLabel(strings, isPaired: isPaired);
+    final selfGenderIcon = _genderIcon(selfGender);
 
     return Container(
       key: const ValueKey('us-hero-section'),
@@ -492,56 +492,31 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    strings.usTitle,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: isDark
-                          ? AppTheme.warmWhite60
-                          : colorScheme.onSurfaceVariant,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    heroTitle,
-                    key: const ValueKey('us-hero-title'),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    spaceName,
+                    key: const ValueKey('us-hero-space-name'),
+                    style: theme.textTheme.titleMedium?.copyWith(
                       color: isDark
                           ? AppTheme.warmWhite90
                           : colorScheme.onSurface,
-                      height: 1.3,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  if (isPaired) ...[
-                    Text(
-                      _relationshipHeroSubtitle(strings),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark
-                            ? AppTheme.warmWhite60
-                            : colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                  ] else
-                    const SizedBox(height: 28),
+                  const SizedBox(height: 22),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: _HeroPersonSlot(
                           key: const ValueKey('us-hero-self-slot'),
-                          title: strings.isChinese ? '我' : 'Me',
                           name: selfName,
                           avatarLabel: _avatarLabel(
                             selfName,
                             fallback: strings.isChinese ? '我' : 'M',
                           ),
+                          genderIcon: selfGenderIcon,
                           isDark: isDark,
                         ),
                       ),
@@ -556,7 +531,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                         child: isPaired
                             ? _HeroPersonSlot(
                                 key: const ValueKey('us-hero-partner-slot'),
-                                title: strings.isChinese ? 'TA' : 'Partner',
                                 name:
                                     partnerName ??
                                     (strings.isChinese ? 'TA' : 'Partner'),
@@ -564,32 +538,23 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                                   partnerName,
                                   fallback: strings.isChinese ? 'TA' : 'P',
                                 ),
+                                genderIcon: null,
                                 isDark: isDark,
                               )
                             : _HeroInviteSlot(
                                 key: const ValueKey('us-hero-single-slot'),
-                                title: strings.isChinese ? '邀请 TA' : 'Invite',
-                                subtitle: '',
                                 isDark: isDark,
                               ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _HeroChip(
-                        key: const ValueKey('us-hero-status'),
-                        label: _relationshipStatusLabel(
-                          strings,
-                          isPaired: isPaired,
-                        ),
-                        isDark: isDark,
-                      ),
-                    ],
+                  Center(
+                    child: _HeroChip(
+                      key: const ValueKey('us-hero-status'),
+                      label: relationLabel,
+                      isDark: isDark,
+                    ),
                   ),
                 ],
               ),
@@ -1088,6 +1053,14 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     };
   }
 
+  IconData? _genderIcon(String? gender) {
+    return switch (gender) {
+      AppController.genderMale => Icons.male,
+      AppController.genderFemale => Icons.female,
+      _ => null,
+    };
+  }
+
   String _birthdayLabel(AppStrings strings, DateTime? birthday) {
     if (birthday == null) {
       return strings.isChinese
@@ -1118,18 +1091,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     }
 
     return strings.isChinese ? '已配对' : 'Paired';
-  }
-
-  String _relationshipHeroSubtitle(AppStrings strings) {
-    if (_relationshipStartDate != null) {
-      return strings.isChinese
-          ? '属于你们两个人的空间。'
-          : 'A space that belongs to both of you.';
-    }
-
-    return strings.isChinese
-        ? '你们已经拥有一个共同空间。'
-        : 'You already share a space together.';
   }
 
   String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
@@ -1394,15 +1355,15 @@ class _SoftAvatar extends StatelessWidget {
 class _HeroPersonSlot extends StatelessWidget {
   const _HeroPersonSlot({
     super.key,
-    required this.title,
     required this.name,
     required this.avatarLabel,
+    required this.genderIcon,
     required this.isDark,
   });
 
-  final String title;
   final String name;
   final String avatarLabel;
+  final IconData? genderIcon;
   final bool isDark;
 
   @override
@@ -1427,23 +1388,27 @@ class _HeroPersonSlot extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _HeroAvatar(label: avatarLabel, isDark: isDark),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : colorScheme.onSurfaceVariant,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isDark ? AppTheme.warmWhite90 : null,
-            ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: isDark ? AppTheme.warmWhite90 : null,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (genderIcon != null) ...[
+                const SizedBox(width: 4),
+                Icon(genderIcon, size: 16, color: colorScheme.primary),
+              ],
+            ],
           ),
         ],
       ),
@@ -1508,15 +1473,8 @@ class _HeroAvatar extends StatelessWidget {
 
 /// Hero invite slot for single state.
 class _HeroInviteSlot extends StatelessWidget {
-  const _HeroInviteSlot({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.isDark,
-  });
+  const _HeroInviteSlot({super.key, required this.isDark});
 
-  final String title;
-  final String subtitle;
   final bool isDark;
 
   @override
@@ -1538,37 +1496,46 @@ class _HeroInviteSlot extends StatelessWidget {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.1),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white.withValues(alpha: 0.42),
+              border: Border.all(
+                color: isDark
+                    ? AppTheme.warmWhite25
+                    : colorScheme.primary.withValues(alpha: 0.18),
+                width: 1.2,
+              ),
             ),
             alignment: Alignment.center,
-            child: Icon(Icons.add, color: colorScheme.primary, size: 22),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isDark ? AppTheme.warmWhite90 : null,
-            ),
-          ),
-          if (subtitle.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            child: Container(
+              width: 18,
+              height: 2,
+              decoration: BoxDecoration(
                 color: isDark
                     ? AppTheme.warmWhite60
                     : colorScheme.onSurfaceVariant,
-                height: 1.45,
+                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
               ),
             ),
-          ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: 32,
+            height: 2,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.warmWhite25
+                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+            ),
+          ),
         ],
       ),
     );
