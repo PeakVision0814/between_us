@@ -27,6 +27,25 @@
 - 日历、计划、随记的数据边界必须与页面边界保持一致
 - 健康与敏感数据默认谨慎，不能默认完全共享
 - 删除行为优先采用软删除策略，防止误操作
+- 单人态采用能力白名单；白名单外默认不可用
+- 除个人资料和个人偏好外，业务数据不得以 `profiles` 作为主归属
+- 计划、随记、日历事件、空间状态等业务数据的主归属必须是有效双人空间的 `couple_space_id`
+- `created_by`、`author_profile_id`、`updated_by` 等用户字段只表达作者或操作人，不表达业务数据归属
+- 不设计“单人业务数据未来自动合并到双人空间”的默认路径
+
+## 单人态与双人态的数据边界
+
+单人态不是完整业务模式，而是进入双人空间前的过渡状态。数据库和前端都应采用白名单思维。
+
+单人态仅允许产生或更新：
+
+- 当前用户自己的 `profiles` 字段
+- 当前用户自己的个人偏好
+- 邀请流程所需的 `couple_space`、`couple_membership`、`couple_invite` 关系数据
+
+白名单外默认不可写。计划、随记、日历事件、空间状态详情等业务数据，不应在单人态创建个人版本，也不应先挂在 `profiles.id` 下等待未来合并。
+
+双人态才开放共享业务数据写入。判断标准不应只是“用户有 `currentSpaceId`”，还应确认该空间已经进入有效双人状态，例如 `couple_spaces.status = 'active'` 且存在两个活跃成员。
 
 ## 核心表
 
@@ -59,6 +78,7 @@
 - `preferred_locale` 只影响该用户自己的界面语言
 - `theme_preference` 只影响该用户自己的主题
 - `cycle_sharing_enabled` 用于表达该用户是否愿意把经期相关内容共享给伴侣
+- `profiles` 不承载计划、随记、日历事件、空间状态等业务数据的主归属
 
 ### `couple_spaces`
 
@@ -97,6 +117,8 @@
 
 - 一个用户同时最多只有一个活跃的 `couple_space membership`
 - 一个 `couple_space` 同时最多只有两个活跃成员
+- `pending_partner` 状态只用于邀请与成员关系准备，不开放计划、随记、日历事件等业务写入
+- `active` 状态才代表有效双人空间，可作为共享业务数据写入容器
 
 ### `couple_invites`
 
@@ -151,6 +173,8 @@
 - `event_type` 首版建议支持：`anniversary`、`date_plan`、`reminder`
 - 首版纪念日重复规则建议支持：`none`、`yearly`
 - 如果事件来自计划笔记，应记录 `source_plan_id`
+- `calendar_events` 必须归属于有效双人空间，不能归属于个人 profile
+- 单人态不创建个人版日历事件
 
 ### `plans`
 
@@ -177,6 +201,8 @@
 - 一旦计划进入日历，可以关联 `scheduled_event_id`
 - 首版 `status` 建议支持：`idea`、`discussing`、`scheduled`、`done`、`archived`
 - 计划是双人协作内容，不要求只允许作者编辑
+- `plans` 必须归属于有效双人空间，不能归属于个人 profile
+- 单人态不创建个人版计划
 
 ### `notes`
 
@@ -202,6 +228,8 @@
 - 双方都能看，但默认仅作者本人可编辑或删除
 - 首版不强制“每天几条”的规则
 - 首版不引入连续打卡逻辑
+- `notes` 必须归属于有效双人空间，不能归属于个人 profile；`author_profile_id` 只表示作者
+- 单人态不创建个人版随记
 
 ### `cycle_records`
 
@@ -246,6 +274,8 @@
 - `cycle_records` 仅记录者本人可更新或删除
 - 伴侣只有在 `shared_with_partner = true` 时才可读取 `cycle_records`
 - 已解绑或已关闭的空间，除非存在专门恢复流，否则应阻止新的写入
+- 共享业务数据写入应要求有效双人空间；`pending_partner` 空间不应允许创建 `calendar_events`、`plans`、`notes`
+- RLS 与前端 guard 都不应把 `profile_id` 当作计划、随记、日历事件的主归属依据
 
 ## 页面与数据的对应关系
 
@@ -275,6 +305,8 @@
 3. 用户 A 创建邀请
 4. 用户 B 接受邀请并成为 `partner`
 5. 空间进入 `active`
+
+邀请流程是单人态白名单内的例外能力。它可以使用 `pending_partner` 空间承接邀请生命周期，但不能因此开放计划、随记、日历事件等共享业务写入。
 
 必须处理的失败场景：
 
