@@ -113,25 +113,23 @@
 `calendar_events`
 
 - 活跃成员都可读
-- 活跃成员都可新建
-- 活跃成员都可更新
+- 只有 `active` 双人空间的活跃成员才能新建和更新（`pending_partner` 空间不开放写入）
 - 软删除后默认不再出现在客户端查询结果里
-- 后续需要收紧为：只有 `active` 双人空间的活跃成员才能新建和更新，`pending_partner` 空间不开放写入
+- 已通过 `is_active_couple_member()` 和 migration `20260603100000` 实施
 
 `plans`
 
 - 活跃成员都可读
-- 活跃成员都可新建
-- 活跃成员都可更新
+- 只有 `active` 双人空间的活跃成员才能新建和更新（`pending_partner` 空间不开放写入）
 - 软删除后默认不再出现在客户端查询结果里
-- 后续需要收紧为：只有 `active` 双人空间的活跃成员才能新建和更新，`pending_partner` 空间不开放写入
+- 已通过 `is_active_couple_member()` 和 migration `20260603100000` 实施
 
 `notes`
 
 - 活跃成员都可读
-- 只有作者本人可新建为自己的 note
+- 只有 `active` 双人空间的活跃成员才能新建 note，`author_profile_id` 只表示作者，不表示业务数据归属
 - 只有作者本人可更新或软删除自己的 note
-- 后续需要收紧为：只有 `active` 双人空间的活跃成员才能新建 note，`author_profile_id` 只表示作者，不表示业务数据归属
+- 已通过 `is_active_couple_member()` 和 migration `20260603100000` 实施
 
 ## 前端接线约定
 
