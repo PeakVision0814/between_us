@@ -3,10 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
+import '../../app/app_theme.dart';
 import '../../data/models/note_record.dart';
 import '../../data/models/plan_record.dart';
-import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/section_header.dart';
+import '../../shared/widgets/page_visual_language.dart';
 
 enum PlansNotesMode { overview, plan, note }
 
@@ -289,241 +289,159 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     final strings = AppStrings.of(context);
     final isPlanMode = _activeMode == PlansNotesMode.plan;
 
-    return AppPage(
-      children: [
-        _ModeToggle(
-          activeMode: _activeMode,
-          onChanged: (mode) => setState(() => _activeMode = mode),
-        ),
-        const SizedBox(height: 16),
-        _ModeLeadCard(isPlanMode: isPlanMode),
-        const SizedBox(height: 18),
-        if (isPlanMode) ...[
-          SectionHeader(title: strings.plansSectionTitle),
-          _SectionIntro(text: strings.plansSectionSubtitle),
-          FutureBuilder<List<PlanRecord>>(
-            future: _plansFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+    return PageAtmosphere(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Mode toggle ──
+          _ModeToggle(
+            activeMode: _activeMode,
+            onChanged: (mode) => setState(() => _activeMode = mode),
+          ),
+          const SizedBox(height: 24),
 
-              if (snapshot.hasError ||
-                  !snapshot.hasData ||
-                  snapshot.data!.isEmpty) {
+          // ── Mode lead card ──
+          _ModeLeadCard(isPlanMode: isPlanMode),
+          const SizedBox(height: 24),
+
+          if (isPlanMode) ...[
+            // ── Plans section ──
+            PageSectionHeader(
+              title: strings.plansSectionTitle,
+              subtitle: strings.plansSectionSubtitle,
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<List<PlanRecord>>(
+              future: _plansFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (snapshot.hasError ||
+                    !snapshot.hasData ||
+                    snapshot.data!.isEmpty) {
+                  return Column(
+                    children: [
+                      _PlansEmptyState(isChinese: strings.isChinese),
+                      const SizedBox(height: 16),
+                      _CreatePlanButton(
+                        isChinese: strings.isChinese,
+                        onPressed: _showCreatePlanDialog,
+                      ),
+                    ],
+                  );
+                }
+
+                final plans = snapshot.data!;
                 return Column(
                   children: [
-                    _PlansEmptyState(isChinese: strings.isChinese),
-                    const SizedBox(height: 16),
+                    ...plans.map(
+                      (plan) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _PlanCard(
+                          plan: PlanItemCopy(
+                            title: plan.title,
+                            body: plan.body ?? '',
+                            statusLabel: _planStatusLabel(
+                              plan.status,
+                              isChinese: strings.isChinese,
+                            ),
+                            helperLabel: '',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     _CreatePlanButton(
                       isChinese: strings.isChinese,
                       onPressed: _showCreatePlanDialog,
                     ),
                   ],
                 );
-              }
+              },
+            ),
+            const SizedBox(height: 24),
+            _SecondaryHint(
+              label: strings.switchToNotesHint,
+              onTap: () => setState(() => _activeMode = PlansNotesMode.note),
+            ),
+          ] else ...[
+            // ── Notes section ──
+            PageSectionHeader(
+              title: strings.notesSectionTitle,
+              subtitle: strings.notesSectionSubtitle,
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<List<NoteRecord>>(
+              future: _notesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
 
-              final plans = snapshot.data!;
-              return Column(
-                children: [
-                  ...plans.map(
-                    (plan) => _PlanCard(
-                      plan: PlanItemCopy(
-                        title: plan.title,
-                        body: plan.body ?? '',
-                        statusLabel: _planStatusLabel(
-                          plan.status,
-                          isChinese: strings.isChinese,
-                        ),
-                        helperLabel: '',
+                if (snapshot.hasError ||
+                    !snapshot.hasData ||
+                    snapshot.data!.isEmpty) {
+                  return Column(
+                    children: [
+                      _NotesEmptyState(isChinese: strings.isChinese),
+                      const SizedBox(height: 16),
+                      _WriteNoteButton(
+                        isChinese: strings.isChinese,
+                        onPressed: _showWriteNoteDialog,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _CreatePlanButton(
-                    isChinese: strings.isChinese,
-                    onPressed: _showCreatePlanDialog,
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          _SecondaryHint(
-            label: strings.switchToNotesHint,
-            onTap: () => setState(() => _activeMode = PlansNotesMode.note),
-          ),
-        ] else ...[
-          SectionHeader(title: strings.notesSectionTitle),
-          _SectionIntro(text: strings.notesSectionSubtitle),
-          FutureBuilder<List<NoteRecord>>(
-            future: _notesFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+                    ],
+                  );
+                }
 
-              if (snapshot.hasError ||
-                  !snapshot.hasData ||
-                  snapshot.data!.isEmpty) {
+                final notes = snapshot.data!;
                 return Column(
                   children: [
-                    _NotesEmptyState(isChinese: strings.isChinese),
-                    const SizedBox(height: 16),
+                    ...notes.map(
+                      (note) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _NoteCard(
+                          note: NoteItemCopy(
+                            author: note.authorProfileId,
+                            timeLabel: _formatTimeLabel(
+                              note.authoredAt,
+                              isChinese: strings.isChinese,
+                            ),
+                            text: note.body,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     _WriteNoteButton(
                       isChinese: strings.isChinese,
                       onPressed: _showWriteNoteDialog,
                     ),
                   ],
                 );
-              }
-
-              final notes = snapshot.data!;
-              return Column(
-                children: [
-                  ...notes.map(
-                    (note) => _NoteCard(
-                      note: NoteItemCopy(
-                        author: note.authorProfileId,
-                        timeLabel: _formatTimeLabel(
-                          note.authoredAt,
-                          isChinese: strings.isChinese,
-                        ),
-                        text: note.body,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _WriteNoteButton(
-                    isChinese: strings.isChinese,
-                    onPressed: _showWriteNoteDialog,
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          _SecondaryHint(
-            label: strings.switchToPlansHint,
-            onTap: () => setState(() => _activeMode = PlansNotesMode.plan),
-          ),
+              },
+            ),
+            const SizedBox(height: 24),
+            _SecondaryHint(
+              label: strings.switchToPlansHint,
+              onTap: () => setState(() => _activeMode = PlansNotesMode.plan),
+            ),
+          ],
         ],
-      ],
-    );
-  }
-}
-
-class _SectionIntro extends StatelessWidget {
-  const _SectionIntro({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-    );
-  }
-}
-
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
-
-  final PlanItemCopy plan;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  plan.statusLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(plan.title, style: Theme.of(context).textTheme.titleMedium),
-              if (plan.body.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(plan.body),
-              ],
-              const SizedBox(height: 12),
-              Text(
-                plan.helperLabel,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 }
 
-class _NoteCard extends StatelessWidget {
-  const _NoteCard({required this.note});
-
-  final NoteItemCopy note;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.author,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Text(
-                    note.timeLabel,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(note.text),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ─── Mode Toggle ────────────────────────────────────────────────────────
 
 class _ModeToggle extends StatelessWidget {
   const _ModeToggle({required this.activeMode, required this.onChanged});
@@ -534,21 +452,19 @@ class _ModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPlan = activeMode == PlansNotesMode.plan;
 
-    return Container(
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-      ),
       child: Row(
         children: [
           Expanded(
             child: _ToggleChip(
               label: strings.plansSectionTitle,
               active: isPlan,
+              isDark: isDark,
               onTap: () => onChanged(PlansNotesMode.plan),
             ),
           ),
@@ -556,6 +472,7 @@ class _ModeToggle extends StatelessWidget {
             child: _ToggleChip(
               label: strings.notesSectionTitle,
               active: !isPlan,
+              isDark: isDark,
               onTap: () => onChanged(PlansNotesMode.note),
             ),
           ),
@@ -569,11 +486,13 @@ class _ToggleChip extends StatelessWidget {
   const _ToggleChip({
     required this.label,
     required this.active,
+    required this.isDark,
     required this.onTap,
   });
 
   final String label;
   final bool active;
+  final bool isDark;
   final VoidCallback onTap;
 
   @override
@@ -584,18 +503,21 @@ class _ToggleChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: active ? colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
+          color: active
+              ? (isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.65))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: active
+              ? Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.5),
+                  width: 0.5,
+                )
               : null,
         ),
         child: Center(
@@ -604,8 +526,10 @@ class _ToggleChip extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               color: active
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurface.withValues(alpha: 0.5),
+                  ? (isDark ? AppTheme.warmWhite90 : colorScheme.onSurface)
+                  : (isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurface.withValues(alpha: 0.5)),
             ),
           ),
         ),
@@ -613,6 +537,8 @@ class _ToggleChip extends StatelessWidget {
     );
   }
 }
+
+// ─── Mode Lead Card ─────────────────────────────────────────────────────
 
 class _ModeLeadCard extends StatelessWidget {
   const _ModeLeadCard({required this.isPlanMode});
@@ -622,64 +548,212 @@ class _ModeLeadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isPlanMode
-                  ? strings.planModeLeadTitle
-                  : strings.noteModeLeadTitle,
-              style: Theme.of(context).textTheme.titleLarge,
+    return PageSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageIconBadge(
+            icon: isPlanMode
+                ? Icons.lightbulb_outline
+                : Icons.note_alt_outlined,
+            color: isPlanMode ? AppTheme.mint : AppTheme.blush,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isPlanMode
+                ? strings.planModeLeadTitle
+                : strings.noteModeLeadTitle,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isPlanMode
+                ? strings.planModeLeadSubtitle
+                : strings.noteModeLeadSubtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.5,
             ),
-            const SizedBox(height: 8),
-            Text(
-              isPlanMode
-                  ? strings.planModeLeadSubtitle
-                  : strings.noteModeLeadSubtitle,
-            ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Plan Card ──────────────────────────────────────────────────────────
+
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({required this.plan});
+
+  final PlanItemCopy plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  PageIconBadge(
+                    icon: Icons.route_outlined,
+                    color: AppTheme.mint,
+                    size: 28,
+                  ),
+                  const Spacer(),
+                  _StatusBadge(label: plan.statusLabel),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(plan.title, style: theme.textTheme.titleMedium),
+              if (plan.body.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  plan.body,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (plan.helperLabel.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(plan.helperLabel, style: theme.textTheme.bodySmall),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SecondaryHint extends StatelessWidget {
-  const _SecondaryHint({required this.label, required this.onTap});
+// ─── Note Card ──────────────────────────────────────────────────────────
+
+class _NoteCard extends StatelessWidget {
+  const _NoteCard({required this.note});
+
+  final NoteItemCopy note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              PageIconBadge(
+                icon: Icons.notes_rounded,
+                color: AppTheme.blush,
+                size: 28,
+              ),
+              const Spacer(),
+              Text(
+                note.timeLabel,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            note.text,
+            style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Status Badge ───────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.label});
 
   final String label;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      ),
+    );
+  }
+}
+
+// ─── Empty States ───────────────────────────────────────────────────────
+
+class _PlansEmptyState extends StatelessWidget {
+  const _PlansEmptyState({required this.isChinese});
+
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
           children: [
-            Icon(
-              Icons.swap_horiz_rounded,
-              size: 18,
-              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            PageIconBadge(
+              icon: Icons.lightbulb_outline,
+              color: AppTheme.mint,
+              size: 48,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: 16),
             Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              isChinese ? '还没有计划' : 'No plans yet',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isChinese ? '想做的事先记在这里' : 'Jot down what you want to do',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -696,27 +770,32 @@ class _NotesEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Center(
         child: Column(
           children: [
-            Icon(
-              Icons.note_alt_outlined,
+            PageIconBadge(
+              icon: Icons.note_alt_outlined,
+              color: AppTheme.blush,
               size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               isChinese ? '还没有随记' : 'No notes yet',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
               isChinese ? '写一条给对方看看吧' : 'Leave one for your partner',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -724,6 +803,139 @@ class _NotesEmptyState extends StatelessWidget {
     );
   }
 }
+
+// ─── Action Buttons ─────────────────────────────────────────────────────
+
+class _CreatePlanButton extends StatelessWidget {
+  const _CreatePlanButton({required this.isChinese, required this.onPressed});
+
+  final bool isChinese;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add, size: 20),
+        label: Text(isChinese ? '加一个计划' : 'Add a plan'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: isDark
+              ? AppTheme.warmWhite90
+              : Theme.of(context).colorScheme.primary,
+          side: BorderSide(
+            color: isDark
+                ? AppTheme.surfaceBorderDarkSoft
+                : AppTheme.surfaceBorderLightSoft,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WriteNoteButton extends StatelessWidget {
+  const _WriteNoteButton({required this.isChinese, required this.onPressed});
+
+  final bool isChinese;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.edit_outlined, size: 20),
+        label: Text(isChinese ? '写随记' : 'Write a note'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: isDark
+              ? AppTheme.warmWhite90
+              : Theme.of(context).colorScheme.primary,
+          side: BorderSide(
+            color: isDark
+                ? AppTheme.surfaceBorderDarkSoft
+                : AppTheme.surfaceBorderLightSoft,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Secondary Hint ─────────────────────────────────────────────────────
+
+class _SecondaryHint extends StatelessWidget {
+  const _SecondaryHint({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.04)
+              : AppTheme.warmGray50.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(
+            color: isDark
+                ? AppTheme.surfaceBorderDarkSoft.withValues(alpha: 0.5)
+                : AppTheme.surfaceBorderLightSoft,
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.swap_horiz_rounded,
+              size: 18,
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.45),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
 
 String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
   final now = DateTime.now();
@@ -764,32 +976,6 @@ String _formatTimeLabel(DateTime dateTime, {required bool isChinese}) {
   }
 }
 
-class _WriteNoteButton extends StatelessWidget {
-  const _WriteNoteButton({required this.isChinese, required this.onPressed});
-
-  final bool isChinese;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: const Icon(Icons.edit_outlined),
-        label: Text(isChinese ? '写随记' : 'Write a note'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          foregroundColor: colorScheme.primary,
-          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-        ),
-      ),
-    );
-  }
-}
-
 String _planStatusLabel(String status, {required bool isChinese}) {
   return switch (status) {
     'idea' => isChinese ? '想法中' : 'Idea',
@@ -799,66 +985,4 @@ String _planStatusLabel(String status, {required bool isChinese}) {
     'archived' => isChinese ? '已归档' : 'Archived',
     _ => status,
   };
-}
-
-class _PlansEmptyState extends StatelessWidget {
-  const _PlansEmptyState({required this.isChinese});
-
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.lightbulb_outline,
-              size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isChinese ? '还没有计划' : 'No plans yet',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isChinese ? '想做的事先记在这里' : 'Jot down what you want to do',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CreatePlanButton extends StatelessWidget {
-  const _CreatePlanButton({required this.isChinese, required this.onPressed});
-
-  final bool isChinese;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: const Icon(Icons.add),
-        label: Text(isChinese ? '加一个计划' : 'Add a plan'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          foregroundColor: colorScheme.primary,
-          side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-        ),
-      ),
-    );
-  }
 }

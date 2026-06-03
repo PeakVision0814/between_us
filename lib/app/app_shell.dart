@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/anniversaries/anniversaries_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/settings/settings_more_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/timeline/timeline_screen.dart';
 import 'app_strings.dart';
@@ -66,7 +67,23 @@ class _AppShellState extends State<AppShell> {
     final current = destinations[_selectedIndex];
 
     return Scaffold(
-      appBar: AppBar(title: Text(current.label)),
+      appBar: AppBar(
+        title: Text(current.label),
+        actions: [
+          if (_selectedIndex == 3)
+            IconButton(
+              key: const ValueKey('us-settings-icon'),
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsMoreScreen(),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,

@@ -64,3 +64,4 @@ supabase\config.toml
 
 .agent
 .temp\
+temp.txt

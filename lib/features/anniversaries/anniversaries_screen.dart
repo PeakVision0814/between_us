@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
+import '../../app/app_theme.dart';
 import '../../data/models/calendar_event_record.dart';
-import '../../shared/widgets/app_page.dart';
-import '../../shared/widgets/section_header.dart';
+import '../../shared/widgets/page_visual_language.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -104,6 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final displayMonth = strings.calendarPrototypeDisplayMonth;
     final visibleDays = strings.calendarVisibleDaysForMonth(displayMonth);
 
@@ -128,11 +129,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       strings.calendarPrototypeReferenceDate,
     );
 
-    return AppPage(
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+    return PageAtmosphere(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Overview card with month grid ──
+          PageSurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,12 +143,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   strings.calendarOverviewTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 8),
-                Text(strings.calendarOverviewSubtitle),
                 const SizedBox(height: 6),
                 Text(
-                  strings.calendarOverviewCaption,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  strings.calendarOverviewSubtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 _MonthView(
@@ -158,16 +163,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       _selectedDate = _dateOnly(day);
                     });
                   },
+                  isDark: isDark,
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.calendarDetailsTitle),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
+          const SizedBox(height: 24),
+
+          // ── Selected date details ──
+          PageSectionHeader(
+            title: strings.calendarDetailsTitle,
+            subtitle: strings.calendarDetailsHint,
+          ),
+          const SizedBox(height: 10),
+          PageSurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -179,14 +188,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   key: const ValueKey('calendar-selected-date-label'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  strings.calendarDetailsHint,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
                 const SizedBox(height: 14),
                 if (selectedEntries.isEmpty)
-                  _SelectedDayEmptyState(strings: strings)
+                  _SelectedDayEmptyState(strings: strings, isDark: isDark)
                 else
                   ...selectedEntries.map(
                     (entry) => Padding(
@@ -194,35 +198,46 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       child: _SelectedEntryCard(
                         entry: entry,
                         occurrence: _occurrenceOnDay(entry, _selectedDate!),
+                        isDark: isDark,
                       ),
                     ),
                   ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.calendarUpcomingTitle),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(
-            strings.calendarUpcomingHint,
-            style: Theme.of(context).textTheme.bodySmall,
+          const SizedBox(height: 24),
+
+          // ── Upcoming events ──
+          PageSectionHeader(
+            title: strings.calendarUpcomingTitle,
+            subtitle: strings.calendarUpcomingHint,
           ),
-        ),
-        if (upcomingEntries.isEmpty)
-          _UpcomingEmptyState(isChinese: strings.isChinese)
-        else
-          ...upcomingEntries.map(
-            (item) => _UpcomingEventCard(
-              entry: item.entry,
-              occurrence: item.occurrence,
+          const SizedBox(height: 10),
+          if (upcomingEntries.isEmpty)
+            _UpcomingEmptyState(isChinese: strings.isChinese, isDark: isDark)
+          else
+            ...upcomingEntries.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _UpcomingEventCard(
+                  entry: item.entry,
+                  occurrence: item.occurrence,
+                  isDark: isDark,
+                ),
+              ),
             ),
+          const SizedBox(height: 24),
+
+          // ── Composer ──
+          PageSectionHeader(title: strings.calendarComposerTitle),
+          const SizedBox(height: 10),
+          _ComposerCard(
+            submitting: _submitting,
+            onSubmit: _submitEvent,
+            isDark: isDark,
           ),
-        const SizedBox(height: 18),
-        SectionHeader(title: strings.calendarComposerTitle),
-        _ComposerCard(submitting: _submitting, onSubmit: _submitEvent),
-      ],
+        ],
+      ),
     );
   }
 
@@ -305,6 +320,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       '${date.day.toString().padLeft(2, '0')}';
 }
 
+// ─── Month View ─────────────────────────────────────────────────────────
+
 class _MonthView extends StatelessWidget {
   const _MonthView({
     required this.displayMonth,
@@ -312,6 +329,7 @@ class _MonthView extends StatelessWidget {
     required this.selectedDate,
     required this.entriesByDay,
     required this.onSelectDate,
+    required this.isDark,
   });
 
   final DateTime displayMonth;
@@ -319,18 +337,15 @@ class _MonthView extends StatelessWidget {
   final DateTime selectedDate;
   final Map<String, List<CalendarEntryData>> entriesByDay;
   final ValueChanged<DateTime> onSelectDate;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(context);
 
-    return Container(
+    return PageInsetPanel(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
       child: Column(
         children: [
           Row(
@@ -340,7 +355,11 @@ class _MonthView extends StatelessWidget {
                 strings.formatCalendarMonthYear(displayMonth),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              Icon(Icons.calendar_today_outlined, color: colorScheme.primary),
+              Icon(
+                Icons.calendar_today_outlined,
+                color: colorScheme.primary,
+                size: 20,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -351,7 +370,11 @@ class _MonthView extends StatelessWidget {
                     child: Center(
                       child: Text(
                         label,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppTheme.warmWhite60
+                              : colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -372,6 +395,7 @@ class _MonthView extends StatelessWidget {
                         selected: _sameDate(day, selectedDate),
                         hasEntries: entriesByDay.containsKey(_dateKey(day)),
                         onTap: () => onSelectDate(day),
+                        isDark: isDark,
                       ),
                     ),
                 ],
@@ -393,6 +417,8 @@ class _MonthView extends StatelessWidget {
       '${date.day.toString().padLeft(2, '0')}';
 }
 
+// ─── Day Cell ───────────────────────────────────────────────────────────
+
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.date,
@@ -400,6 +426,7 @@ class _DayCell extends StatelessWidget {
     required this.selected,
     required this.hasEntries,
     required this.onTap,
+    required this.isDark,
   });
 
   final DateTime date;
@@ -407,23 +434,31 @@ class _DayCell extends StatelessWidget {
   final bool selected;
   final bool hasEntries;
   final VoidCallback onTap;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     final background = selected
         ? colorScheme.primary
         : (hasEntries
-              ? colorScheme.primary.withValues(alpha: 0.12)
+              ? (isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : colorScheme.primary.withValues(alpha: 0.1))
               : Colors.transparent);
     final borderColor = selected
         ? colorScheme.primary
         : hasEntries
-        ? colorScheme.primary.withValues(alpha: 0.28)
+        ? (isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : colorScheme.primary.withValues(alpha: 0.22))
         : Colors.transparent;
     final textColor = selected
         ? colorScheme.onPrimary
-        : colorScheme.onSurface.withValues(alpha: inMonth ? 1 : 0.45);
+        : (isDark
+              ? (inMonth ? AppTheme.warmWhite90 : AppTheme.warmWhite25)
+              : colorScheme.onSurface.withValues(alpha: inMonth ? 1 : 0.4));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -435,13 +470,13 @@ class _DayCell extends StatelessWidget {
             '${date.month.toString().padLeft(2, '0')}-'
             '${date.day.toString().padLeft(2, '0')}',
           ),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           onTap: onTap,
           child: Container(
             height: 46,
             decoration: BoxDecoration(
               color: background,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               border: Border.all(color: borderColor),
             ),
             child: Column(
@@ -465,7 +500,9 @@ class _DayCell extends StatelessWidget {
                     color: hasEntries
                         ? (selected
                               ? colorScheme.onPrimary
-                              : colorScheme.primary)
+                              : (isDark
+                                    ? AppTheme.heroGlowBlush
+                                    : colorScheme.primary))
                         : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
@@ -479,84 +516,140 @@ class _DayCell extends StatelessWidget {
   }
 }
 
+// ─── Selected Entry Card ────────────────────────────────────────────────
+
 class _SelectedEntryCard extends StatelessWidget {
-  const _SelectedEntryCard({required this.entry, required this.occurrence});
+  const _SelectedEntryCard({
+    required this.entry,
+    required this.occurrence,
+    required this.isDark,
+  });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final showsTime = occurrence.hour != 0 || occurrence.minute != 0;
 
-    return Container(
-      key: ValueKey('calendar-detail-${entry.id}'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colorScheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _MetaChip(label: strings.calendarTypeLabel(entry.type)),
-              _MetaChip(label: strings.calendarRepeatLabel(entry.repeatRule)),
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
+      padding: EdgeInsets.zero,
+      child: Padding(
+        key: ValueKey('calendar-detail-${entry.id}'),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                PageIconBadge(
+                  icon: _iconForType(entry.type),
+                  color: _colorForType(entry.type),
+                  size: 28,
+                ),
+                const Spacer(),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MetaChip(label: strings.calendarTypeLabel(entry.type)),
+                    _MetaChip(
+                      label: strings.calendarRepeatLabel(entry.repeatRule),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              entry.title,
+              key: ValueKey('calendar-detail-title-${entry.id}'),
+              style: theme.textTheme.titleMedium,
+            ),
+            if (entry.description.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                entry.description,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            entry.title,
-            key: ValueKey('calendar-detail-title-${entry.id}'),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(entry.description),
-          const SizedBox(height: 10),
-          Text(
-            strings.formatCalendarDate(occurrence, includeTime: showsTime),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              strings.formatCalendarDate(occurrence, includeTime: showsTime),
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// ─── Selected Day Empty State ────────────────────────────────────────────
+
 class _SelectedDayEmptyState extends StatelessWidget {
-  const _SelectedDayEmptyState({required this.strings});
+  const _SelectedDayEmptyState({required this.strings, required this.isDark});
 
   final AppStrings strings;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Container(
       key: const ValueKey('calendar-detail-empty'),
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : AppTheme.warmGray50.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: isDark
+              ? AppTheme.surfaceBorderDarkSoft.withValues(alpha: 0.5)
+              : AppTheme.surfaceBorderLightSoft,
+          width: 0.5,
+        ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            strings.calendarEmptyDayTitle,
-            style: Theme.of(context).textTheme.titleSmall,
+          PageIconBadge(
+            icon: Icons.event_available_outlined,
+            color: AppTheme.sage,
+            size: 28,
           ),
-          const SizedBox(height: 6),
-          Text(
-            strings.calendarEmptyDaySubtitle,
-            style: Theme.of(context).textTheme.bodySmall,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.calendarEmptyDayTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  strings.calendarEmptyDaySubtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -564,78 +657,150 @@ class _SelectedDayEmptyState extends StatelessWidget {
   }
 }
 
+// ─── Upcoming Event Card ────────────────────────────────────────────────
+
 class _UpcomingEventCard extends StatelessWidget {
-  const _UpcomingEventCard({required this.entry, required this.occurrence});
+  const _UpcomingEventCard({
+    required this.entry,
+    required this.occurrence,
+    required this.isDark,
+  });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final showsTime = occurrence.hour != 0 || occurrence.minute != 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
+      padding: EdgeInsets.zero,
+      child: Padding(
         key: ValueKey('calendar-upcoming-${entry.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _MetaChip(label: strings.calendarTypeLabel(entry.type)),
-                        if (entry.repeatRule == CalendarRepeatRule.yearly)
-                          _MetaChip(
-                            label: strings.calendarRepeatLabel(
-                              entry.repeatRule,
-                            ),
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageIconBadge(
+              icon: _iconForType(entry.type),
+              color: _colorForType(entry.type),
+              size: 36,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _MetaChip(label: strings.calendarTypeLabel(entry.type)),
+                      if (entry.repeatRule == CalendarRepeatRule.yearly)
+                        _MetaChip(
+                          label: strings.calendarRepeatLabel(
+                            entry.repeatRule,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      entry.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    entry.title,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  if (entry.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(entry.description),
-                    const SizedBox(height: 10),
                     Text(
-                      strings.formatCalendarDate(
-                        occurrence,
-                        includeWeekday: true,
-                        includeTime: showsTime,
+                      entry.description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
                       ),
-                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
-                ),
+                  const SizedBox(height: 10),
+                  Text(
+                    strings.formatCalendarDate(
+                      occurrence,
+                      includeWeekday: true,
+                      includeTime: showsTime,
+                    ),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                strings.formatCountdownLabel(
-                  occurrence,
-                  strings.calendarPrototypeReferenceDate,
-                ),
-                textAlign: TextAlign.right,
-                style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              strings.formatCountdownLabel(
+                occurrence,
+                strings.calendarPrototypeReferenceDate,
               ),
-            ],
-          ),
+              textAlign: TextAlign.right,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.primary,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// ─── Upcoming Empty State ────────────────────────────────────────────────
+
+class _UpcomingEmptyState extends StatelessWidget {
+  const _UpcomingEmptyState({required this.isChinese, required this.isDark});
+
+  final bool isChinese;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            PageIconBadge(
+              icon: Icons.event_outlined,
+              color: AppTheme.gold,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isChinese ? '还没有日历事件' : 'No calendar events yet',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isChinese
+                  ? '在下方添加纪念日、约会或提醒'
+                  : 'Add anniversaries, dates, or reminders below',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Meta Chip ──────────────────────────────────────────────────────────
 
 class _MetaChip extends StatelessWidget {
   const _MetaChip({required this.label});
@@ -647,21 +812,24 @@ class _MetaChip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: colorScheme.primary,
           fontWeight: FontWeight.w700,
+          fontSize: 12,
         ),
       ),
     );
   }
 }
+
+// ─── Entry Chip ─────────────────────────────────────────────────────────
 
 class _EntryChip extends StatelessWidget {
   const _EntryChip({required this.label});
@@ -676,7 +844,7 @@ class _EntryChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
       ),
       child: Text(
         label,
@@ -689,46 +857,14 @@ class _EntryChip extends StatelessWidget {
   }
 }
 
-class _UpcomingEmptyState extends StatelessWidget {
-  const _UpcomingEmptyState({required this.isChinese});
-
-  final bool isChinese;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.event_outlined,
-              size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isChinese ? '还没有日历事件' : 'No calendar events yet',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isChinese
-                  ? '在下方添加纪念日、约会或提醒'
-                  : 'Add anniversaries, dates, or reminders below',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ─── Composer Card ──────────────────────────────────────────────────────
 
 class _ComposerCard extends StatefulWidget {
-  const _ComposerCard({required this.submitting, required this.onSubmit});
+  const _ComposerCard({
+    required this.submitting,
+    required this.onSubmit,
+    required this.isDark,
+  });
 
   final bool submitting;
   final Future<bool> Function({
@@ -740,6 +876,7 @@ class _ComposerCard extends StatefulWidget {
     bool allDay,
   })
   onSubmit;
+  final bool isDark;
 
   @override
   State<_ComposerCard> createState() => _ComposerCardState();
@@ -941,94 +1078,117 @@ class _ComposerCardState extends State<_ComposerCard> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final isDark = widget.isDark;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(strings.calendarComposerHint),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
+    return PageSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            strings.calendarComposerHint,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedType = 'anniversary');
+                  _showCreateDialog();
+                },
+                child: _EntryChip(
+                  label: strings.calendarTypeLabel(
+                    CalendarEntryType.anniversary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedType = 'date_plan');
+                  _showCreateDialog();
+                },
+                child: _EntryChip(
+                  label: strings.calendarTypeLabel(
+                    CalendarEntryType.datePlan,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedType = 'reminder');
+                  _showCreateDialog();
+                },
+                child: _EntryChip(
+                  label: strings.calendarTypeLabel(
+                    CalendarEntryType.reminder,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          PageInsetPanel(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedType = 'anniversary');
-                    _showCreateDialog();
-                  },
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.anniversary,
-                    ),
-                  ),
+                PageIconBadge(
+                  icon: Icons.favorite_outline,
+                  color: AppTheme.blush,
+                  size: 28,
                 ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedType = 'date_plan');
-                    _showCreateDialog();
-                  },
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.datePlan,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedType = 'reminder');
-                    _showCreateDialog();
-                  },
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.reminder,
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        strings.calendarPeriodPlaceholderTitle,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        strings.calendarPeriodPlaceholderSubtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppTheme.warmWhite60
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.favorite_outline,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          strings.calendarPeriodPlaceholderTitle,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          strings.calendarPeriodPlaceholderSubtitle,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+
+IconData _iconForType(CalendarEntryType type) {
+  return switch (type) {
+    CalendarEntryType.anniversary => Icons.favorite_rounded,
+    CalendarEntryType.datePlan => Icons.event_available_outlined,
+    CalendarEntryType.reminder => Icons.notifications_outlined,
+  };
+}
+
+Color _colorForType(CalendarEntryType type) {
+  return switch (type) {
+    CalendarEntryType.anniversary => AppTheme.blush,
+    CalendarEntryType.datePlan => AppTheme.gold,
+    CalendarEntryType.reminder => AppTheme.sage,
+  };
 }

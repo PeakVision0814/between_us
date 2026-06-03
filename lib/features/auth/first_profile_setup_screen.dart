@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
+import 'auth_page_visuals.dart';
 
 class FirstProfileSetupScreen extends StatefulWidget {
   const FirstProfileSetupScreen({super.key});
@@ -94,8 +95,10 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
     final isChinese = strings.isChinese;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
+      backgroundColor: Colors.transparent,
+      body: AuthPageBackground(
+        child: SafeArea(
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
@@ -244,6 +247,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -277,6 +281,10 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
         isChinese
             ? '资料保存失败，请稍后重试。'
             : 'Failed to save your profile. Please try again.',
+      'session_expired' =>
+        isChinese
+            ? '登录状态已过期，请重新登录。'
+            : 'Your session has expired. Please sign in again.',
       _ =>
         isChinese
             ? '资料保存时发生异常，请重试。'

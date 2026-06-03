@@ -475,14 +475,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('open-settings-more-tile')),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
@@ -573,13 +566,13 @@ void main() {
     );
 
     await tester.scrollUntilVisible(
-      find.text('Write a note'),
+      find.byKey(const ValueKey('home-quick-action-note')),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Write a note').first);
+    await tester.tap(find.byKey(const ValueKey('home-quick-action-note')));
     await tester.pumpAndSettle();
 
     expect(
@@ -606,22 +599,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
     expect(find.byKey(const ValueKey('us-preferences-section')), findsNothing);
     expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
     expect(find.text('Debug'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('open-settings-more-tile')));
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
@@ -674,45 +656,16 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
-    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
-    final birthdayText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-birthday')),
-    );
-    expect(birthdayText.data, '还没有填写，之后也可以再补。');
+    expect(find.byIcon(Icons.add), findsWidgets);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-invite-placeholder-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tap the add avatar to navigate to invite page
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('us-invite-placeholder-section')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('us-partner-profile-section')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('us-space-invite-actions')),
-      findsOneWidget,
-    );
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
-    expect(find.text('Debug'), findsNothing);
-    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
 
   testWidgets('Us screen shows paired structure and partner nickname', (
@@ -739,52 +692,78 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
-    expect(find.byKey(const ValueKey('us-my-profile-section')), findsOneWidget);
-    final displayNameText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-display-name')),
-    );
-    expect(displayNameText.data, 'Xiaoman');
-    final genderText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-gender')),
-    );
-    expect(genderText.data, 'Female');
-    final birthdayText = tester.widget<Text>(
-      find.byKey(const ValueKey('us-my-profile-birthday')),
-    );
-    expect(birthdayText.data, '1998-06-01');
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-partner-profile-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tap the partner avatar to navigate to partner profile page
+    await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('us-partner-profile-section')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('us-invite-placeholder-section')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('us-space-invite-actions')), findsNothing);
-    expect(find.byKey(const ValueKey('us-partner-name')), findsOneWidget);
-    expect(find.text('Ache'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('us-settings-entry-section')),
-      findsOneWidget,
-    );
-    expect(find.text('Debug'), findsNothing);
-    expect(find.byKey(const ValueKey('sign-out-tile')), findsNothing);
   });
+
+  test(
+    'profile load failure due to JWT expired clears session without blocking',
+    () async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await controller
+          .debugSyncSessionUser(
+            'user-1',
+            onReloadProfile: ({bool force = false}) async {
+              throw Exception('JWT expired');
+            },
+            forceBlockingProfileCheck: true,
+          )
+          .timeout(const Duration(seconds: 1));
+
+      expect(controller.authStatus, AppAuthStatus.unauthenticated);
+      expect(controller.requiresProfileSetup, isFalse);
+      expect(controller.displayName, isNull);
+      expect(controller.gender, isNull);
+      expect(controller.currentSpaceId, isNull);
+    },
+  );
+
+  test(
+    'profile load failure for non-JWT reasons does not sign out',
+    () async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          throw Exception('Network timeout');
+        },
+        forceBlockingProfileCheck: true,
+      );
+
+      expect(controller.authStatus, AppAuthStatus.authenticated);
+    },
+  );
+
+  test(
+    'requiresProfileSetup is false when profile check is in progress',
+    () {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+        profileCheckInProgress: true,
+      );
+
+      expect(controller.requiresProfileSetup, isFalse);
+    },
+  );
 }
 
 Future<void> _pumpApp(
