@@ -39,7 +39,7 @@ flutter doctor -v
 ```powershell
 flutter pub get
 flutter run
-flutter run -d 391QYGCJ226AE --dart-define=SUPABASE_URL=http://192.168.1.23:54321 --dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+flutter run -d 391QYGCJ226AE --dart-define=SUPABASE_URL=http://192.168.5.18:54321 --dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 flutter run -d emulator-5554
 ```
 

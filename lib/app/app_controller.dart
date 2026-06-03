@@ -61,6 +61,14 @@ class AppController extends ChangeNotifier {
   String? get displayName => _displayName;
   String? get gender => _gender;
   DateTime? get birthday => _birthday;
+  String? get email {
+    try {
+      return Supabase.instance.client.auth.currentUser?.email;
+    } catch (_) {
+      return null;
+    }
+  }
+
   String? get selfProfileId => _selfProfileId;
   String? get currentSpaceId => _currentSpaceId;
   int get memberCount => _memberCount;

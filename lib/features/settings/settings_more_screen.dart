@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import 'profile_screen.dart';
 
 class SettingsMoreScreen extends StatelessWidget {
   const SettingsMoreScreen({super.key});
@@ -43,13 +44,55 @@ class SettingsMoreScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             PageSectionHeader(
+              title: strings.isChinese ? '个人资料' : 'Profile',
+              subtitle: strings.isChinese
+                  ? '昵称 · 邮箱 · 性别 · 生日'
+                  : 'Name · email · gender · birthday',
+            ),
+            const SizedBox(height: 10),
+            Card(
+              key: const ValueKey('profile-entry-section'),
+              child: ListTile(
+                leading: Icon(
+                  Icons.person_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(strings.isChinese ? '查看个人资料' : 'View profile'),
+                subtitle: Text(
+                  strings.isChinese
+                      ? '昵称、邮箱、性别、生日'
+                      : 'Display name, email, gender, birthday',
+                ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: isDark
+                      ? AppTheme.warmWhite25
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ProfileScreen(controller: controller),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+            PageSectionHeader(
               title: strings.isChinese ? '偏好设置' : 'Preferences',
               subtitle: strings.isChinese
                   ? '语言 · 主题 · 时区'
                   : 'Language · theme · timezone',
             ),
             const SizedBox(height: 10),
-            _buildPreferencesSection(context, strings, controller, isDark: isDark),
+            _buildPreferencesSection(
+              context,
+              strings,
+              controller,
+              isDark: isDark,
+            ),
             const SizedBox(height: 24),
             PageSectionHeader(
               title: strings.isChinese ? '账户操作' : 'Account',
@@ -148,7 +191,10 @@ class SettingsMoreScreen extends StatelessWidget {
           ),
           const Divider(indent: 20, endIndent: 20),
           ListTile(
-            leading: Icon(Icons.schedule_outlined, color: Theme.of(context).colorScheme.primary),
+            leading: Icon(
+              Icons.schedule_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             title: Text(strings.timeZoneTitle),
             subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
           ),
@@ -174,7 +220,10 @@ class SettingsMoreScreen extends StatelessWidget {
       key: const ValueKey('us-signout-section'),
       child: ListTile(
         key: const ValueKey('sign-out-tile'),
-        leading: Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.error),
+        leading: Icon(
+          Icons.logout_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
         title: Text(
           strings.isChinese ? '退出登录' : 'Sign out',
           style: TextStyle(color: Theme.of(context).colorScheme.error),

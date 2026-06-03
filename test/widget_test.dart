@@ -730,40 +730,124 @@ void main() {
     },
   );
 
-  test(
-    'profile load failure for non-JWT reasons does not sign out',
-    () async {
-      final controller = AppController();
-      controller.debugSetAuthState(
-        status: AppAuthStatus.authenticated,
-        supabaseReady: true,
+  test('profile load failure for non-JWT reasons does not sign out', () async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+    );
+
+    await controller.debugSyncSessionUser(
+      'user-1',
+      onReloadProfile: ({bool force = false}) async {
+        throw Exception('Network timeout');
+      },
+      forceBlockingProfileCheck: true,
+    );
+
+    expect(controller.authStatus, AppAuthStatus.authenticated);
+  });
+
+  test('requiresProfileSetup is false when profile check is in progress', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      profileCheckInProgress: true,
+    );
+
+    expect(controller.requiresProfileSetup, isFalse);
+  });
+
+  testWidgets(
+    'profile screen from hero icon shows display name, email, gender, birthday',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.zhCn,
+        displayName: '小满',
+        gender: AppController.genderFemale,
+        birthday: DateTime(1998, 6, 1),
+        memberCount: 2,
+        partnerDisplayName: '阿澈',
       );
 
-      await controller.debugSyncSessionUser(
-        'user-1',
-        onReloadProfile: ({bool force = false}) async {
-          throw Exception('Network timeout');
-        },
-        forceBlockingProfileCheck: true,
+      // Navigate to Us tab
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
       );
+      await tester.pumpAndSettle();
 
-      expect(controller.authStatus, AppAuthStatus.authenticated);
+      // Tap person icon in hero to open profile screen
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+
+      // Verify profile screen fields
+      expect(
+        find.byKey(const ValueKey('profile-display-name')),
+        findsOneWidget,
+      );
+      expect(find.text('小满'), findsOneWidget);
+      expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
+      expect(find.text('未获取'), findsOneWidget); // No Supabase in tests
+      expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
+      expect(find.text('女生'), findsOneWidget);
+      expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
+      expect(find.text('1998 年 06 月 01 日'), findsOneWidget);
     },
   );
 
-  test(
-    'requiresProfileSetup is false when profile check is in progress',
-    () {
-      final controller = AppController();
-      controller.debugSetAuthState(
-        status: AppAuthStatus.authenticated,
-        supabaseReady: true,
-        profileCheckInProgress: true,
-      );
+  testWidgets('profile screen from settings more screen shows same fields', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+    controller.setLanguage(AppLanguage.en);
 
-      expect(controller.requiresProfileSetup, isFalse);
-    },
-  );
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    // Navigate to Us tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open settings more screen
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
+
+    // Tap profile entry
+    await tester.tap(find.byKey(const ValueKey('profile-entry-section')));
+    await tester.pumpAndSettle();
+
+    // Verify profile screen fields in English
+    expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
+    expect(find.text('Xiaoman'), findsWidgets);
+    expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
+    expect(find.text('Unavailable'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
+    expect(find.text('Female'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
+    expect(find.text('1998-06-01'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpApp(
