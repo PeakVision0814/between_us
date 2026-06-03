@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_controller.dart';
@@ -20,7 +21,21 @@ class BetweenUsApp extends StatelessWidget {
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
-          return MaterialApp(
+          final brightness = controller.themeMode == ThemeMode.dark
+              ? Brightness.dark
+              : controller.themeMode == ThemeMode.light
+                  ? Brightness.light
+                  : MediaQuery.platformBrightnessOf(context);
+
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness:
+                  brightness == Brightness.light ? Brightness.dark : Brightness.light,
+              statusBarBrightness:
+                  brightness == Brightness.light ? Brightness.light : Brightness.dark,
+            ),
+            child: MaterialApp(
             title: AppStrings.of(context).appName,
             debugShowCheckedModeBanner: false,
             locale: controller.locale,
@@ -34,6 +49,7 @@ class BetweenUsApp extends StatelessWidget {
             darkTheme: AppTheme.dark,
             themeMode: controller.themeMode,
             home: _buildHome(controller),
+          ),
           );
         },
       ),
