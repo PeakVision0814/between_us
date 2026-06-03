@@ -108,8 +108,11 @@ create policy "notes_update_active_couple_author"
   );
 
 -- 5. Grants
+-- Revoke from all roles first, then grant only to authenticated.
+-- SECURITY DEFINER functions must not be callable by anon.
 
 revoke all on function public.is_active_couple_member(uuid, uuid) from public;
+revoke all on function public.is_active_couple_member(uuid, uuid) from anon;
 grant execute on function public.is_active_couple_member(uuid, uuid) to authenticated;
 
 commit;
