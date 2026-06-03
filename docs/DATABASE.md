@@ -234,8 +234,9 @@
 `RLS` 应确保以下原则成立：
 
 - 用户可以读取和更新自己的 `profiles` 行
-- 同一 `couple_space` 的活跃成员可以互相读取对方的 `display_name` 和 `avatar_url`
-- 第一轮不强依赖同空间成员互读对方 `gender` / `birthday`；这部分和“我们”页重构一起进入后续轮次
+- 当前已支持用户读取和更新自己的 `display_name`、`gender`、`birthday` 以及个人偏好字段
+- 同一 `couple_space` 的活跃成员互相读取必要 profile 字段属于 8.4 收尾项，至少应覆盖作者昵称和安全边界内的 TA 资料展示
+- 对方 `gender` / `birthday` 不能默认扩大暴露范围；如需展示，必须先确认产品边界和 RLS 策略
 - 用户只能修改自己的语言、主题、时区和通知偏好
 - 活跃成员才能读取所在 `couple_space`
 - 活跃成员才能读取 `calendar_events`、`plans`、`notes`

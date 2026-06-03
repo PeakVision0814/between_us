@@ -1,14 +1,14 @@
 # 本地开发环境
 
-这个项目是一个 Android 优先的 Flutter App，并计划在后续接入 Supabase
-实现共享数据与认证能力。
+这个项目是一个 Android 优先的 Flutter App，已接入 Supabase
+实现认证、邀请和共享数据能力。
 
 ## 环境要求
 
 - Flutter stable
 - Android Studio 或 Android SDK 命令行工具
 - 已为 Flutter 正确配置 Android SDK
-- 用于后续共享后端阶段的 Supabase 项目
+- 用于本地运行和共享数据调试的 Supabase 项目
 
 在修改产品行为前，建议先阅读这些文档：
 
@@ -45,10 +45,10 @@ flutter run -d emulator-5554
 
 ## Supabase 配置说明
 
-项目里已经加入了 Supabase 依赖，但当前 App 壳还没有真正初始化它。
+项目里已经加入 Supabase 依赖，App 启动时由 `AppController` 初始化 Supabase。
 不要提交任何私钥或本地敏感配置。
 
-当 Supabase 集成开始时：
+当前约束：
 
 - App 侧只使用公开的 anon 配置
 - 数据库访问必须通过 Row Level Security 保护

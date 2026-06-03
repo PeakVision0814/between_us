@@ -30,17 +30,23 @@ notes, and maintain shared "we" settings.
 - Storage: Supabase Storage
 - Target platform: Android first, iOS later
 
-## Current Prototype
+## Current Status
 
-The repository currently contains an Android-first Flutter prototype with:
+The repository currently contains an Android-first Flutter app with:
 
 - Material 3 app shell
-- A planned primary navigation model of `Home`, `Calendar`, `Plans & Notes`,
-  and `We`
-- Local-only sample content for the first prototype
-- A codebase that is still migrating from the previous information architecture
-- Supabase dependency prepared, but no auth or sync in the local prototype
-- Widget tests for navigation and core entry points
+- Implemented primary navigation: `Home`, `Calendar`, `Plans & Notes`, and
+  `We`
+- Email OTP login with separated login and registration flows
+- Post-registration profile setup for display name, gender, and optional
+  birthday
+- Shared Alpha on Supabase: calendar events, plans, notes, and invitations are
+  wired to couple-space sync
+- `AppController` as the single owner of profile state, auth state, and the
+  current `spaceId`
+- A unified visual system rolled out across the main app pages
+- Widget tests for navigation, calendar behavior, couple-space guarding, and
+  auth/session state
 
 Run locally:
 
@@ -50,25 +56,27 @@ flutter test
 flutter run
 ```
 
-## MVP Definition
+## Current MVP Definition
 
-The first prototype is complete only when it can demonstrate this local product
-loop without backend complexity:
+The current MVP centers on the logged-in shared life-space loop:
 
-- Home shows the couple overview, the latest activity preview, the next
-  important date, and quick entry points.
+- Home shows real names, the couple overview, the latest activity preview, the
+  next important date, and quick entry points.
 - Calendar shows dated content such as anniversaries, date plans, and reminders.
-- Plans & Notes shows undated plans and casual shared notes.
-- We provides personal preferences and shared couple-space settings.
-- The app makes it obvious which pages belong to the MVP and which ideas are
-  still backlog.
+- Plans & Notes shows undated plans and casual shared notes, backed by the
+  shared couple space.
+- We contains profile entry points, partner/invite entry points, shared-space
+  information, and a secondary settings page.
+- Solo mode can use the core content flow before pairing, then move into paired
+  mode through invite codes.
 
-Authentication, invitations, shared sync, and Row Level Security are not part
-of the local prototype. They belong to the backend foundation milestone.
+Authentication, invitations, shared sync, and Row Level Security are now part of
+the foundation. Future work should finish the phase 8 profile/identity closure
+before moving into sensitive data or private beta work.
 
-## Backend Foundation After The Prototype
+## Shared Foundation Rules
 
-Before shared data work starts, the team must define:
+Shared data work must respect:
 
 - Who creates a couple space and how the second person is invited.
 - How couple membership is limited, revoked, or unlinked.

@@ -88,7 +88,13 @@ Calendar data (entries, occurrences, formatting) is also derived centrally in `A
 
 ### Supabase (Backend Foundation)
 
-`supabase/migrations/` contains the shared foundation SQL. 7 tables: `profiles`, `couple_spaces`, `couple_memberships`, `couple_invites`, `calendar_events`, `plans`, `notes`. RPCs for invite lifecycle. RLS enforced. The Flutter app does NOT yet connect to Supabase — all data is local prototype/sample data. The `supabase_flutter` package is a dependency but unused in the app code.
+`supabase/migrations/` contains the shared foundation SQL. 7 tables: `profiles`, `couple_spaces`, `couple_memberships`, `couple_invites`, `calendar_events`, `plans`, `notes`. RPCs for invite lifecycle. RLS enforced.
+
+The Flutter app is now connected to Supabase for the shared Alpha:
+- `AppController` initializes Supabase, manages auth session state, loads profile fields, and owns the active `currentSpaceId`.
+- Email OTP login/registration, profile setup, invite generation/acceptance, calendar events, plans, and notes use Supabase.
+- Home, Calendar, and Plans & Notes read shared data from Supabase using `AppController.currentSpaceId`.
+- Local sample data remains only as UI fallback/prototype copy where a feature has no shared records yet.
 
 `lib/app/supabase_config.dart` holds public client configuration. `lib/app/couple_space_guard.dart` guards routes that require an active couple space.
 
