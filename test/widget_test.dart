@@ -689,7 +689,7 @@ void main() {
       findsNothing,
     );
 
-    // Single mode: Space status entry should not navigate
+    // Single mode: Space status entry exists but should not navigate
     final spaceStatusEntry = find.byKey(
       const ValueKey('us-space-entry-Space status'),
     );
