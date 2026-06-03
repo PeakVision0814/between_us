@@ -641,6 +641,7 @@ void main() {
     await _pumpApp(
       tester,
       authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
       displayName: 'Xiaoman',
       gender: AppController.genderFemale,
       memberCount: 1,
@@ -657,6 +658,61 @@ void main() {
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
     expect(find.byIcon(Icons.add), findsWidgets);
+    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
+    final spaceSection = find.byKey(const ValueKey('us-space-section'));
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Our space')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('View more')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Calendar')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Plans')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Notes')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Settings')),
+      findsOneWidget,
+    );
+
+    expect(
+      find.descendant(
+        of: spaceSection,
+        matching: find.text('Generate invite code'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: spaceSection,
+        matching: find.text('Enter invite code to join'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: spaceSection,
+        matching: find.text('Current invite code'),
+      ),
+      findsNothing,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-hero-single-slot')),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
     // Tap the add avatar to navigate to invite page
     await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
@@ -692,8 +748,52 @@ void main() {
 
     expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-settings-icon')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
+    final spaceSection = find.byKey(const ValueKey('us-space-section'));
+
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('View more')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Calendar')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Plans')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Notes')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Settings')),
+      findsOneWidget,
+    );
+    expect(find.text('Space status'), findsNothing);
+    expect(find.text('Invite status'), findsNothing);
+    expect(find.text('Relationship date'), findsNothing);
+
+    await tester.tap(
+      find.descendant(of: spaceSection, matching: find.text('Settings')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     // Tap the partner avatar to navigate to partner profile page
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('us-hero-partner-slot')),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
     await tester.pumpAndSettle();
 

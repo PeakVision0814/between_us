@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
@@ -10,6 +9,7 @@ import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
 import 'profile_screen.dart';
+import 'settings_more_screen.dart';
 
 class UsScreen extends StatefulWidget {
   const UsScreen({super.key});
@@ -20,7 +20,6 @@ class UsScreen extends StatefulWidget {
 
 class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String? _spaceName;
-  String? _relationshipStartDate;
   String? _coupleSpaceId;
   int _memberCount = 0;
   bool _loadingSpaceData = false;
@@ -81,7 +80,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
       final spaceResponse = await Supabase.instance.client
           .from('couple_spaces')
-          .select('id, space_name, relationship_start_date')
+          .select('id, space_name')
           .eq('id', _coupleSpaceId!)
           .maybeSingle();
 
@@ -90,8 +89,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       if (spaceResponse != null) {
         _coupleSpaceId = spaceResponse['id'] as String;
         _spaceName = spaceResponse['space_name'] as String?;
-        _relationshipStartDate =
-            spaceResponse['relationship_start_date'] as String?;
 
         final membersResponse = await Supabase.instance.client
             .from('couple_memberships')
@@ -237,62 +234,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _showEditSpaceNameDialog() {
-    final strings = AppStrings.of(context);
-    final controller = TextEditingController(text: _spaceName ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.isChinese ? '修改空间名称' : 'Edit space name'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: strings.isChinese ? '输入新的空间名称' : 'Enter a new space name',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final newName = controller.text.trim();
-              if (newName.isEmpty) return;
-              Navigator.pop(context);
-              await _updateSpaceName(newName);
-            },
-            child: Text(strings.isChinese ? '保存' : 'Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _updateSpaceName(String newName) async {
-    if (_coupleSpaceId == null) return;
-    try {
-      await Supabase.instance.client
-          .from('couple_spaces')
-          .update({'space_name': newName})
-          .eq('id', _coupleSpaceId!);
-      setState(() => _spaceName = newName);
-    } catch (_) {
-      if (mounted) {
-        final strings = AppStrings.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strings.isChinese
-                  ? '修改失败，请重试'
-                  : 'Failed to update, please try again',
-            ),
-          ),
-        );
-      }
-    }
+  void _openSettingsMoreScreen() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsMoreScreen()));
   }
 
   void _showInviteCodeDialog() {
@@ -537,115 +482,31 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     required bool isPaired,
     required bool isDark,
   }) {
-    return _UsCard(
-      isDark: isDark,
-      variant: PageSurfaceVariant.primary,
+    return _SpaceModule(
       key: const ValueKey('us-space-section'),
-      child: Column(
-        children: [
-          _SpaceListTile(
-            icon: Icons.home_work_outlined,
-            title: strings.spaceNameTitle,
-            subtitle: _spaceName ?? strings.spaceNameValue,
-            trailing: Icon(
-              Icons.edit_outlined,
-              size: 20,
-              color: isDark
-                  ? AppTheme.warmWhite25
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            onTap: _showEditSpaceNameDialog,
-            isDark: isDark,
-          ),
-          _UsDivider(isDark: isDark),
-          _SpaceListTile(
-            icon: Icons.favorite_outline,
-            title: strings.spaceStatusLabel,
-            subtitle: _relationshipStatusLabel(strings, isPaired: isPaired),
-            isDark: isDark,
-          ),
-          _UsDivider(isDark: isDark),
-          _SpaceListTile(
-            icon: Icons.mail_outline,
-            title: strings.inviteStatusTitle,
-            subtitle: _inviteSummaryText(strings, isPaired: isPaired),
-            isDark: isDark,
-          ),
-          if (_currentInviteCode != null &&
-              _currentInviteExpiresAt != null) ...[
-            _UsDivider(isDark: isDark),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: _InviteCodeBox(
-                code: _currentInviteCode!,
-                expiryText: _inviteExpiryText(
-                  strings,
-                  _currentInviteExpiresAt!,
-                ),
-                isDark: isDark,
-                showCopy: true,
-                onCopy: () {
-                  Clipboard.setData(ClipboardData(text: _currentInviteCode!));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(strings.isChinese ? '已复制' : 'Copied'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-          if (!isPaired) ...[
-            _UsDivider(isDark: isDark),
-            Padding(
-              key: const ValueKey('us-space-invite-actions'),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _generatingInvite ? null : _generateInviteCode,
-                      icon: _generatingInvite
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.vpn_key_outlined),
-                      label: Text(
-                        strings.isChinese ? '生成邀请码' : 'Generate invite code',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _showInviteCodeDialog,
-                      icon: const Icon(Icons.login),
-                      label: Text(
-                        strings.isChinese
-                            ? '输入邀请码加入'
-                            : 'Enter invite code to join',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          _UsDivider(isDark: isDark),
-          _SpaceListTile(
-            icon: Icons.event_outlined,
-            title: strings.relationshipDateTitle,
-            subtitle: _relationshipDateValue(strings),
-            isDark: isDark,
-            isLast: true,
-          ),
-        ],
-      ),
+      isDark: isDark,
+      title: strings.spaceSection,
+      viewMoreLabel: strings.isChinese ? '查看更多' : 'View more',
+      onViewMore: _openSettingsMoreScreen,
+      entries: [
+        _SpaceModuleEntryData(
+          icon: Icons.calendar_month_outlined,
+          label: strings.isChinese ? '日历' : 'Calendar',
+        ),
+        _SpaceModuleEntryData(
+          icon: Icons.fact_check_outlined,
+          label: strings.isChinese ? '计划' : 'Plans',
+        ),
+        _SpaceModuleEntryData(
+          icon: Icons.edit_note_outlined,
+          label: strings.isChinese ? '随记' : 'Notes',
+        ),
+        _SpaceModuleEntryData(
+          icon: Icons.settings_outlined,
+          label: strings.isChinese ? '设置' : 'Settings',
+          onTap: _openSettingsMoreScreen,
+        ),
+      ],
     );
   }
 
@@ -682,85 +543,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       AppController.genderFemale => Icons.female,
       _ => null,
     };
-  }
-
-  String _relationshipStatusLabel(
-    AppStrings strings, {
-    required bool isPaired,
-  }) {
-    if (!isPaired) {
-      return strings.isChinese ? '等待另一半加入' : 'Waiting for partner';
-    }
-
-    final relationshipDays = _relationshipDays();
-    if (relationshipDays != null) {
-      return strings.isChinese
-          ? '在一起第 $relationshipDays 天'
-          : 'Day $relationshipDays together';
-    }
-
-    return strings.isChinese ? '已配对' : 'Paired';
-  }
-
-  String _inviteSummaryText(AppStrings strings, {required bool isPaired}) {
-    if (isPaired) {
-      return strings.isChinese
-          ? '空间已进入双人状态，目前不需要新的邀请。'
-          : 'This space is already paired, so no new invite is needed right now.';
-    }
-
-    if (_currentInviteCode != null && _currentInviteExpiresAt != null) {
-      return strings.isChinese
-          ? '邀请码已生成，等待对方输入后加入。'
-          : 'An invite code is ready and waiting for your partner to use.';
-    }
-
-    return strings.isChinese
-        ? '还在单人模式，可以继续生成邀请码或输入对方的邀请码。'
-        : 'You are still in solo mode. You can generate an invite code or join with one here.';
-  }
-
-  String _relationshipDateValue(AppStrings strings) {
-    if (_relationshipStartDate == null) {
-      return strings.isChinese
-          ? '还没有设置关系起点'
-          : 'Relationship date has not been set yet';
-    }
-
-    final parsed = DateTime.tryParse(_relationshipStartDate!);
-    if (parsed == null) {
-      return _relationshipStartDate!;
-    }
-
-    final month = parsed.month.toString().padLeft(2, '0');
-    final day = parsed.day.toString().padLeft(2, '0');
-    return strings.isChinese
-        ? '${parsed.year} 年 $month 月 $day 日'
-        : '${parsed.year}-$month-$day';
-  }
-
-  String _inviteExpiryText(AppStrings strings, DateTime expiresAt) {
-    return strings.isChinese
-        ? '有效期至 ${expiresAt.month} 月 ${expiresAt.day} 日 ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}'
-        : 'Expires ${expiresAt.month}/${expiresAt.day} ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}';
-  }
-
-  int? _relationshipDays() {
-    if (_relationshipStartDate == null) {
-      return null;
-    }
-
-    final parsed = DateTime.tryParse(_relationshipStartDate!);
-    if (parsed == null) {
-      return null;
-    }
-
-    final start = DateUtils.dateOnly(parsed);
-    final today = DateUtils.dateOnly(DateTime.now());
-    if (start.isAfter(today)) {
-      return null;
-    }
-    return today.difference(start).inDays + 1;
   }
 }
 
@@ -1048,52 +830,234 @@ class _UsCard extends StatelessWidget {
   }
 }
 
-/// Divider between card rows — thin and warm.
-class _UsDivider extends StatelessWidget {
-  const _UsDivider({required this.isDark});
+class _SpaceModule extends StatelessWidget {
+  const _SpaceModule({
+    super.key,
+    required this.isDark,
+    required this.title,
+    required this.viewMoreLabel,
+    required this.entries,
+    this.onViewMore,
+  });
 
   final bool isDark;
+  final String title;
+  final String viewMoreLabel;
+  final List<_SpaceModuleEntryData> entries;
+  final VoidCallback? onViewMore;
 
   @override
   Widget build(BuildContext context) {
-    return const PageDivider(indent: 20);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite90
+                        : colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                key: const ValueKey('us-space-view-more'),
+                onPressed: onViewMore,
+                label: Text(viewMoreLabel),
+                icon: const Icon(Icons.chevron_right, size: 18),
+                iconAlignment: IconAlignment.end,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  foregroundColor: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      AppTheme.heroDeepPurple.withValues(alpha: 0.86),
+                      AppTheme.nightSurface.withValues(alpha: 0.9),
+                      const Color(0xFF12101A).withValues(alpha: 0.92),
+                    ]
+                  : [
+                      Colors.white.withValues(alpha: 0.92),
+                      AppTheme.heroBlushLight.withValues(alpha: 0.54),
+                      AppTheme.heroPeachLight.withValues(alpha: 0.34),
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+            border: Border.all(
+              color: isDark
+                  ? AppTheme.heroGlowBlush.withValues(alpha: 0.28)
+                  : Colors.white.withValues(alpha: 0.86),
+              width: isDark ? 0.9 : 1,
+            ),
+            boxShadow: isDark
+                ? AppTheme.shadowCardDarkStrong
+                : AppTheme.shadowCardLightStrong,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: isDark
+                            ? const Alignment(0.74, -0.78)
+                            : const Alignment(-0.64, -0.9),
+                        radius: isDark ? 1.12 : 1.02,
+                        colors: isDark
+                            ? [
+                                AppTheme.heroGlowPurple.withValues(alpha: 0.22),
+                                AppTheme.heroGlowBlush.withValues(alpha: 0.07),
+                                Colors.transparent,
+                              ]
+                            : [
+                                Colors.white.withValues(alpha: 0.72),
+                                AppTheme.heroBlushLight.withValues(alpha: 0.16),
+                                Colors.transparent,
+                              ],
+                        stops: const [0, 0.5, 1],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+                  child: Row(
+                    children: [
+                      for (var index = 0; index < entries.length; index++) ...[
+                        Expanded(
+                          child: _SpaceModuleEntry(
+                            data: entries[index],
+                            isDark: isDark,
+                          ),
+                        ),
+                        if (index != entries.length - 1)
+                          const SizedBox(width: 10),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
-/// List tile used in Space section.
-class _SpaceListTile extends StatelessWidget {
-  const _SpaceListTile({
-    required this.title,
-    required this.isDark,
-    this.icon,
-    this.subtitle,
-    this.trailing,
+class _SpaceModuleEntryData {
+  const _SpaceModuleEntryData({
+    required this.icon,
+    required this.label,
     this.onTap,
-    this.isLast = false,
   });
 
-  final IconData? icon;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
+  final IconData icon;
+  final String label;
   final VoidCallback? onTap;
+}
+
+class _SpaceModuleEntry extends StatelessWidget {
+  const _SpaceModuleEntry({required this.data, required this.isDark});
+
+  final _SpaceModuleEntryData data;
   final bool isDark;
-  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final iconColor = colorScheme.primary;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(18, 2, 18, isLast ? 10 : 2),
-      child: PageListItem(
-        onTap: onTap,
-        title: title,
-        subtitle: subtitle,
-        trailing: trailing,
-        leading: icon == null
-            ? null
-            : PageIconBadge(icon: icon!, color: colorScheme.primary, size: 38),
+    return Semantics(
+      button: data.onTap != null,
+      label: data.label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey('us-space-entry-${data.label}'),
+          onTap: data.onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              iconColor.withValues(alpha: 0.24),
+                              AppTheme.heroGlowPurple.withValues(alpha: 0.16),
+                              Colors.white.withValues(alpha: 0.04),
+                            ]
+                          : [
+                              Colors.white.withValues(alpha: 0.9),
+                              iconColor.withValues(alpha: 0.14),
+                              AppTheme.heroPeachLight.withValues(alpha: 0.3),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    border: Border.all(
+                      color: isDark
+                          ? iconColor.withValues(alpha: 0.24)
+                          : Colors.white.withValues(alpha: 0.82),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: iconColor.withValues(alpha: isDark ? 0.18 : 0.1),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                        spreadRadius: -12,
+                      ),
+                    ],
+                  ),
+                  child: Icon(data.icon, color: iconColor, size: 26),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite90
+                        : colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1377,15 +1341,11 @@ class _InviteCodeBox extends StatelessWidget {
     required this.code,
     required this.expiryText,
     required this.isDark,
-    this.showCopy = false,
-    this.onCopy,
   });
 
   final String code;
   final String expiryText;
   final bool isDark;
-  final bool showCopy;
-  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -1427,11 +1387,6 @@ class _InviteCodeBox extends StatelessWidget {
               ],
             ),
           ),
-          if (showCopy && onCopy != null)
-            IconButton(
-              icon: const Icon(Icons.copy, size: 20),
-              onPressed: onCopy,
-            ),
         ],
       ),
     );
