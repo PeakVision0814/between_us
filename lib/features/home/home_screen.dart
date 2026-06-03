@@ -164,6 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
     final strings = AppStrings.of(context);
+    final isPaired = controller.hasActiveCoupleSpace;
 
     return PageAtmosphere(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -194,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
             note: _recentNote,
             onWriteNote: widget.onWriteNote,
             isChinese: strings.isChinese,
+            isPaired: isPaired,
           ),
           const SizedBox(height: 24),
           PageSectionHeader(title: strings.recentPlanSection),
@@ -213,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenCalendar: widget.onOpenCalendar,
             onCreatePlan: widget.onCreatePlan,
             onWriteNote: widget.onWriteNote,
+            isPaired: isPaired,
           ),
         ],
       ),
@@ -304,9 +307,7 @@ class _HomeHero extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Icon(
-                      isPaired
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border,
+                      isPaired ? Icons.favorite_rounded : Icons.favorite_border,
                       color: isDark
                           ? AppTheme.heroGlowBlush
                           : colorScheme.primary,
@@ -451,11 +452,7 @@ class _HomeHero extends StatelessWidget {
 // ─── Hero Avatar Slot ────────────────────────────────────────────────────
 
 class _HeroAvatarSlot extends StatelessWidget {
-  const _HeroAvatarSlot({
-    super.key,
-    required this.label,
-    required this.isDark,
-  });
+  const _HeroAvatarSlot({super.key, required this.label, required this.isDark});
 
   final String label;
   final bool isDark;
@@ -860,9 +857,7 @@ class _DatePreviewCard extends StatelessWidget {
                     ],
                   )
                 : Text(
-                    isChinese
-                        ? '暂无即将到来的日历事件'
-                        : 'No upcoming calendar events',
+                    isChinese ? '暂无即将到来的日历事件' : 'No upcoming calendar events',
                     style: theme.textTheme.bodyMedium,
                   ),
           ),
@@ -879,11 +874,13 @@ class _NotePreviewCard extends StatelessWidget {
     required this.note,
     required this.onWriteNote,
     required this.isChinese,
+    required this.isPaired,
   });
 
   final NoteItemCopy? note;
   final VoidCallback onWriteNote;
   final bool isChinese;
+  final bool isPaired;
 
   @override
   Widget build(BuildContext context) {
@@ -930,7 +927,7 @@ class _NotePreviewCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton.tonalIcon(
-              onPressed: onWriteNote,
+              onPressed: isPaired ? onWriteNote : null,
               icon: const Icon(Icons.mode_edit_outline_outlined),
               label: Text(strings.writeNoteLabel),
             ),
@@ -1034,11 +1031,13 @@ class _QuickActions extends StatelessWidget {
     required this.onOpenCalendar,
     required this.onCreatePlan,
     required this.onWriteNote,
+    required this.isPaired,
   });
 
   final VoidCallback onOpenCalendar;
   final VoidCallback onCreatePlan;
   final VoidCallback onWriteNote;
+  final bool isPaired;
 
   @override
   Widget build(BuildContext context) {
@@ -1055,7 +1054,7 @@ class _QuickActions extends StatelessWidget {
                 titleKey: const ValueKey('home-quick-action-plan'),
                 subtitle: strings.plansSectionTitle,
                 color: AppTheme.mint,
-                onTap: onCreatePlan,
+                onTap: isPaired ? onCreatePlan : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -1066,7 +1065,7 @@ class _QuickActions extends StatelessWidget {
                 titleKey: const ValueKey('home-quick-action-note'),
                 subtitle: strings.notesSectionTitle,
                 color: AppTheme.blush,
-                onTap: onWriteNote,
+                onTap: isPaired ? onWriteNote : null,
               ),
             ),
           ],
@@ -1098,7 +1097,7 @@ class _QuickActionTile extends StatelessWidget {
   final Key? titleKey;
   final String subtitle;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1171,9 +1170,7 @@ class _WideActionTile extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppTheme.warmWhite60
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],

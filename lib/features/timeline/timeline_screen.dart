@@ -79,6 +79,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
 
   Future<bool> _submitPlan(String title, String body) async {
     if (title.trim().isEmpty) return false;
+    if (!AppScope.read(context).hasActiveCoupleSpace) return false;
 
     setState(() => _submitting = true);
 
@@ -184,6 +185,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
 
   Future<bool> _submitNote(String body) async {
     if (body.trim().isEmpty) return false;
+    if (!AppScope.read(context).hasActiveCoupleSpace) return false;
 
     setState(() => _submitting = true);
 
@@ -288,6 +290,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final isPlanMode = _activeMode == PlansNotesMode.plan;
+    final isPaired = AppScope.of(context).hasActiveCoupleSpace;
 
     return PageAtmosphere(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -331,7 +334,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       const SizedBox(height: 16),
                       _CreatePlanButton(
                         isChinese: strings.isChinese,
-                        onPressed: _showCreatePlanDialog,
+                        onPressed: isPaired ? _showCreatePlanDialog : null,
                       ),
                     ],
                   );
@@ -359,7 +362,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                     const SizedBox(height: 4),
                     _CreatePlanButton(
                       isChinese: strings.isChinese,
-                      onPressed: _showCreatePlanDialog,
+                      onPressed: isPaired ? _showCreatePlanDialog : null,
                     ),
                   ],
                 );
@@ -396,7 +399,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       const SizedBox(height: 16),
                       _WriteNoteButton(
                         isChinese: strings.isChinese,
-                        onPressed: _showWriteNoteDialog,
+                        onPressed: isPaired ? _showWriteNoteDialog : null,
                       ),
                     ],
                   );
@@ -423,7 +426,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                     const SizedBox(height: 4),
                     _WriteNoteButton(
                       isChinese: strings.isChinese,
-                      onPressed: _showWriteNoteDialog,
+                      onPressed: isPaired ? _showWriteNoteDialog : null,
                     ),
                   ],
                 );
@@ -507,8 +510,8 @@ class _ToggleChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: active
               ? (isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.65))
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.65))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           border: active
@@ -528,8 +531,8 @@ class _ToggleChip extends StatelessWidget {
               color: active
                   ? (isDark ? AppTheme.warmWhite90 : colorScheme.onSurface)
                   : (isDark
-                      ? AppTheme.warmWhite60
-                      : colorScheme.onSurface.withValues(alpha: 0.5)),
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurface.withValues(alpha: 0.5)),
             ),
           ),
         ),
@@ -562,9 +565,7 @@ class _ModeLeadCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            isPlanMode
-                ? strings.planModeLeadTitle
-                : strings.noteModeLeadTitle,
+            isPlanMode ? strings.planModeLeadTitle : strings.noteModeLeadTitle,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
@@ -810,7 +811,7 @@ class _CreatePlanButton extends StatelessWidget {
   const _CreatePlanButton({required this.isChinese, required this.onPressed});
 
   final bool isChinese;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -845,7 +846,7 @@ class _WriteNoteButton extends StatelessWidget {
   const _WriteNoteButton({required this.isChinese, required this.onPressed});
 
   final bool isChinese;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

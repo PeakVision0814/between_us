@@ -541,6 +541,9 @@ void main() {
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
       displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
     );
 
     await tester.scrollUntilVisible(
@@ -563,6 +566,9 @@ void main() {
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
       displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
     );
 
     await tester.scrollUntilVisible(
@@ -580,6 +586,125 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Notes'), findsWidgets);
+  });
+
+  testWidgets(
+    'single mode: home quick actions for plan and note are disabled',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.en,
+        displayName: 'Xiaoman',
+        memberCount: 1,
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('home-quick-action-plan')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      // Plan quick action exists but tapping does nothing
+      final planTile = find.byKey(const ValueKey('home-quick-action-plan'));
+      expect(planTile, findsOneWidget);
+      await tester.tap(planTile);
+      await tester.pumpAndSettle();
+      // Still on home — did not navigate to plans screen
+      expect(find.text('Quick actions'), findsOneWidget);
+
+      // Note quick action exists but tapping does nothing
+      final noteTile = find.byKey(const ValueKey('home-quick-action-note'));
+      expect(noteTile, findsOneWidget);
+      await tester.tap(noteTile);
+      await tester.pumpAndSettle();
+      // Still on home — did not navigate to notes screen
+      expect(find.text('Quick actions'), findsOneWidget);
+    },
+  );
+
+  testWidgets('single mode: plans page create button is disabled', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+    );
+
+    // Navigate to Plans & Notes tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.edit_note_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The "Add a plan" button should be present but disabled
+    final addButton = find.text('Add a plan');
+    expect(addButton, findsOneWidget);
+
+    // Scroll to the button so it's actually tappable
+    await tester.scrollUntilVisible(
+      addButton,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping the disabled button should not open the create dialog
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Add a plan'),
+      findsOneWidget,
+    ); // still the button, not a dialog
+    expect(
+      find.text('What do you want to do...'),
+      findsNothing,
+    ); // dialog hint not shown
+  });
+
+  testWidgets('single mode: calendar composer chips are disabled', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+    );
+
+    // Navigate to Calendar tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.calendar_month_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Composer section exists
+    expect(find.text('What belongs in calendar'), findsOneWidget);
+
+    // Scroll to the anniversary chip so it's actually tappable
+    final anniversaryChip = find.text('Anniversary');
+    await tester.scrollUntilVisible(
+      anniversaryChip,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping the disabled chip should not open the create dialog
+    await tester.tap(anniversaryChip);
+    await tester.pumpAndSettle();
+    expect(find.text('Title'), findsNothing); // dialog field not shown
   });
 
   testWidgets('authenticated users can enter Us and change language/theme', (

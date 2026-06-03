@@ -73,6 +73,7 @@ class AppController extends ChangeNotifier {
   String? get currentSpaceId => _currentSpaceId;
   int get memberCount => _memberCount;
   String? get partnerDisplayName => _partnerDisplayName;
+  bool get hasActiveCoupleSpace => _memberCount >= 2 && _currentSpaceId != null;
   bool get profileCheckInProgress => _profileCheckInProgress;
   bool get profileSaveInProgress => _profileSaveInProgress;
   String? get profileErrorCode => _profileErrorCode;

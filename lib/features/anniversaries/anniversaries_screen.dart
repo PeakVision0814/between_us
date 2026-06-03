@@ -70,6 +70,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     bool allDay = false,
   }) async {
     if (title.trim().isEmpty) return false;
+    if (!AppScope.read(context).hasActiveCoupleSpace) return false;
 
     setState(() => _submitting = true);
 
@@ -235,6 +236,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             submitting: _submitting,
             onSubmit: _submitEvent,
             isDark: isDark,
+            isPaired: AppScope.of(context).hasActiveCoupleSpace,
           ),
         ],
       ),
@@ -703,17 +705,12 @@ class _UpcomingEventCard extends StatelessWidget {
                       _MetaChip(label: strings.calendarTypeLabel(entry.type)),
                       if (entry.repeatRule == CalendarRepeatRule.yearly)
                         _MetaChip(
-                          label: strings.calendarRepeatLabel(
-                            entry.repeatRule,
-                          ),
+                          label: strings.calendarRepeatLabel(entry.repeatRule),
                         ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    entry.title,
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text(entry.title, style: theme.textTheme.titleMedium),
                   if (entry.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -864,6 +861,7 @@ class _ComposerCard extends StatefulWidget {
     required this.submitting,
     required this.onSubmit,
     required this.isDark,
+    required this.isPaired,
   });
 
   final bool submitting;
@@ -877,6 +875,7 @@ class _ComposerCard extends StatefulWidget {
   })
   onSubmit;
   final bool isDark;
+  final bool isPaired;
 
   @override
   State<_ComposerCard> createState() => _ComposerCardState();
@@ -1093,44 +1092,53 @@ class _ComposerCardState extends State<_ComposerCard> {
             ),
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() => _selectedType = 'anniversary');
-                  _showCreateDialog();
-                },
-                child: _EntryChip(
-                  label: strings.calendarTypeLabel(
-                    CalendarEntryType.anniversary,
+          Opacity(
+            opacity: widget.isPaired ? 1.0 : 0.4,
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                GestureDetector(
+                  onTap: widget.isPaired
+                      ? () {
+                          setState(() => _selectedType = 'anniversary');
+                          _showCreateDialog();
+                        }
+                      : null,
+                  child: _EntryChip(
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.anniversary,
+                    ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  setState(() => _selectedType = 'date_plan');
-                  _showCreateDialog();
-                },
-                child: _EntryChip(
-                  label: strings.calendarTypeLabel(
-                    CalendarEntryType.datePlan,
+                GestureDetector(
+                  onTap: widget.isPaired
+                      ? () {
+                          setState(() => _selectedType = 'date_plan');
+                          _showCreateDialog();
+                        }
+                      : null,
+                  child: _EntryChip(
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.datePlan,
+                    ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  setState(() => _selectedType = 'reminder');
-                  _showCreateDialog();
-                },
-                child: _EntryChip(
-                  label: strings.calendarTypeLabel(
-                    CalendarEntryType.reminder,
+                GestureDetector(
+                  onTap: widget.isPaired
+                      ? () {
+                          setState(() => _selectedType = 'reminder');
+                          _showCreateDialog();
+                        }
+                      : null,
+                  child: _EntryChip(
+                    label: strings.calendarTypeLabel(
+                      CalendarEntryType.reminder,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           PageInsetPanel(
@@ -1158,9 +1166,7 @@ class _ComposerCardState extends State<_ComposerCard> {
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppTheme.warmWhite60
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
