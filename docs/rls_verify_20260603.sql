@@ -158,6 +158,81 @@ BEGIN
 
   PERFORM set_config('role', 'postgres', true);
 
+  -- ── 场景 5：pending_partner 空间 select 应返回 0 行 ──
+  -- 先降级空间回 pending_partner，移除第二个成员
+  DELETE FROM public.couple_memberships
+  WHERE couple_space_id = 'aaaa0000-0000-0000-0000-000000000001'
+    AND profile_id = '22222222-2222-2222-2222-222222222222';
+  UPDATE public.couple_spaces SET status = 'pending_partner'
+  WHERE id = 'aaaa0000-0000-0000-0000-000000000001';
+
+  -- 插入一些测试数据（以 postgres 绕过 RLS）
+  INSERT INTO public.calendar_events (couple_space_id, created_by, event_type, title, starts_at)
+  VALUES ('aaaa0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'reminder', 'rls-test-select-event', now());
+  INSERT INTO public.plans (couple_space_id, created_by, title)
+  VALUES ('aaaa0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'rls-test-select-plan');
+  INSERT INTO public.notes (couple_space_id, author_profile_id, body, author_local_date)
+  VALUES ('aaaa0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'rls-test-select-note', current_date);
+
+  -- 以 user1 身份 select（pending_partner，应返回 0 行）
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111"}', true);
+
+  SELECT count(*) INTO v_count FROM public.calendar_events WHERE title = 'rls-test-select-event';
+  IF v_count = 0 THEN
+    RAISE NOTICE 'PASS: pending_partner select calendar_events returns 0 rows';
+  ELSE
+    RAISE EXCEPTION 'FAIL: pending_partner select calendar_events should return 0 rows, got %', v_count;
+  END IF;
+
+  SELECT count(*) INTO v_count FROM public.plans WHERE title = 'rls-test-select-plan';
+  IF v_count = 0 THEN
+    RAISE NOTICE 'PASS: pending_partner select plans returns 0 rows';
+  ELSE
+    RAISE EXCEPTION 'FAIL: pending_partner select plans should return 0 rows, got %', v_count;
+  END IF;
+
+  SELECT count(*) INTO v_count FROM public.notes WHERE body = 'rls-test-select-note';
+  IF v_count = 0 THEN
+    RAISE NOTICE 'PASS: pending_partner select notes returns 0 rows';
+  ELSE
+    RAISE EXCEPTION 'FAIL: pending_partner select notes should return 0 rows, got %', v_count;
+  END IF;
+
+  PERFORM set_config('role', 'postgres', true);
+
+  -- ── 场景 6：active 双人空间 select 应可见 ──
+  UPDATE public.couple_spaces SET status = 'active'
+  WHERE id = 'aaaa0000-0000-0000-0000-000000000001';
+  INSERT INTO public.couple_memberships (couple_space_id, profile_id, role)
+  VALUES ('aaaa0000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'partner');
+
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111"}', true);
+
+  SELECT count(*) INTO v_count FROM public.calendar_events WHERE title = 'rls-test-select-event';
+  IF v_count = 1 THEN
+    RAISE NOTICE 'PASS: active couple select calendar_events returns 1 row';
+  ELSE
+    RAISE EXCEPTION 'FAIL: active couple select calendar_events should return 1 row, got %', v_count;
+  END IF;
+
+  SELECT count(*) INTO v_count FROM public.plans WHERE title = 'rls-test-select-plan';
+  IF v_count = 1 THEN
+    RAISE NOTICE 'PASS: active couple select plans returns 1 row';
+  ELSE
+    RAISE EXCEPTION 'FAIL: active couple select plans should return 1 row, got %', v_count;
+  END IF;
+
+  SELECT count(*) INTO v_count FROM public.notes WHERE body = 'rls-test-select-note';
+  IF v_count = 1 THEN
+    RAISE NOTICE 'PASS: active couple select notes returns 1 row';
+  ELSE
+    RAISE EXCEPTION 'FAIL: active couple select notes should return 1 row, got %', v_count;
+  END IF;
+
+  PERFORM set_config('role', 'postgres', true);
+
   -- ── 清理 ──
   DELETE FROM public.notes WHERE body LIKE 'rls-test-%';
   DELETE FROM public.plans WHERE title LIKE 'rls-test-%';

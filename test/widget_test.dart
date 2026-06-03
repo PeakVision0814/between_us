@@ -513,6 +513,9 @@ void main() {
       authStatus: AppAuthStatus.authenticated,
       language: AppLanguage.en,
       displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
     );
 
     await tester.tap(
@@ -588,6 +591,29 @@ void main() {
     expect(find.text('Notes'), findsWidgets);
   });
 
+  testWidgets('single mode: home does not show shared business previews', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+    );
+
+    // Shared business preview section headers should not be rendered
+    // (Note: 'Next important date' also appears as a quick action subtitle,
+    //  so we check for the section header-specific patterns instead)
+    expect(find.text('Latest shared update'), findsNothing);
+    expect(find.text('One plan worth moving'), findsNothing);
+    // No shared business data cards should be present
+    expect(
+      find.byKey(const ValueKey('home-featured-calendar-title-home-featured')),
+      findsNothing,
+    );
+  });
+
   testWidgets(
     'single mode: home quick actions for plan and note are disabled',
     (tester) async {
@@ -624,7 +650,7 @@ void main() {
     },
   );
 
-  testWidgets('single mode: plans page create button is disabled', (
+  testWidgets('single mode: plans page shows empty state, no create button', (
     tester,
   ) async {
     await _pumpApp(
@@ -644,32 +670,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The "Add a plan" button should be present but disabled
-    final addButton = find.text('Add a plan');
-    expect(addButton, findsOneWidget);
-
-    // Scroll to the button so it's actually tappable
-    await tester.scrollUntilVisible(
-      addButton,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    // Tapping the disabled button should not open the create dialog
-    await tester.tap(addButton);
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Add a plan'),
-      findsOneWidget,
-    ); // still the button, not a dialog
-    expect(
-      find.text('What do you want to do...'),
-      findsNothing,
-    ); // dialog hint not shown
+    // Shows lightweight empty state, not business content
+    expect(find.text('No plans yet'), findsOneWidget);
+    expect(find.text('Invite your partner to start using'), findsOneWidget);
+    expect(find.text('Add a plan'), findsNothing);
+    expect(find.text('What do you want to do...'), findsNothing);
   });
 
-  testWidgets('single mode: calendar composer chips are disabled', (
+  testWidgets('single mode: calendar page shows empty state, no composer', (
     tester,
   ) async {
     await _pumpApp(
@@ -689,22 +697,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Composer section exists
-    expect(find.text('What belongs in calendar'), findsOneWidget);
-
-    // Scroll to the anniversary chip so it's actually tappable
-    final anniversaryChip = find.text('Anniversary');
-    await tester.scrollUntilVisible(
-      anniversaryChip,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    // Tapping the disabled chip should not open the create dialog
-    await tester.tap(anniversaryChip);
-    await tester.pumpAndSettle();
-    expect(find.text('Title'), findsNothing); // dialog field not shown
+    // Shows lightweight empty state, not business content
+    expect(find.text('No calendar events yet'), findsOneWidget);
+    expect(find.text('Invite your partner to start using'), findsOneWidget);
+    expect(find.text('What belongs in calendar'), findsNothing);
+    expect(find.text('Anniversary'), findsNothing);
   });
 
   testWidgets('authenticated users can enter Us and change language/theme', (

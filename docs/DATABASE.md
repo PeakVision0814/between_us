@@ -275,7 +275,7 @@
 - 伴侣只有在 `shared_with_partner = true` 时才可读取 `cycle_records`
 - 已解绑或已关闭的空间，除非存在专门恢复流，否则应阻止新的写入
 - 共享业务数据写入应要求有效双人空间；`pending_partner` 空间不应允许创建 `calendar_events`、`plans`、`notes`
-- 已通过 `is_active_couple_member()` 函数和 migration `20260603100000` 实施：只有 `status = 'active'` 且拥有两名活跃成员的空间，其成员才能 insert/update 共享业务数据
+- 已通过 `is_active_couple_member()` 函数和 migration `20260603100000` + `20260603120000` 实施：只有 `status = 'active'` 且拥有两名活跃成员的空间，其成员才能 select/insert/update 共享业务数据
 - RLS 与前端 guard 都不应把 `profile_id` 当作计划、随记、日历事件的主归属依据
 
 ## 页面与数据的对应关系

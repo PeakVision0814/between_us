@@ -31,8 +31,17 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     _activeMode = widget.mode == PlansNotesMode.overview
         ? PlansNotesMode.plan
         : widget.mode;
-    _notesFuture = _fetchNotes();
-    _plansFuture = _fetchPlans();
+    // Defer data loading to didChangeDependencies where context is available.
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isPaired = AppScope.of(context).hasActiveCoupleSpace;
+    if (isPaired && _notesFuture == null) {
+      _notesFuture = _fetchNotes();
+      _plansFuture = _fetchPlans();
+    }
   }
 
   Future<List<NoteRecord>> _fetchNotes() async {
@@ -308,7 +317,19 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
           _ModeLeadCard(isPlanMode: isPlanMode),
           const SizedBox(height: 24),
 
-          if (isPlanMode) ...[
+          if (!isPaired) ...[
+            // ── Single mode: lightweight empty state ──
+            PageSectionHeader(
+              title: isPlanMode
+                  ? strings.plansSectionTitle
+                  : strings.notesSectionTitle,
+            ),
+            const SizedBox(height: 12),
+            _PendingPartnerEmptyState(
+              isChinese: strings.isChinese,
+              isPlanMode: isPlanMode,
+            ),
+          ] else if (isPlanMode) ...[
             // ── Plans section ──
             PageSectionHeader(
               title: strings.plansSectionTitle,
@@ -334,7 +355,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       const SizedBox(height: 16),
                       _CreatePlanButton(
                         isChinese: strings.isChinese,
-                        onPressed: isPaired ? _showCreatePlanDialog : null,
+                        onPressed: _showCreatePlanDialog,
                       ),
                     ],
                   );
@@ -362,7 +383,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                     const SizedBox(height: 4),
                     _CreatePlanButton(
                       isChinese: strings.isChinese,
-                      onPressed: isPaired ? _showCreatePlanDialog : null,
+                      onPressed: _showCreatePlanDialog,
                     ),
                   ],
                 );
@@ -374,7 +395,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
               onTap: () => setState(() => _activeMode = PlansNotesMode.note),
             ),
           ] else ...[
-            // ── Notes section ──
+            // ── Notes section (paired mode only) ──
             PageSectionHeader(
               title: strings.notesSectionTitle,
               subtitle: strings.notesSectionSubtitle,
@@ -399,7 +420,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                       const SizedBox(height: 16),
                       _WriteNoteButton(
                         isChinese: strings.isChinese,
-                        onPressed: isPaired ? _showWriteNoteDialog : null,
+                        onPressed: _showWriteNoteDialog,
                       ),
                     ],
                   );
@@ -426,7 +447,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                     const SizedBox(height: 4),
                     _WriteNoteButton(
                       isChinese: strings.isChinese,
-                      onPressed: isPaired ? _showWriteNoteDialog : null,
+                      onPressed: _showWriteNoteDialog,
                     ),
                   ],
                 );
@@ -755,6 +776,54 @@ class _PlansEmptyState extends StatelessWidget {
                 color: isDark
                     ? AppTheme.warmWhite60
                     : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingPartnerEmptyState extends StatelessWidget {
+  const _PendingPartnerEmptyState({
+    required this.isChinese,
+    required this.isPlanMode,
+  });
+
+  final bool isChinese;
+  final bool isPlanMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    final icon = isPlanMode ? Icons.lightbulb_outline : Icons.note_alt_outlined;
+    final color = isPlanMode ? AppTheme.mint : AppTheme.blush;
+    final title = isPlanMode
+        ? (isChinese ? '还没有计划' : 'No plans yet')
+        : (isChinese ? '还没有随记' : 'No notes yet');
+    final subtitle = isChinese
+        ? '邀请对方加入后，即可开始使用'
+        : 'Invite your partner to start using';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            PageIconBadge(icon: icon, color: color, size: 48),
+            const SizedBox(height: 16),
+            Text(title, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ],

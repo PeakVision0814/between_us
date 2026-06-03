@@ -23,17 +23,38 @@ void main() {
   });
 
   testWidgets('calendar has month view and composer', (tester) async {
-    await _pumpCalendar(tester);
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+    );
 
-    await _scrollTo(tester, find.byKey(const ValueKey('calendar-selected-date-label')));
+    await _scrollTo(
+      tester,
+      find.byKey(const ValueKey('calendar-selected-date-label')),
+    );
 
-    expect(find.byKey(const ValueKey('calendar-selected-date-label')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-date-label')),
+      findsOneWidget,
+    );
     expect(find.text('纪念日'), findsWidgets);
   });
 }
 
-Future<void> _pumpCalendar(WidgetTester tester) async {
+Future<void> _pumpCalendar(
+  WidgetTester tester, {
+  int memberCount = 0,
+  String? currentSpaceId,
+}) async {
   final controller = AppController();
+  controller.debugSeedLoadedProfile(
+    userId: 'test-user',
+    displayName: '测试用户',
+    gender: AppController.genderFemale,
+    memberCount: memberCount,
+    currentSpaceId: currentSpaceId,
+  );
 
   await tester.pumpWidget(
     AppScope(
@@ -46,11 +67,7 @@ Future<void> _pumpCalendar(WidgetTester tester) async {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const Scaffold(
-          body: SafeArea(
-            child: CalendarScreen(),
-          ),
-        ),
+        home: const Scaffold(body: SafeArea(child: CalendarScreen())),
       ),
     ),
   );

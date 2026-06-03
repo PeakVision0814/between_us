@@ -19,10 +19,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<CalendarEventRecord> _events = [];
   bool _submitting = false;
 
+  bool _eventsLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    _loadEvents();
+    // Defer event loading to didChangeDependencies where context is available.
   }
 
   @override
@@ -31,6 +33,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _selectedDate ??= _dateOnly(
       AppStrings.of(context).calendarDefaultSelectedDate,
     );
+    if (!_eventsLoaded && AppScope.of(context).hasActiveCoupleSpace) {
+      _eventsLoaded = true;
+      _loadEvents();
+    }
   }
 
   Future<void> _loadEvents() async {
@@ -106,6 +112,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isPaired = AppScope.of(context).hasActiveCoupleSpace;
+
+    if (!isPaired) {
+      return PageAtmosphere(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageSectionHeader(title: strings.calendarTab),
+            const SizedBox(height: 12),
+            _CalendarPendingEmptyState(isChinese: strings.isChinese),
+          ],
+        ),
+      );
+    }
+
     final displayMonth = strings.calendarPrototypeDisplayMonth;
     final visibleDays = strings.calendarVisibleDaysForMonth(displayMonth);
 
@@ -743,6 +765,52 @@ class _UpcomingEventCard extends StatelessWidget {
               textAlign: TextAlign.right,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Calendar Pending Empty State ──────────────────────────────────────
+
+class _CalendarPendingEmptyState extends StatelessWidget {
+  const _CalendarPendingEmptyState({required this.isChinese});
+
+  final bool isChinese;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            PageIconBadge(
+              icon: Icons.calendar_month_outlined,
+              color: AppTheme.gold,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isChinese ? '还没有日历事件' : 'No calendar events yet',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isChinese
+                  ? '邀请对方加入后，即可开始使用'
+                  : 'Invite your partner to start using',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ],

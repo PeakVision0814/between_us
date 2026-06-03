@@ -47,6 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
+    if (!appController.hasActiveCoupleSpace) {
+      debugPrint('[Home] skip load: no active couple space');
+      return;
+    }
 
     try {
       final results = await Future.wait([
@@ -175,36 +179,38 @@ class _HomeScreenState extends State<HomeScreen> {
             displayName: controller.displayName,
             memberCount: controller.memberCount,
             partnerDisplayName: controller.partnerDisplayName,
-            nextDate: _nextDate,
+            nextDate: isPaired ? _nextDate : null,
             onOpenCalendar: widget.onOpenCalendar,
             onOpenUs: widget.onOpenUs,
             isChinese: strings.isChinese,
           ),
-          const SizedBox(height: 24),
-          PageSectionHeader(title: strings.nextDateSection),
-          const SizedBox(height: 10),
-          _DatePreviewCard(
-            item: _nextDate,
-            onTap: widget.onOpenCalendar,
-            isChinese: strings.isChinese,
-          ),
-          const SizedBox(height: 24),
-          PageSectionHeader(title: strings.recentUpdateSection),
-          const SizedBox(height: 10),
-          _NotePreviewCard(
-            note: _recentNote,
-            onWriteNote: widget.onWriteNote,
-            isChinese: strings.isChinese,
-            isPaired: isPaired,
-          ),
-          const SizedBox(height: 24),
-          PageSectionHeader(title: strings.recentPlanSection),
-          const SizedBox(height: 10),
-          _PlanPreviewCard(
-            plan: _recentPlan,
-            onTap: widget.onOpenPlansNotes,
-            isChinese: strings.isChinese,
-          ),
+          if (isPaired) ...[
+            const SizedBox(height: 24),
+            PageSectionHeader(title: strings.nextDateSection),
+            const SizedBox(height: 10),
+            _DatePreviewCard(
+              item: _nextDate,
+              onTap: widget.onOpenCalendar,
+              isChinese: strings.isChinese,
+            ),
+            const SizedBox(height: 24),
+            PageSectionHeader(title: strings.recentUpdateSection),
+            const SizedBox(height: 10),
+            _NotePreviewCard(
+              note: _recentNote,
+              onWriteNote: widget.onWriteNote,
+              isChinese: strings.isChinese,
+              isPaired: isPaired,
+            ),
+            const SizedBox(height: 24),
+            PageSectionHeader(title: strings.recentPlanSection),
+            const SizedBox(height: 10),
+            _PlanPreviewCard(
+              plan: _recentPlan,
+              onTap: widget.onOpenPlansNotes,
+              isChinese: strings.isChinese,
+            ),
+          ],
           const SizedBox(height: 24),
           PageSectionHeader(
             title: strings.quickLinksSection,
