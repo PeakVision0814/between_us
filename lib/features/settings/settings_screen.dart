@@ -300,12 +300,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
             isDark: isDark,
             selfGender: controller.gender,
           ),
-          const SizedBox(height: 24),
-          PageSectionHeader(
-            title: strings.spaceSection,
-            subtitle: strings.isChinese ? '共享空间' : 'Shared space',
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           _buildSpaceSection(
             context,
             strings,
