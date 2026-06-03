@@ -453,8 +453,13 @@ class AppController extends ChangeNotifier {
       }
       _loadedPreferencesUserId = userId;
       if (changed) notifyListeners();
-    } catch (_) {
-      // Supabase not initialized or query failed; keep defaults.
+    } catch (error) {
+      if (_isJwtExpired(error)) {
+        debugPrint('[Auth] loadPreferences failed due to expired JWT, signing out');
+        await signOut();
+      } else {
+        // Supabase not initialized or query failed; keep defaults.
+      }
     }
   }
 
@@ -508,8 +513,14 @@ class AppController extends ChangeNotifier {
       return true;
     } catch (error) {
       debugPrint('[Profile] Save setup failed: $error');
-      _profileErrorCode = 'save_failed';
-      notifyListeners();
+      if (_isJwtExpired(error)) {
+        _profileErrorCode = 'session_expired';
+        notifyListeners();
+        await signOut();
+      } else {
+        _profileErrorCode = 'save_failed';
+        notifyListeners();
+      }
       return false;
     } finally {
       _profileSaveInProgress = false;
@@ -638,7 +649,15 @@ class AppController extends ChangeNotifier {
       notifyListeners();
     }
 
-    await reloadProfile(force: true);
+    try {
+      await reloadProfile(force: true);
+    } catch (error) {
+      debugPrint('[Auth] Profile reload failed: $error');
+      if (_isJwtExpired(error)) {
+        await signOut();
+        return;
+      }
+    }
     if (_profileCheckInProgress) {
       _profileCheckInProgress = false;
       notifyListeners();
@@ -768,6 +787,13 @@ class AppController extends ChangeNotifier {
     return message.contains('already registered') ||
         message.contains('already been registered') ||
         message.contains('user already exists');
+  }
+
+  bool _isJwtExpired(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('jwt expired') ||
+        message.contains('pgrst303') ||
+        (message.contains('unauthorized') && message.contains('jwt'));
   }
 
   bool _isValidDisplayName(String value) {

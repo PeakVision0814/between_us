@@ -702,6 +702,64 @@ void main() {
       findsOneWidget,
     );
   });
+
+  test(
+    'profile load failure due to JWT expired signs out instead of entering profile setup',
+    () async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+      controller.debugSetSignOutAction(() async {});
+
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          throw Exception('JWT expired');
+        },
+        forceBlockingProfileCheck: true,
+      );
+
+      expect(controller.authStatus, AppAuthStatus.unauthenticated);
+      expect(controller.requiresProfileSetup, isFalse);
+    },
+  );
+
+  test(
+    'profile load failure for non-JWT reasons does not sign out',
+    () async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          throw Exception('Network timeout');
+        },
+        forceBlockingProfileCheck: true,
+      );
+
+      expect(controller.authStatus, AppAuthStatus.authenticated);
+    },
+  );
+
+  test(
+    'requiresProfileSetup is false when profile check is in progress',
+    () {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+        profileCheckInProgress: true,
+      );
+
+      expect(controller.requiresProfileSetup, isFalse);
+    },
+  );
 }
 
 Future<void> _pumpApp(

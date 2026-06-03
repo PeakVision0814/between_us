@@ -281,6 +281,10 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
         isChinese
             ? '资料保存失败，请稍后重试。'
             : 'Failed to save your profile. Please try again.',
+      'session_expired' =>
+        isChinese
+            ? '登录状态已过期，请重新登录。'
+            : 'Your session has expired. Please sign in again.',
       _ =>
         isChinese
             ? '资料保存时发生异常，请重试。'
