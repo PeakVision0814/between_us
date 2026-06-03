@@ -455,11 +455,9 @@ class AppController extends ChangeNotifier {
       if (changed) notifyListeners();
     } catch (error) {
       if (_isJwtExpired(error)) {
-        debugPrint('[Auth] loadPreferences failed due to expired JWT, signing out');
-        await signOut();
-      } else {
-        // Supabase not initialized or query failed; keep defaults.
+        rethrow;
       }
+      // Supabase not initialized or query failed; keep defaults.
     }
   }
 
@@ -516,7 +514,7 @@ class AppController extends ChangeNotifier {
       if (_isJwtExpired(error)) {
         _profileErrorCode = 'session_expired';
         notifyListeners();
-        await signOut();
+        await _handleExpiredSession();
       } else {
         _profileErrorCode = 'save_failed';
         notifyListeners();
@@ -586,24 +584,7 @@ class AppController extends ChangeNotifier {
     bool forceBlockingProfileCheck = false,
   }) async {
     if (userId == null) {
-      _authStatus = AppAuthStatus.unauthenticated;
-      _pendingEmail = null;
-      _authErrorCode = null;
-      _loadedPreferencesUserId = null;
-      _displayName = null;
-      _gender = null;
-      _birthday = null;
-      _selfProfileId = null;
-      _currentSpaceId = null;
-      _memberCount = 0;
-      _partnerDisplayName = null;
-      _profileCheckInProgress = false;
-      _profileSaveInProgress = false;
-      _profileErrorCode = null;
-      _language = AppLanguage.zhCn;
-      _themePreference = AppThemePreference.system;
-      _notificationPreviewEnabled = false;
-      notifyListeners();
+      _clearAuthenticatedState();
       return;
     }
 
@@ -654,7 +635,7 @@ class AppController extends ChangeNotifier {
     } catch (error) {
       debugPrint('[Auth] Profile reload failed: $error');
       if (_isJwtExpired(error)) {
-        await signOut();
+        await _handleExpiredSession();
         return;
       }
     }
@@ -708,6 +689,40 @@ class AppController extends ChangeNotifier {
   @visibleForTesting
   void debugSetSignOutAction(Future<void> Function()? action) {
     _debugSignOutAction = action;
+  }
+
+  /// 清理已登录态数据，将 authStatus 设为 unauthenticated。
+  /// 供 userId == null 和 JWT expired 两条路径共用。
+  void _clearAuthenticatedState() {
+    _authStatus = AppAuthStatus.unauthenticated;
+    _pendingEmail = null;
+    _authErrorCode = null;
+    _loadedPreferencesUserId = null;
+    _displayName = null;
+    _gender = null;
+    _birthday = null;
+    _selfProfileId = null;
+    _currentSpaceId = null;
+    _memberCount = 0;
+    _partnerDisplayName = null;
+    _profileCheckInProgress = false;
+    _profileSaveInProgress = false;
+    _profileErrorCode = null;
+    _language = AppLanguage.zhCn;
+    _themePreference = AppThemePreference.system;
+    _notificationPreviewEnabled = false;
+    notifyListeners();
+  }
+
+  /// 内部会话过期处理：清理本地状态，不走 signOut() / _syncSession 队列。
+  Future<void> _handleExpiredSession() async {
+    debugPrint('[Auth] Session expired, clearing local state');
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      // 忽略 Supabase auth.signOut() 的异常
+    }
+    _clearAuthenticatedState();
   }
 
   void _setAuthBusy(bool busy) {

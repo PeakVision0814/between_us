@@ -704,25 +704,29 @@ void main() {
   });
 
   test(
-    'profile load failure due to JWT expired signs out instead of entering profile setup',
+    'profile load failure due to JWT expired clears session without blocking',
     () async {
       final controller = AppController();
       controller.debugSetAuthState(
         status: AppAuthStatus.authenticated,
         supabaseReady: true,
       );
-      controller.debugSetSignOutAction(() async {});
 
-      await controller.debugSyncSessionUser(
-        'user-1',
-        onReloadProfile: ({bool force = false}) async {
-          throw Exception('JWT expired');
-        },
-        forceBlockingProfileCheck: true,
-      );
+      await controller
+          .debugSyncSessionUser(
+            'user-1',
+            onReloadProfile: ({bool force = false}) async {
+              throw Exception('JWT expired');
+            },
+            forceBlockingProfileCheck: true,
+          )
+          .timeout(const Duration(seconds: 1));
 
       expect(controller.authStatus, AppAuthStatus.unauthenticated);
       expect(controller.requiresProfileSetup, isFalse);
+      expect(controller.displayName, isNull);
+      expect(controller.gender, isNull);
+      expect(controller.currentSpaceId, isNull);
     },
   );
 
