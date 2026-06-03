@@ -9,7 +9,6 @@ import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
 import 'profile_screen.dart';
-import 'settings_more_screen.dart';
 
 class UsScreen extends StatefulWidget {
   const UsScreen({super.key});
@@ -232,12 +231,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-  void _openSettingsMoreScreen() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsMoreScreen()));
   }
 
   void _showInviteCodeDialog() {
@@ -481,25 +474,11 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       key: const ValueKey('us-space-section'),
       isDark: isDark,
       title: strings.spaceSection,
-      viewMoreLabel: strings.isChinese ? '查看更多' : 'View more',
-      onViewMore: _openSettingsMoreScreen,
       entries: [
         _SpaceModuleEntryData(
-          icon: Icons.calendar_month_outlined,
-          label: strings.isChinese ? '日历' : 'Calendar',
-        ),
-        _SpaceModuleEntryData(
-          icon: Icons.fact_check_outlined,
-          label: strings.isChinese ? '计划' : 'Plans',
-        ),
-        _SpaceModuleEntryData(
-          icon: Icons.edit_note_outlined,
-          label: strings.isChinese ? '随记' : 'Notes',
-        ),
-        _SpaceModuleEntryData(
-          icon: Icons.settings_outlined,
-          label: strings.isChinese ? '设置' : 'Settings',
-          onTap: _openSettingsMoreScreen,
+          icon: Icons.info_outline,
+          label: strings.spaceStatusLabel,
+          onTap: isPaired ? () {} : null,
         ),
       ],
     );
@@ -830,16 +809,12 @@ class _SpaceModule extends StatelessWidget {
     super.key,
     required this.isDark,
     required this.title,
-    required this.viewMoreLabel,
     required this.entries,
-    this.onViewMore,
   });
 
   final bool isDark;
   final String title;
-  final String viewMoreLabel;
   final List<_SpaceModuleEntryData> entries;
-  final VoidCallback? onViewMore;
 
   @override
   Widget build(BuildContext context) {
@@ -851,34 +826,12 @@ class _SpaceModule extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isDark
-                        ? AppTheme.warmWhite90
-                        : colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              TextButton.icon(
-                key: const ValueKey('us-space-view-more'),
-                onPressed: onViewMore,
-                label: Text(viewMoreLabel),
-                icon: const Icon(Icons.chevron_right, size: 18),
-                iconAlignment: IconAlignment.end,
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  foregroundColor: isDark
-                      ? AppTheme.warmWhite60
-                      : colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          child: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         DecoratedBox(

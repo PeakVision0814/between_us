@@ -666,46 +666,38 @@ void main() {
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('View more')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Space status')),
       findsOneWidget,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Calendar')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Plans')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Notes')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Settings')),
-      findsOneWidget,
+      findsNothing,
     );
 
-    expect(
-      find.descendant(
-        of: spaceSection,
-        matching: find.text('Generate invite code'),
-      ),
-      findsNothing,
+    // Single mode: Space status entry should not navigate
+    final spaceStatusEntry = find.byKey(
+      const ValueKey('us-space-entry-Space status'),
     );
-    expect(
-      find.descendant(
-        of: spaceSection,
-        matching: find.text('Enter invite code to join'),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: spaceSection,
-        matching: find.text('Current invite code'),
-      ),
-      findsNothing,
-    );
+    expect(spaceStatusEntry, findsOneWidget);
+    await tester.tap(spaceStatusEntry);
+    await tester.pumpAndSettle();
+    // Still on the Us screen, no navigation occurred
+    expect(find.byKey(const ValueKey('us-space-section')), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('us-hero-single-slot')),
@@ -755,35 +747,35 @@ void main() {
 
     expect(
       find.descendant(of: spaceSection, matching: find.text('View more')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Calendar')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Plans')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Notes')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: spaceSection, matching: find.text('Settings')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: spaceSection, matching: find.text('Space status')),
       findsOneWidget,
     );
-    expect(find.text('Space status'), findsNothing);
-    expect(find.text('Invite status'), findsNothing);
-    expect(find.text('Relationship date'), findsNothing);
 
-    await tester.tap(
-      find.descendant(of: spaceSection, matching: find.text('Settings')),
+    // Paired mode: Space status entry is tappable
+    final spaceStatusEntry = find.byKey(
+      const ValueKey('us-space-entry-Space status'),
     );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
-    await tester.pageBack();
+    expect(spaceStatusEntry, findsOneWidget);
+    await tester.tap(spaceStatusEntry);
     await tester.pumpAndSettle();
 
     // Tap the partner avatar to navigate to partner profile page

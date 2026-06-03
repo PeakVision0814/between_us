@@ -65,3 +65,7 @@ supabase\config.toml
 .agent
 .temp\
 temp.txt
+
+.claude
+.codegraph
+.mcp.json
