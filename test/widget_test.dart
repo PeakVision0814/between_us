@@ -848,6 +848,213 @@ void main() {
     expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
     expect(find.text('1998-06-01'), findsOneWidget);
   });
+
+  testWidgets('profile screen enters edit mode on tapping edit button', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    // Navigate to Us tab and open profile
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+
+    // Verify read mode
+    expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-edit-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-edit-name-field')), findsNothing);
+
+    // Tap edit button
+    await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+    await tester.pumpAndSettle();
+
+    // Verify edit mode
+    expect(
+      find.byKey(const ValueKey('profile-edit-name-field')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('profile-save-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-cancel-button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('profile-edit-birthday-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('profile edit: empty name prevents save', (tester) async {
+    final controller = _FakeSaveProfileController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    // Navigate to Us tab and open profile
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+
+    // Enter edit mode
+    await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+    await tester.pumpAndSettle();
+
+    // Clear name field
+    await tester.enterText(
+      find.byKey(const ValueKey('profile-edit-name-field')),
+      '',
+    );
+    await tester.pumpAndSettle();
+
+    // Tap save
+    await tester.tap(find.byKey(const ValueKey('profile-save-button')));
+    await tester.pumpAndSettle();
+
+    // Verify error message and still in edit mode
+    expect(find.text('昵称不能为空'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('profile-edit-name-field')),
+      findsOneWidget,
+    );
+    expect(controller.saveCalls, 0);
+  });
+
+  testWidgets(
+    'profile edit: editing name, gender, birthday updates controller',
+    (tester) async {
+      final controller = _FakeSaveProfileController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        birthday: DateTime(1998, 6, 1),
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+      controller.setLanguage(AppLanguage.en);
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      // Navigate to Us tab and open profile
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+
+      // Enter edit mode
+      await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+      await tester.pumpAndSettle();
+
+      // Change name
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-edit-name-field')),
+        'Ache',
+      );
+
+      // Change gender to male
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+
+      // Save
+      await tester.tap(find.byKey(const ValueKey('profile-save-button')));
+      await tester.pumpAndSettle();
+
+      // Verify controller was updated
+      expect(controller.saveCalls, 1);
+      expect(controller.lastSavedDisplayName, 'Ache');
+      expect(controller.lastSavedGender, AppController.genderMale);
+      expect(controller.lastSavedBirthday, DateTime(1998, 6, 1));
+
+      // Verify back to read mode with new values
+      expect(
+        find.byKey(const ValueKey('profile-display-name')),
+        findsOneWidget,
+      );
+      expect(find.text('Ache'), findsWidgets);
+      expect(find.text('Male'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'profile edit: email remains read-only, no editable email field',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        birthday: DateTime(1998, 6, 1),
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+
+      // Navigate to Us tab and open profile
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+
+      // Enter edit mode
+      await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+      await tester.pumpAndSettle();
+
+      // Verify email is a read-only display, not a TextFormField
+      expect(
+        find.byKey(const ValueKey('profile-edit-email-field')),
+        findsOneWidget,
+      );
+      // The email field should be a _ReadOnlyField, not a TextFormField
+      final emailFinder = find.byKey(
+        const ValueKey('profile-edit-email-field'),
+      );
+      expect(
+        find.descendant(of: emailFinder, matching: find.byType(TextFormField)),
+        findsNothing,
+      );
+
+      // There should be exactly one TextFormField (name), not two
+      final textFormFields = find.byType(TextFormField);
+      expect(textFormFields, findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpApp(
@@ -895,6 +1102,37 @@ class _SuccessfulRegisterController extends AppController {
       displayName: 'Xiaoman',
       gender: AppController.genderUnset,
     );
+    return true;
+  }
+}
+
+class _FakeSaveProfileController extends AppController {
+  int saveCalls = 0;
+  String? lastSavedDisplayName;
+  String? lastSavedGender;
+  DateTime? lastSavedBirthday;
+
+  @override
+  Future<bool> saveProfileSetup({
+    required String displayName,
+    required String gender,
+    DateTime? birthday,
+  }) async {
+    saveCalls += 1;
+    lastSavedDisplayName = displayName;
+    lastSavedGender = gender;
+    lastSavedBirthday = birthday;
+    // Simulate successful save by updating local state
+    debugSeedLoadedProfile(
+      userId: selfProfileId ?? 'test-user',
+      displayName: displayName,
+      gender: gender,
+      birthday: birthday,
+      currentSpaceId: currentSpaceId,
+      memberCount: memberCount,
+      partnerDisplayName: partnerDisplayName,
+    );
+    notifyListeners();
     return true;
   }
 }

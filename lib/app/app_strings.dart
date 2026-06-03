@@ -84,6 +84,30 @@ class AppStrings {
       ? '认证过程中发生异常，请重试。'
       : 'Something went wrong during authentication. Please try again.';
 
+  String get profileEditLabel => isChinese ? '编辑' : 'Edit';
+  String get profileCancelLabel => isChinese ? '取消' : 'Cancel';
+  String get profileSaveLabel => isChinese ? '保存' : 'Save';
+  String get profileDisplayNameLabel => isChinese ? '昵称' : 'Display name';
+  String get profileDisplayNameHint =>
+      isChinese ? '输入你的昵称' : 'Enter your display name';
+  String get profileDisplayNameEmptyError =>
+      isChinese ? '昵称不能为空' : 'Display name cannot be empty';
+  String get profileDisplayNameTooLongError =>
+      isChinese ? '昵称不能超过 40 个字符' : 'Display name cannot exceed 40 characters';
+  String get profileGenderLabel => isChinese ? '性别' : 'Gender';
+  String get profileGenderMaleLabel => isChinese ? '男生' : 'Male';
+  String get profileGenderFemaleLabel => isChinese ? '女生' : 'Female';
+  String get profileGenderRequiredError =>
+      isChinese ? '请选择性别' : 'Please select a gender';
+  String get profileBirthdayLabel => isChinese ? '生日' : 'Birthday';
+  String get profileBirthdayHint => isChinese ? '点击选择日期' : 'Tap to select date';
+  String get profileBirthdayClearLabel => isChinese ? '清空' : 'Clear';
+  String get profileEmailLabel => isChinese ? '邮箱' : 'Email';
+  String get profileSaveFailedMessage =>
+      isChinese ? '保存失败，请稍后重试' : 'Failed to save. Please try again later.';
+  String get profileSessionExpiredMessage =>
+      isChinese ? '登录已过期，请重新登录' : 'Session expired. Please sign in again.';
+
   String get homeTab => isChinese ? '首页' : 'Home';
   String get calendarTab => isChinese ? '日历' : 'Calendar';
   String get plansNotesTab => isChinese ? '计划笔记' : 'Plans & Notes';
