@@ -281,6 +281,82 @@ void main() {
       expect(find.byType(CalendarScreen), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'paired mode: self-created event shows own display name',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'test-user', // same as selfProfileId
+          eventType: 'date_plan',
+          title: '测试约会',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Scroll to the author label and verify it shows own name.
+      await _scrollTo(tester, find.textContaining('由 测试用户 创建'));
+      expect(find.textContaining('由 测试用户 创建'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'paired mode: partner-created event shows partner name',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+        partnerDisplayName: '小满',
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'partner-user', // different from selfProfileId
+          eventType: 'date_plan',
+          title: '测试约会',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Scroll to the author label and verify it shows partner name.
+      await _scrollTo(tester, find.textContaining('由 小满 创建'));
+      expect(find.textContaining('由 小满 创建'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'single mode: no author label on events',
+    (tester) async {
+      await _pumpCalendar(tester);
+
+      // Single mode shows empty state, no author labels.
+      expect(find.textContaining('由'), findsNothing);
+      expect(find.textContaining('创建'), findsNothing);
+    },
+  );
 }
 
 Future<void> _pumpCalendar(
@@ -288,6 +364,7 @@ Future<void> _pumpCalendar(
   int memberCount = 0,
   String? currentSpaceId,
   bool supabaseReady = false,
+  String? partnerDisplayName,
 }) async {
   final controller = AppController();
   controller.debugSetAuthState(
@@ -300,6 +377,7 @@ Future<void> _pumpCalendar(
     gender: AppController.genderFemale,
     memberCount: memberCount,
     currentSpaceId: currentSpaceId,
+    partnerDisplayName: partnerDisplayName,
   );
 
   await tester.pumpWidget(

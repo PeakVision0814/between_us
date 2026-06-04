@@ -18,6 +18,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDate;
   late DateTime _displayMonth;
   List<CalendarEventRecord> _events = [];
+  Map<String, String> _eventCreators = {};
   bool _submitting = false;
   bool _eventsLoaded = false;
 
@@ -25,6 +26,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void debugSetEvents(List<CalendarEventRecord> events) {
     setState(() {
       _events = events;
+      _eventCreators = {for (final e in events) e.id: e.createdBy};
       _eventsLoaded = true;
     });
   }
@@ -63,6 +65,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (mounted) {
         setState(() {
           _events = records;
+          _eventCreators = {for (final e in records) e.id: e.createdBy};
         });
       }
     } catch (_) {
@@ -421,6 +424,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         isDark: isDark,
                         onDelete: () =>
                             _confirmDeleteEvent(entry.id, entry.title),
+                        createdBy: _eventCreators[entry.id],
                       ),
                     ),
                   ),
@@ -446,6 +450,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   isDark: isDark,
                   onDelete: () =>
                       _confirmDeleteEvent(item.entry.id, item.entry.title),
+                  createdBy: _eventCreators[item.entry.id],
                 ),
               ),
             ),
@@ -747,12 +752,14 @@ class _SelectedEntryCard extends StatelessWidget {
     required this.occurrence,
     required this.isDark,
     this.onDelete,
+    this.createdBy,
   });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
   final bool isDark;
   final VoidCallback? onDelete;
+  final String? createdBy;
 
   @override
   Widget build(BuildContext context) {
@@ -826,8 +833,32 @@ class _SelectedEntryCard extends StatelessWidget {
               strings.formatCalendarDate(occurrence, includeTime: showsTime),
               style: theme.textTheme.bodySmall,
             ),
+            if (createdBy != null &&
+                AppScope.of(context).hasActiveCoupleSpace) ...[
+              const SizedBox(height: 8),
+              _buildAuthorLabel(context, createdBy!),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAuthorLabel(BuildContext context, String creatorId) {
+    final controller = AppScope.of(context);
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    final name = creatorId == controller.selfProfileId
+        ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
+        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+
+    return Text(
+      strings.createdByLabel(name),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -895,12 +926,14 @@ class _UpcomingEventCard extends StatelessWidget {
     required this.occurrence,
     required this.isDark,
     this.onDelete,
+    this.createdBy,
   });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
   final bool isDark;
   final VoidCallback? onDelete;
+  final String? createdBy;
 
   @override
   Widget build(BuildContext context) {
@@ -961,6 +994,11 @@ class _UpcomingEventCard extends StatelessWidget {
                     ),
                     style: theme.textTheme.bodySmall,
                   ),
+                  if (createdBy != null &&
+                      AppScope.of(context).hasActiveCoupleSpace) ...[
+                    const SizedBox(height: 6),
+                    _buildAuthorLabel(context, createdBy!),
+                  ],
                 ],
               ),
             ),
@@ -993,6 +1031,25 @@ class _UpcomingEventCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAuthorLabel(BuildContext context, String creatorId) {
+    final controller = AppScope.of(context);
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    final name = creatorId == controller.selfProfileId
+        ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
+        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+
+    return Text(
+      strings.createdByLabel(name),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
       ),
     );
   }

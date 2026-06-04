@@ -444,6 +444,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                             ),
                             helperLabel: '',
                           ),
+                          createdBy: plan.createdBy,
                         ),
                       ),
                     ),
@@ -682,9 +683,10 @@ class _ModeLeadCard extends StatelessWidget {
 // ─── Plan Card ──────────────────────────────────────────────────────────
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
+  const _PlanCard({required this.plan, this.createdBy});
 
   final PlanItemCopy plan;
+  final String? createdBy;
 
   @override
   Widget build(BuildContext context) {
@@ -730,9 +732,33 @@ class _PlanCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(plan.helperLabel, style: theme.textTheme.bodySmall),
               ],
+              if (createdBy != null &&
+                  AppScope.of(context).hasActiveCoupleSpace) ...[
+                const SizedBox(height: 10),
+                _buildAuthorLabel(context, createdBy!),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAuthorLabel(BuildContext context, String creatorId) {
+    final controller = AppScope.of(context);
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    final name = creatorId == controller.selfProfileId
+        ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
+        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+
+    return Text(
+      strings.createdByLabel(name),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
       ),
     );
   }

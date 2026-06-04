@@ -1506,6 +1506,13 @@ class AppStrings {
     ja: '削除に失敗しました。もう一度お試しください。',
     ko: '삭제에 실패했습니다. 다시 시도하세요.',
   );
+  String createdByLabel(String name) => _resolve(
+    zhCn: '由 $name 创建',
+    zhTw: '由 $name 建立',
+    en: 'Created by $name',
+    ja: '$name が作成',
+    ko: '$name 생성',
+  );
 
   List<CalendarEntryData> get calendarPrototypeEntries => isChinese
       ? [
