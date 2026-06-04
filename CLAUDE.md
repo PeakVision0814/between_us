@@ -84,7 +84,7 @@ Calendar data (entries, occurrences, formatting) is also derived centrally in `A
 
 ### Shared Widgets
 
-`lib/shared/widgets/` — `AppPage`, `CircleBadge`, `FeatureTile`, `SectionHeader`, `DebugRefreshDiagnosticsCard`, plus page visual language utilities (`PageSectionHeader`, `PageListItem`, `PageIconBadge`, `PageInsetPanel`, etc.).
+`lib/shared/widgets/` — `AppPage`, `CircleBadge`, `FeatureTile`, `SectionHeader`, plus page visual language utilities (`PageSectionHeader`, `PageListItem`, `PageIconBadge`, `PageInsetPanel`, etc.).
 
 ### Supabase (Backend Foundation)
 
