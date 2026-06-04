@@ -258,6 +258,41 @@
 - 只有在 `shared_with_partner = true` 时，伴侣才可查看
 - 首版只做手动记录，不做复杂预测
 
+### `couple_space_exit_requests`
+
+用途：
+
+- 存放双人空间退出请求的生命周期记录
+- 支持"A 发起退出请求，B 同意后关闭空间"的最小闭环
+
+建议字段：
+
+- `id uuid primary key`
+- `couple_space_id uuid not null references couple_spaces(id)`
+- `requested_by uuid not null references profiles(id)`
+- `status text not null default 'pending'`
+  - `pending`：等待对方审批
+  - `approved`：对方已同意，空间已关闭
+  - `cancelled`：发起方取消（预留，本轮未实现取消 RPC）
+- `request_count int not null default 1`（预留：记录同一空间累计发起次数，用于后续强制退出判断）
+- `requested_at timestamptz not null default now()`
+- `responded_by uuid references profiles(id)`
+- `responded_at timestamptz`
+- `created_at timestamptz not null default now()`
+- `updated_at timestamptz not null default now()`
+
+约束：
+
+- 同一个 `couple_space_id` 同一时间最多只有一个 `status = 'pending'` 的退出请求（部分唯一索引）
+- `requested_by` 必须是该空间的 active member（由 RPC `request_couple_space_exit()` 保证）
+- 审批人不能是 `requested_by`（由 RPC `approve_couple_space_exit()` 保证）
+- 只有 active 双人空间才能发起退出请求（由 RPC 保证）
+
+RLS 方向：
+
+- active couple space 成员可以读取自己空间的退出请求
+- 不开放客户端直接 insert/update/delete，所有变更通过 SECURITY DEFINER RPC 执行
+
 ## Row Level Security 方向
 
 `RLS` 应确保以下原则成立：
@@ -278,6 +313,7 @@
 - 共享业务数据写入应要求有效双人空间；`pending_partner` 空间不应允许创建 `calendar_events`、`plans`、`notes`
 - 已通过 `is_active_couple_member()` 函数和 migration `20260603100000` + `20260603120000` 实施：只有 `status = 'active'` 且拥有两名活跃成员的空间，其成员才能 select/insert/update 共享业务数据
 - RLS 与前端 guard 都不应把 `profile_id` 当作计划、随记、日历事件的主归属依据
+- `couple_space_exit_requests` 仅允许 active couple space 成员读取（select），不开放客户端直接写入，所有创建和审批通过 SECURITY DEFINER RPC 完成
 
 ## 页面与数据的对应关系
 
@@ -327,6 +363,25 @@
 - 历史共享数据应进入不可见 / 归档状态；如需永久删除，必须设计独立的危险操作、明确确认和审计记录
 - 后续解除流程需要可追踪状态：发起人、接收人、发起次数、同意 / 拒绝 / 超时结果、关闭时间
 - 产品规划中的解除规则为：双方同意则关闭；对方拒绝则保留；同一方连续 3 次发起且均被拒绝后可强制关闭；对方 24 小时无操作则自动关闭
+
+### 退出请求机制（已实现 MVP）
+
+通过 `couple_space_exit_requests` 表和两个 RPC 实现最小退出闭环：
+
+1. 用户 A 调用 `request_couple_space_exit()` 发起退出请求
+2. 请求进入 `pending` 状态
+3. 用户 B 调用 `approve_couple_space_exit(request_id)` 同意退出
+4. 空间 `couple_spaces.status` 更新为 `closed`，设 `closed_at`
+5. 双方 `couple_memberships.status` 更新为 `left`，设 `left_at`
+6. 共享业务数据（`calendar_events`、`plans`、`notes`）不物理删除，随空间关闭自然不可见
+7. AppController 刷新后双方回到单人态
+
+本轮未实现的能力（留到后续阶段）：
+
+- 对方拒绝退出请求
+- 同一方连续 3 次被拒绝后强制关闭
+- 对方 24 小时无操作自动关闭
+- 发起方取消已发出的退出请求
 
 ## 敏感数据特殊规则
 

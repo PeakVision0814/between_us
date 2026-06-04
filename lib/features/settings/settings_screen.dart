@@ -40,9 +40,29 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Listen for controller changes (e.g. after space exit approval).
+    final controller = AppScope.of(context);
+    controller.addListener(_onControllerChanged);
+  }
+
+  void _onControllerChanged() {
+    // Reload space data when controller state changes.
+    _loadSpaceData();
+  }
+
+  @override
   void dispose() {
     _spaceRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    // Safe to remove listener — AppScope.of(context) is still valid in dispose.
+    try {
+      final controller = AppScope.read(context);
+      controller.removeListener(_onControllerChanged);
+    } catch (_) {
+      // Context may be deactivated; ignore.
+    }
     super.dispose();
   }
 
@@ -202,6 +222,19 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           acceptingInvite: _acceptingInvite,
           onShowInviteDialog: _showInviteCodeDialog,
         ),
+      ),
+    );
+  }
+
+  void _openSpaceStatusScreen(
+    AppController controller,
+    AppStrings strings, {
+    required String? partnerName,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            SpaceStatusScreen(controller: controller, partnerName: partnerName),
       ),
     );
   }
@@ -463,6 +496,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     required bool isPaired,
     required bool isDark,
   }) {
+    final controller = AppScope.of(context);
     return _SpaceModule(
       key: const ValueKey('us-space-section'),
       isDark: isDark,
@@ -471,7 +505,13 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         _SpaceModuleEntryData(
           icon: Icons.info_outline,
           label: strings.spaceStatusLabel,
-          onTap: isPaired ? () {} : null,
+          onTap: isPaired
+              ? () => _openSpaceStatusScreen(
+                  controller,
+                  strings,
+                  partnerName: _resolvedPartnerName(controller),
+                )
+              : null,
         ),
       ],
     );
@@ -844,6 +884,493 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     return strings.isChinese
         ? '有效期至 ${expiresAt.month} 月 ${expiresAt.day} 日 ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}'
         : 'Expires ${expiresAt.month}/${expiresAt.day} ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Space Status Screen (secondary page)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Snapshot of a pending exit request, used for testing.
+class ExitRequestSnapshot {
+  const ExitRequestSnapshot({
+    required this.requestId,
+    required this.requestedBy,
+  });
+
+  final String requestId;
+  final String requestedBy;
+}
+
+class SpaceStatusScreen extends StatefulWidget {
+  const SpaceStatusScreen({
+    super.key,
+    required this.controller,
+    required this.partnerName,
+    this.initialExitRequest,
+    this.onRequestExit,
+    this.onApproveExit,
+  });
+
+  final AppController controller;
+  final String? partnerName;
+
+  /// If provided, skip the Supabase query and use this state directly.
+  /// Pass null to indicate no pending request; non-null for a pending request.
+  final ExitRequestSnapshot? initialExitRequest;
+
+  /// If provided, call this instead of the real RPC when requesting exit.
+  /// Returns the new pending request id, or null on failure.
+  final Future<String?> Function()? onRequestExit;
+
+  /// If provided, call this instead of the real RPC when approving exit.
+  final Future<bool> Function(String requestId)? onApproveExit;
+
+  @override
+  State<SpaceStatusScreen> createState() => _SpaceStatusScreenState();
+}
+
+class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
+  bool _loading = true;
+  bool _actionInProgress = false;
+  String? _pendingRequestId;
+  String? _pendingRequesterId;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialExitRequest != null) {
+      // Use injected state (test seam).
+      final snapshot = widget.initialExitRequest!;
+      _pendingRequestId = snapshot.requestId;
+      _pendingRequesterId = snapshot.requestedBy;
+      _loading = false;
+    } else if (widget.onRequestExit != null || widget.onApproveExit != null) {
+      // Test seam active, explicit null = no pending request.
+      _loading = false;
+    } else {
+      _loadExitRequest();
+    }
+  }
+
+  Future<void> _loadExitRequest() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    if (!widget.controller.supabaseReady) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _errorMessage = 'Supabase not ready';
+        });
+      }
+      return;
+    }
+
+    final spaceId = widget.controller.currentSpaceId;
+    if (spaceId == null) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _errorMessage = 'No active space';
+        });
+      }
+      return;
+    }
+
+    try {
+      final response = await Supabase.instance.client
+          .from('couple_space_exit_requests')
+          .select('id, requested_by')
+          .eq('couple_space_id', spaceId)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (response != null) {
+        setState(() {
+          _pendingRequestId = response['id'] as String;
+          _pendingRequesterId = response['requested_by'] as String;
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _pendingRequestId = null;
+          _pendingRequesterId = null;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[ExitRequest] load failed: $e');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _errorMessage = 'Failed to load';
+        });
+      }
+    }
+  }
+
+  bool get _isSelfRequested =>
+      _pendingRequesterId == widget.controller.selfProfileId;
+
+  bool get _isPartnerRequested =>
+      _pendingRequestId != null && !_isSelfRequested;
+
+  Future<void> _requestExit() async {
+    final strings = AppStrings.of(context);
+
+    // First confirmation: strong warning.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(strings.exitSpaceWarningTitle),
+        content: Text(strings.exitSpaceWarningBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(strings.exitSpaceConfirmTitle),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Second confirmation: explicit confirm.
+    final doubleConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(strings.exitSpaceConfirmTitle),
+        content: Text(strings.exitSpaceConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(strings.exitSpaceButton),
+          ),
+        ],
+      ),
+    );
+
+    if (doubleConfirmed != true || !mounted) return;
+
+    setState(() => _actionInProgress = true);
+
+    try {
+      if (widget.onRequestExit != null) {
+        final newId = await widget.onRequestExit!();
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.exitSpaceWaiting)));
+        if (newId != null) {
+          setState(() {
+            _pendingRequestId = newId;
+            _pendingRequesterId = widget.controller.selfProfileId;
+          });
+        }
+      } else {
+        await Supabase.instance.client.rpc('request_couple_space_exit');
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.exitSpaceWaiting)));
+        await _loadExitRequest();
+      }
+    } catch (e) {
+      debugPrint('[ExitRequest] request failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.exitSpaceError)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _actionInProgress = false);
+      }
+    }
+  }
+
+  Future<void> _approveExit() async {
+    final strings = AppStrings.of(context);
+    final requestId = _pendingRequestId;
+    if (requestId == null) return;
+
+    // Confirmation dialog.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(strings.exitSpaceApproveConfirmTitle),
+        content: Text(strings.exitSpaceApproveConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(strings.exitSpaceApproveButton),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _actionInProgress = true);
+
+    try {
+      if (widget.onApproveExit != null) {
+        await widget.onApproveExit!(requestId);
+      } else {
+        await Supabase.instance.client.rpc(
+          'approve_couple_space_exit',
+          params: {'p_request_id': requestId},
+        );
+      }
+
+      // Refresh AppController to return to single mode.
+      await widget.controller.refreshAfterInviteAccepted();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.exitSpaceSuccess)));
+
+      // Pop back to Us screen (now in single mode).
+      Navigator.of(context).pop();
+    } catch (e) {
+      debugPrint('[ExitRequest] approve failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.exitSpaceError)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _actionInProgress = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final partnerName =
+        widget.partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          strings.spaceStatusLabel,
+          style: TextStyle(color: isDark ? AppTheme.warmWhite90 : null),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: PageAtmosphere(
+        padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(
+                child: Text(
+                  strings.exitSpaceError,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            : _buildContent(context, strings, isDark, partnerName),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    AppStrings strings,
+    bool isDark,
+    String partnerName,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Space status info.
+        PageSectionHeader(
+          title: strings.spaceStatusLabel,
+          subtitle: strings.exitSpaceStatusActive,
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.secondary,
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              PageIconBadge(
+                icon: Icons.check_circle_outline,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.exitSpaceStatusActive,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      strings.isChinese
+                          ? '与 $partnerName 共享中'
+                          : 'Sharing with $partnerName',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Exit section.
+        PageSectionHeader(
+          title: strings.exitSpaceSection,
+          subtitle: strings.isChinese
+              ? '退出后双方回到单人态'
+              : 'Both return to single mode after exit',
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.primary,
+          padding: const EdgeInsets.all(20),
+          child: _buildExitSection(context, strings, isDark, partnerName),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExitSection(
+    BuildContext context,
+    AppStrings strings,
+    bool isDark,
+    String partnerName,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    if (_isSelfRequested) {
+      // Self requested, waiting for partner.
+      return Row(
+        children: [
+          Icon(
+            Icons.hourglass_top,
+            color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              strings.exitSpaceWaiting,
+              key: const ValueKey('exit-space-waiting'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_isPartnerRequested) {
+      // Partner requested, show approve button.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            strings.exitSpacePartnerRequest,
+            key: const ValueKey('exit-space-partner-request'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              key: const ValueKey('exit-space-approve-button'),
+              onPressed: _actionInProgress ? null : _approveExit,
+              child: _actionInProgress
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.exitSpaceApproveButton),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // No pending request, show exit button.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.exitSpaceWarningBody,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            key: const ValueKey('exit-space-request-button'),
+            onPressed: _actionInProgress ? null : _requestExit,
+            child: _actionInProgress
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(strings.exitSpaceButton),
+          ),
+        ),
+      ],
+    );
   }
 }
 

@@ -87,8 +87,9 @@ class _AppShellState extends State<AppShell> {
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
-          children:
-              destinations.map((destination) => destination.screen).toList(),
+          children: destinations
+              .map((destination) => destination.screen)
+              .toList(),
         ),
       ),
       bottomNavigationBar: NavigationBar(

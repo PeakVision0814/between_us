@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:between_us/features/auth/email_register_screen.dart';
+import 'package:between_us/features/settings/settings_screen.dart'
+    show SpaceStatusScreen, ExitRequestSnapshot;
 import 'package:between_us/features/timeline/timeline_screen.dart'
     show resolveNoteAuthorName;
 import 'package:flutter/material.dart';
@@ -894,12 +896,19 @@ void main() {
       findsOneWidget,
     );
 
-    // Paired mode: Space status entry is tappable
+    // Paired mode: Space status entry is tappable and navigates
     final spaceStatusEntry = find.byKey(
       const ValueKey('us-space-entry-Space status'),
     );
     expect(spaceStatusEntry, findsOneWidget);
     await tester.tap(spaceStatusEntry);
+    await tester.pumpAndSettle();
+
+    // Should navigate to space status screen.
+    expect(find.text('Space status'), findsWidgets);
+
+    // Pop back to Us screen.
+    Navigator.of(tester.element(find.byType(Scaffold))).pop();
     await tester.pumpAndSettle();
 
     // Tap the partner avatar to navigate to partner profile page
@@ -917,6 +926,340 @@ void main() {
       find.byKey(const ValueKey('us-partner-profile-section')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('paired mode: space status screen shows exit button', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap space status entry.
+    await tester.tap(find.byKey(const ValueKey('us-space-entry-Space status')));
+    await tester.pumpAndSettle();
+
+    // Should show space status screen with error (supabase not ready).
+    expect(find.text('Space status'), findsWidgets);
+  });
+
+  testWidgets('single mode: space status entry is not tappable', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 1,
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Space status entry exists but is not tappable (onTap is null).
+    final spaceStatusEntry = find.byKey(
+      const ValueKey('us-space-entry-Space status'),
+    );
+    expect(spaceStatusEntry, findsOneWidget);
+
+    // Tapping should do nothing (no navigation).
+    await tester.tap(spaceStatusEntry);
+    await tester.pumpAndSettle();
+
+    // Still on Us screen.
+    expect(find.byKey(const ValueKey('us-hero-section')), findsOneWidget);
+  });
+
+  testWidgets('space status: no pending request shows exit button', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.en);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      selfProfileId: 'user-a-id',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppScope(
+          controller: controller,
+          child: SpaceStatusScreen(
+            controller: controller,
+            partnerName: 'Ache',
+            // No initialExitRequest = no pending request.
+            onRequestExit: () async => 'new-request-id',
+            onApproveExit: (_) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Should show exit button.
+    expect(
+      find.byKey(const ValueKey('exit-space-request-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Exit couple space'), findsWidgets);
+
+    // Should NOT show waiting or partner-request state.
+    expect(find.byKey(const ValueKey('exit-space-waiting')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('exit-space-partner-request')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('space status: self-requested shows waiting state', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.en);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      selfProfileId: 'user-a-id',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppScope(
+          controller: controller,
+          child: SpaceStatusScreen(
+            controller: controller,
+            partnerName: 'Ache',
+            initialExitRequest: const ExitRequestSnapshot(
+              requestId: 'req-1',
+              requestedBy: 'user-a-id', // self
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Should show waiting state.
+    expect(find.byKey(const ValueKey('exit-space-waiting')), findsOneWidget);
+    expect(
+      find.text('Exit requested. Waiting for partner to confirm.'),
+      findsOneWidget,
+    );
+
+    // Should NOT show exit button or partner-request.
+    expect(
+      find.byKey(const ValueKey('exit-space-request-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('exit-space-partner-request')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('space status: partner-requested shows approve button', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.en);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      selfProfileId: 'user-a-id',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppScope(
+          controller: controller,
+          child: SpaceStatusScreen(
+            controller: controller,
+            partnerName: 'Ache',
+            initialExitRequest: const ExitRequestSnapshot(
+              requestId: 'req-1',
+              requestedBy: 'user-b-id', // partner
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Should show partner request and approve button.
+    expect(
+      find.byKey(const ValueKey('exit-space-partner-request')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('exit-space-approve-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Partner requests to exit the couple space'),
+      findsOneWidget,
+    );
+
+    // Should NOT show exit button or waiting state.
+    expect(
+      find.byKey(const ValueKey('exit-space-request-button')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('exit-space-waiting')), findsNothing);
+  });
+
+  testWidgets('space status: request exit shows two confirmation dialogs', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.en);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      selfProfileId: 'user-a-id',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppScope(
+          controller: controller,
+          child: SpaceStatusScreen(
+            controller: controller,
+            partnerName: 'Ache',
+            onRequestExit: () async => 'new-req-id',
+            onApproveExit: (_) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the exit button.
+    await tester.tap(find.byKey(const ValueKey('exit-space-request-button')));
+    await tester.pump(); // Let first dialog appear.
+
+    // First confirmation: strong warning dialog.
+    expect(find.text('Exit couple space'), findsWidgets);
+    expect(find.text('Confirm exit'), findsOneWidget); // button in dialog
+    await tester.tap(find.text('Confirm exit'));
+    await tester.pump(); // Let first dialog close.
+    await tester.pump(); // Let second dialog appear.
+
+    // Second confirmation dialog.
+    expect(find.text('Confirm exit'), findsWidgets); // title + button
+    // Find the second dialog's confirm button (FilledButton with "Exit couple space").
+    final confirmButtons = find.text('Exit couple space');
+    expect(confirmButtons, findsWidgets);
+    // Tap the dialog button (last one is in the dialog).
+    await tester.tap(confirmButtons.last);
+    await tester.pump(); // Let second dialog close.
+    await tester.pump(); // Let snackbar and state update appear.
+
+    // After confirmations, should transition to waiting state.
+    expect(find.byKey(const ValueKey('exit-space-waiting')), findsOneWidget);
+  });
+
+  testWidgets('space status: approve exit shows confirmation and refreshes', (
+    tester,
+  ) async {
+    var approveCalled = false;
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.en);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      selfProfileId: 'user-a-id',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppScope(
+          controller: controller,
+          child: SpaceStatusScreen(
+            controller: controller,
+            partnerName: 'Ache',
+            initialExitRequest: const ExitRequestSnapshot(
+              requestId: 'req-1',
+              requestedBy: 'user-b-id',
+            ),
+            onApproveExit: (_) async {
+              approveCalled = true;
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap approve button.
+    await tester.tap(find.byKey(const ValueKey('exit-space-approve-button')));
+    await tester.pump(); // Let dialog appear.
+
+    // Confirmation dialog should appear.
+    expect(find.text('Confirm exit approval'), findsOneWidget);
+    expect(find.text('Approve exit'), findsWidgets);
+
+    // Confirm by tapping the FilledButton in the dialog.
+    await tester.tap(find.byType(FilledButton).last);
+    await tester.pump(); // Let dialog close.
+    await tester.pump(); // Let snackbar appear.
+
+    // Verify callback was called.
+    expect(approveCalled, isTrue);
+
+    // Should show success snackbar.
+    expect(find.text('Exited the couple space'), findsOneWidget);
   });
 
   test(

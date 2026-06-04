@@ -29,10 +29,11 @@ class AuthPageBackground extends StatelessWidget {
             right: -30,
             child: _DecorativeCircle(
               diameter: 180,
-              color: (isDark
-                      ? AppTheme.authAccentCircleDark1
-                      : AppTheme.authAccentCircleLight1)
-                  .withValues(alpha: isDark ? 0.35 : 0.45),
+              color:
+                  (isDark
+                          ? AppTheme.authAccentCircleDark1
+                          : AppTheme.authAccentCircleLight1)
+                      .withValues(alpha: isDark ? 0.35 : 0.45),
             ),
           ),
           // Bottom-left decorative circle
@@ -41,10 +42,11 @@ class AuthPageBackground extends StatelessWidget {
             left: -40,
             child: _DecorativeCircle(
               diameter: 160,
-              color: (isDark
-                      ? AppTheme.authAccentCircleDark2
-                      : AppTheme.authAccentCircleLight2)
-                  .withValues(alpha: isDark ? 0.30 : 0.40),
+              color:
+                  (isDark
+                          ? AppTheme.authAccentCircleDark2
+                          : AppTheme.authAccentCircleLight2)
+                      .withValues(alpha: isDark ? 0.30 : 0.40),
             ),
           ),
           child,
@@ -55,10 +57,7 @@ class AuthPageBackground extends StatelessWidget {
 }
 
 class _DecorativeCircle extends StatelessWidget {
-  const _DecorativeCircle({
-    required this.diameter,
-    required this.color,
-  });
+  const _DecorativeCircle({required this.diameter, required this.color});
 
   final double diameter;
   final Color color;
@@ -68,10 +67,7 @@ class _DecorativeCircle extends StatelessWidget {
     return Container(
       width: diameter,
       height: diameter,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }

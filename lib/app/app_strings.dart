@@ -239,6 +239,34 @@ class AppStrings {
   String get inviteAlreadyPairedError =>
       isChinese ? '你已经在配对空间中' : 'You are already in a paired space';
   String get inviteAccepting => isChinese ? '正在加入...' : 'Joining...';
+  String get exitSpaceSection => isChinese ? '退出空间' : 'Exit space';
+  String get exitSpaceButton => isChinese ? '退出双人空间' : 'Exit couple space';
+  String get exitSpaceWarningTitle =>
+      isChinese ? '退出双人空间' : 'Exit couple space';
+  String get exitSpaceWarningBody => isChinese
+      ? '退出后，你们双方都会回到单人态。双人空间中的计划、随记、日历数据不会被删除，但双方都将无法继续查看或编辑。后续如重新组成空间，旧空间数据不会自动合并。'
+      : 'After exiting, both of you will return to single mode. Plans, notes, and calendar data in this space will not be deleted, but neither of you will be able to view or edit them. If you form a new space later, old data will not be merged automatically.';
+  String get exitSpaceConfirmTitle => isChinese ? '确认退出' : 'Confirm exit';
+  String get exitSpaceConfirmBody => isChinese
+      ? '确定要发起退出双人空间的请求吗？对方确认后，空间将关闭。'
+      : 'Are you sure you want to request exiting the couple space? The space will close once your partner confirms.';
+  String get exitSpaceWaiting => isChinese
+      ? '已发起退出请求，等待对方确认'
+      : 'Exit requested. Waiting for partner to confirm.';
+  String get exitSpacePartnerRequest =>
+      isChinese ? '对方请求退出双人空间' : 'Partner requests to exit the couple space';
+  String get exitSpaceApproveButton => isChinese ? '同意退出' : 'Approve exit';
+  String get exitSpaceApproveConfirmTitle =>
+      isChinese ? '确认同意退出' : 'Confirm exit approval';
+  String get exitSpaceApproveConfirmBody => isChinese
+      ? '同意后，双人空间将关闭，双方都将回到单人态。空间中的数据不会删除，但双方将无法继续查看或编辑。确定继续吗？'
+      : 'Once approved, the couple space will close and both of you will return to single mode. Data will not be deleted, but neither of you can view or edit it. Continue?';
+  String get exitSpaceSuccess =>
+      isChinese ? '已退出双人空间' : 'Exited the couple space';
+  String get exitSpaceError =>
+      isChinese ? '操作失败，请稍后重试' : 'Operation failed. Please try again later.';
+  String get exitSpaceStatusActive =>
+      isChinese ? '双人空间已开启' : 'Couple space is active';
   String get sharedRulesTitle => isChinese ? '共享规则' : 'Shared rules';
   String get relationshipDateTitle => isChinese ? '关系起点' : 'Relationship date';
   String get cyclePrivacyTitle => isChinese ? '经期记录共享规则' : 'Cycle sharing rule';

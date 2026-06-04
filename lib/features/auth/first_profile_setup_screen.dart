@@ -99,154 +99,158 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
       body: AuthPageBackground(
         child: SafeArea(
           child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isChinese ? '完善你的资料' : 'Complete your profile',
-                        key: const ValueKey('profile-setup-title'),
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isChinese
-                            ? '登录已经完成。请先填写昵称和性别，生日可以稍后补充为空。保存后即可进入 Between Us。'
-                            : 'Sign-in is complete. Finish your name and gender first. Birthday is optional, and you can continue after saving.',
-                      ),
-                      const SizedBox(height: 20),
-                      if (controller.profileErrorCode case final errorCode?)
-                        _ProfileErrorBanner(
-                          message: _errorText(errorCode, isChinese),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isChinese ? '完善你的资料' : 'Complete your profile',
+                          key: const ValueKey('profile-setup-title'),
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
-                      if (controller.profileErrorCode != null)
-                        const SizedBox(height: 16),
-                      TextField(
-                        key: const ValueKey('profile-display-name-field'),
-                        controller: _displayNameController,
-                        enabled: !controller.profileSaveInProgress,
-                        autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        maxLength: 40,
-                        decoration: InputDecoration(
-                          labelText: isChinese ? '昵称' : 'Display name',
-                          hintText: isChinese
-                              ? '输入你想展示的昵称'
-                              : 'Enter the name you want to show',
-                        ),
-                        onChanged: (_) {
-                          controller.clearProfileError();
-                          setState(() {});
-                        },
-                        onSubmitted: (_) => _save(),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isChinese ? '性别' : 'Gender',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          ChoiceChip(
-                            key: const ValueKey('profile-gender-male'),
-                            label: Text(isChinese ? '男生' : 'Male'),
-                            selected:
-                                _selectedGender == AppController.genderMale,
-                            onSelected: controller.profileSaveInProgress
-                                ? null
-                                : (selected) {
-                                    controller.clearProfileError();
-                                    setState(() {
-                                      _selectedGender = selected
-                                          ? AppController.genderMale
-                                          : null;
-                                    });
-                                  },
-                          ),
-                          ChoiceChip(
-                            key: const ValueKey('profile-gender-female'),
-                            label: Text(isChinese ? '女生' : 'Female'),
-                            selected:
-                                _selectedGender == AppController.genderFemale,
-                            onSelected: controller.profileSaveInProgress
-                                ? null
-                                : (selected) {
-                                    controller.clearProfileError();
-                                    setState(() {
-                                      _selectedGender = selected
-                                          ? AppController.genderFemale
-                                          : null;
-                                    });
-                                  },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        isChinese ? '生日（可选）' : 'Birthday (optional)',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        key: const ValueKey('profile-birthday-button'),
-                        onPressed: controller.profileSaveInProgress
-                            ? null
-                            : _pickBirthday,
-                        icon: const Icon(Icons.cake_outlined),
-                        label: Text(_birthdayLabel(isChinese)),
-                      ),
-                      if (_selectedBirthday != null) ...[
                         const SizedBox(height: 8),
-                        TextButton(
-                          key: const ValueKey('profile-birthday-clear-button'),
+                        Text(
+                          isChinese
+                              ? '登录已经完成。请先填写昵称和性别，生日可以稍后补充为空。保存后即可进入 Between Us。'
+                              : 'Sign-in is complete. Finish your name and gender first. Birthday is optional, and you can continue after saving.',
+                        ),
+                        const SizedBox(height: 20),
+                        if (controller.profileErrorCode case final errorCode?)
+                          _ProfileErrorBanner(
+                            message: _errorText(errorCode, isChinese),
+                          ),
+                        if (controller.profileErrorCode != null)
+                          const SizedBox(height: 16),
+                        TextField(
+                          key: const ValueKey('profile-display-name-field'),
+                          controller: _displayNameController,
+                          enabled: !controller.profileSaveInProgress,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          maxLength: 40,
+                          decoration: InputDecoration(
+                            labelText: isChinese ? '昵称' : 'Display name',
+                            hintText: isChinese
+                                ? '输入你想展示的昵称'
+                                : 'Enter the name you want to show',
+                          ),
+                          onChanged: (_) {
+                            controller.clearProfileError();
+                            setState(() {});
+                          },
+                          onSubmitted: (_) => _save(),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isChinese ? '性别' : 'Gender',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            ChoiceChip(
+                              key: const ValueKey('profile-gender-male'),
+                              label: Text(isChinese ? '男生' : 'Male'),
+                              selected:
+                                  _selectedGender == AppController.genderMale,
+                              onSelected: controller.profileSaveInProgress
+                                  ? null
+                                  : (selected) {
+                                      controller.clearProfileError();
+                                      setState(() {
+                                        _selectedGender = selected
+                                            ? AppController.genderMale
+                                            : null;
+                                      });
+                                    },
+                            ),
+                            ChoiceChip(
+                              key: const ValueKey('profile-gender-female'),
+                              label: Text(isChinese ? '女生' : 'Female'),
+                              selected:
+                                  _selectedGender == AppController.genderFemale,
+                              onSelected: controller.profileSaveInProgress
+                                  ? null
+                                  : (selected) {
+                                      controller.clearProfileError();
+                                      setState(() {
+                                        _selectedGender = selected
+                                            ? AppController.genderFemale
+                                            : null;
+                                      });
+                                    },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          isChinese ? '生日（可选）' : 'Birthday (optional)',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          key: const ValueKey('profile-birthday-button'),
                           onPressed: controller.profileSaveInProgress
                               ? null
-                              : () {
-                                  controller.clearProfileError();
-                                  setState(() {
-                                    _selectedBirthday = null;
-                                  });
-                                },
-                          child: Text(isChinese ? '清空生日' : 'Clear birthday'),
+                              : _pickBirthday,
+                          icon: const Icon(Icons.cake_outlined),
+                          label: Text(_birthdayLabel(isChinese)),
+                        ),
+                        if (_selectedBirthday != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            key: const ValueKey(
+                              'profile-birthday-clear-button',
+                            ),
+                            onPressed: controller.profileSaveInProgress
+                                ? null
+                                : () {
+                                    controller.clearProfileError();
+                                    setState(() {
+                                      _selectedBirthday = null;
+                                    });
+                                  },
+                            child: Text(isChinese ? '清空生日' : 'Clear birthday'),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            key: const ValueKey('profile-save-button'),
+                            onPressed:
+                                controller.profileSaveInProgress || !_canSubmit
+                                ? null
+                                : _save,
+                            child: controller.profileSaveInProgress
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    isChinese ? '保存并进入' : 'Save and continue',
+                                  ),
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          key: const ValueKey('profile-save-button'),
-                          onPressed:
-                              controller.profileSaveInProgress || !_canSubmit
-                              ? null
-                              : _save,
-                          child: controller.profileSaveInProgress
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(isChinese ? '保存并进入' : 'Save and continue'),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }

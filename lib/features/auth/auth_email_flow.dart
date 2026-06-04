@@ -39,123 +39,127 @@ class AuthEmailFlowScaffold extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Icon(
-                          mode == AuthEmailFlowMode.signIn
-                              ? Icons.lock_open_rounded
-                              : Icons.person_add_alt_1_rounded,
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        mode == AuthEmailFlowMode.signIn
-                            ? strings.authSignInTitle
-                            : strings.authRegisterTitle,
-                        key: ValueKey(
-                          mode == AuthEmailFlowMode.signIn
-                              ? 'auth-login-title'
-                              : 'auth-register-title',
-                        ),
-                        style: theme.textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        mode == AuthEmailFlowMode.signIn
-                            ? strings.authSignInSubtitle
-                            : strings.authRegisterSubtitle,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 20),
-                      if (isBootstrapping) ...[
-                        const Center(child: CircularProgressIndicator()),
-                        const SizedBox(height: 16),
-                        Center(child: Text(strings.authCheckingSessionLabel)),
-                      ] else ...[
-                        if (errorCode != null)
-                          _AuthBanner(
-                            message: _errorText(strings, errorCode),
-                            retryLabel: strings.authRetryLabel,
-                            onRetry: controller.supabaseReady
-                                ? null
-                                : () => controller.bootstrap(),
-                            actionLabel: _errorActionLabel(strings, errorCode),
-                            onAction: _errorAction(strings, errorCode),
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(22),
                           ),
-                        if (errorCode != null) const SizedBox(height: 16),
-                        if (isOtpStep)
-                          _OtpStep(
-                            pendingEmail:
-                                controller.pendingEmail ??
-                                emailController.text.trim(),
-                            codeController: codeController,
-                            busy: controller.authBusy,
-                            strings: strings,
-                            onCodeChanged: (_) => controller.clearAuthError(),
-                            onBack: () {
-                              codeController.clear();
-                              controller.returnToEmailEntry();
-                            },
-                            onVerify: onVerifyCode,
-                            ctaLabel: mode == AuthEmailFlowMode.signIn
-                                ? strings.authVerifyAndSignInLabel
-                                : strings.authVerifyAndCreateAccountLabel,
-                          )
-                        else
-                          _EmailStep(
-                            emailController: emailController,
-                            busy:
-                                controller.authBusy ||
-                                !controller.supabaseReady,
-                            strings: strings,
-                            onEmailChanged: (_) => controller.clearAuthError(),
-                            onSubmit: onPrimarySubmit,
-                            submitLabel: mode == AuthEmailFlowMode.signIn
-                                ? strings.authSendSignInCodeLabel
-                                : strings.authSendRegisterCodeLabel,
+                          child: Icon(
+                            mode == AuthEmailFlowMode.signIn
+                                ? Icons.lock_open_rounded
+                                : Icons.person_add_alt_1_rounded,
+                            color: colorScheme.onPrimaryContainer,
                           ),
-                        if (!isOtpStep) ...[
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          mode == AuthEmailFlowMode.signIn
+                              ? strings.authSignInTitle
+                              : strings.authRegisterTitle,
+                          key: ValueKey(
+                            mode == AuthEmailFlowMode.signIn
+                                ? 'auth-login-title'
+                                : 'auth-register-title',
+                          ),
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          mode == AuthEmailFlowMode.signIn
+                              ? strings.authSignInSubtitle
+                              : strings.authRegisterSubtitle,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 20),
+                        if (isBootstrapping) ...[
+                          const Center(child: CircularProgressIndicator()),
                           const SizedBox(height: 16),
-                          Center(
-                            child: TextButton(
-                              key: ValueKey(
-                                mode == AuthEmailFlowMode.signIn
-                                    ? 'auth-go-register-button'
-                                    : 'auth-go-login-button',
+                          Center(child: Text(strings.authCheckingSessionLabel)),
+                        ] else ...[
+                          if (errorCode != null)
+                            _AuthBanner(
+                              message: _errorText(strings, errorCode),
+                              retryLabel: strings.authRetryLabel,
+                              onRetry: controller.supabaseReady
+                                  ? null
+                                  : () => controller.bootstrap(),
+                              actionLabel: _errorActionLabel(
+                                strings,
+                                errorCode,
                               ),
-                              onPressed: onSwitchMode,
-                              child: Text(
-                                mode == AuthEmailFlowMode.signIn
-                                    ? strings.authGoRegisterLabel
-                                    : strings.authGoSignInLabel,
+                              onAction: _errorAction(strings, errorCode),
+                            ),
+                          if (errorCode != null) const SizedBox(height: 16),
+                          if (isOtpStep)
+                            _OtpStep(
+                              pendingEmail:
+                                  controller.pendingEmail ??
+                                  emailController.text.trim(),
+                              codeController: codeController,
+                              busy: controller.authBusy,
+                              strings: strings,
+                              onCodeChanged: (_) => controller.clearAuthError(),
+                              onBack: () {
+                                codeController.clear();
+                                controller.returnToEmailEntry();
+                              },
+                              onVerify: onVerifyCode,
+                              ctaLabel: mode == AuthEmailFlowMode.signIn
+                                  ? strings.authVerifyAndSignInLabel
+                                  : strings.authVerifyAndCreateAccountLabel,
+                            )
+                          else
+                            _EmailStep(
+                              emailController: emailController,
+                              busy:
+                                  controller.authBusy ||
+                                  !controller.supabaseReady,
+                              strings: strings,
+                              onEmailChanged: (_) =>
+                                  controller.clearAuthError(),
+                              onSubmit: onPrimarySubmit,
+                              submitLabel: mode == AuthEmailFlowMode.signIn
+                                  ? strings.authSendSignInCodeLabel
+                                  : strings.authSendRegisterCodeLabel,
+                            ),
+                          if (!isOtpStep) ...[
+                            const SizedBox(height: 16),
+                            Center(
+                              child: TextButton(
+                                key: ValueKey(
+                                  mode == AuthEmailFlowMode.signIn
+                                      ? 'auth-go-register-button'
+                                      : 'auth-go-login-button',
+                                ),
+                                onPressed: onSwitchMode,
+                                child: Text(
+                                  mode == AuthEmailFlowMode.signIn
+                                      ? strings.authGoRegisterLabel
+                                      : strings.authGoSignInLabel,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }

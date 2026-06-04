@@ -223,6 +223,92 @@
 - 不做解绑、导出、永久删除完整流程
 - 不做超出当前产品文档的新功能扩展
 
+## 退出请求机制 V1
+
+对应 migration：`20260604140000_add_couple_space_exit_requests.sql`
+
+### 已落地
+
+新增表：
+
+- `couple_space_exit_requests`
+
+新增 RPC：
+
+- `request_couple_space_exit()` — 发起退出请求
+- `approve_couple_space_exit(uuid)` — 审批退出请求
+
+### 表职责
+
+`couple_space_exit_requests`
+
+- 记录双人空间退出请求的完整生命周期
+- 一个 active couple space 同一时间最多只有一个 `pending` 请求
+- `requested_by` 必须是该空间 active member
+- 审批人不能是 `requested_by`
+
+### RPC 行为
+
+`request_couple_space_exit()`
+
+- 校验用户已登录
+- 校验用户属于 active 双人空间（2 名 active member）
+- 如果已有 pending 请求，返回已有请求 id
+- 否则创建新的 pending 请求并返回 id
+- 不允许单人态调用成功
+
+`approve_couple_space_exit(p_request_id)`
+
+- 校验用户已登录
+- 校验请求存在且为 `pending`
+- 校验当前用户是该空间 active member
+- 校验当前用户不是 `requested_by`
+- 校验空间仍是 active 双人空间
+- 更新请求状态为 `approved`
+- 更新该空间所有 active membership 为 `left`（设 `left_at`）
+- 更新 `couple_spaces.status` 为 `closed`（设 `closed_at`）
+- 整个操作在一个事务中完成
+
+### RLS 方向
+
+- active couple space 成员可以读取自己空间的退出请求（select）
+- 不开放客户端直接 insert/update/delete
+- 所有变更通过 SECURITY DEFINER RPC 执行
+- SECURITY DEFINER 函数设置了固定 `search_path = public`
+- 已 revoke from anon，仅 grant execute to authenticated
+
+### 退出状态流
+
+```
+A 发起退出请求 → pending
+B 同意退出    → approved → 空间 closed，双方 left
+```
+
+本轮未实现的状态流转（留到后续阶段）：
+
+- `pending` → `cancelled`（发起方取消）
+- 对方拒绝退出
+- 同一方连续 3 次被拒绝后强制关闭
+- 对方 24 小时无操作自动关闭
+
+### 关闭空间后共享数据保留
+
+空间关闭后，以下数据不物理删除：
+
+- `calendar_events`
+- `plans`
+- `notes`
+
+这些数据仍保留在原 `couple_space_id` 下。由于现有 RLS 策略要求 `is_active_couple_member()` 返回 true，空间关闭后（member status = 'left'），该函数返回 false，双方自然不可继续读取或写入这些共享数据。
+
+### Flutter 回到单人态
+
+- `AppController._loadCurrentMembership()` 查询 `status = 'active'` 的 membership
+- 关闭空间后 membership status = 'left'，查询返回 null
+- `_loadOrCreateCurrentSpaceId()` 自动调用 `create_couple_space()` 创建新空间
+- `hasActiveCoupleSpace` 返回 false
+- 用户回到单人态
+
 ## 后续已完成的前端接入
 
 本节保留的是后端共享基础层当时的落地边界。后续阶段已经完成：

@@ -24,32 +24,34 @@ class BetweenUsApp extends StatelessWidget {
           final brightness = controller.themeMode == ThemeMode.dark
               ? Brightness.dark
               : controller.themeMode == ThemeMode.light
-                  ? Brightness.light
-                  : MediaQuery.platformBrightnessOf(context);
+              ? Brightness.light
+              : MediaQuery.platformBrightnessOf(context);
 
           return AnnotatedRegion<SystemUiOverlayStyle>(
             value: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness:
-                  brightness == Brightness.light ? Brightness.dark : Brightness.light,
-              statusBarBrightness:
-                  brightness == Brightness.light ? Brightness.light : Brightness.dark,
+              statusBarIconBrightness: brightness == Brightness.light
+                  ? Brightness.dark
+                  : Brightness.light,
+              statusBarBrightness: brightness == Brightness.light
+                  ? Brightness.light
+                  : Brightness.dark,
             ),
             child: MaterialApp(
-            title: AppStrings.of(context).appName,
-            debugShowCheckedModeBanner: false,
-            locale: controller.locale,
-            supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: controller.themeMode,
-            home: _buildHome(controller),
-          ),
+              title: AppStrings.of(context).appName,
+              debugShowCheckedModeBanner: false,
+              locale: controller.locale,
+              supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: controller.themeMode,
+              home: _buildHome(controller),
+            ),
           );
         },
       ),
