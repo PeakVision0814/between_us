@@ -41,7 +41,7 @@ class BetweenUsApp extends StatelessWidget {
               title: AppStrings.of(context).appName,
               debugShowCheckedModeBanner: false,
               locale: controller.locale,
-              supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
+              supportedLocales: AppLanguage.supportedLocales,
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
@@ -85,9 +85,7 @@ class _AuthLoadingScreen extends StatelessWidget {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(
-              strings.isChinese ? '正在准备你的资料...' : 'Preparing your profile...',
-            ),
+            Text(strings.profilePreparingLabel),
           ],
         ),
       ),

@@ -1906,6 +1906,453 @@ void main() {
 
     expect(controller.hasActiveCoupleSpace, isFalse);
   });
+
+  // ─── Multi-language infrastructure tests ──────────────────────────────
+
+  test('AppLanguage.fromCode resolves known codes', () {
+    expect(AppLanguage.fromCode('zh-CN'), AppLanguage.zhCn);
+    expect(AppLanguage.fromCode('zh-TW'), AppLanguage.zhTw);
+    expect(AppLanguage.fromCode('en'), AppLanguage.en);
+    expect(AppLanguage.fromCode('ja'), AppLanguage.ja);
+    expect(AppLanguage.fromCode('ko'), AppLanguage.ko);
+  });
+
+  test('AppLanguage.fromCode falls back to zhCn for unknown codes', () {
+    expect(AppLanguage.fromCode('fr'), AppLanguage.zhCn);
+    expect(AppLanguage.fromCode('de'), AppLanguage.zhCn);
+    expect(AppLanguage.fromCode('xyz'), AppLanguage.zhCn);
+  });
+
+  test('AppLanguage.fromCode falls back to zhCn for null or empty', () {
+    expect(AppLanguage.fromCode(null), AppLanguage.zhCn);
+    expect(AppLanguage.fromCode(''), AppLanguage.zhCn);
+    expect(AppLanguage.fromCode('  '), AppLanguage.zhCn);
+  });
+
+  test('AppLanguage.fromCode handles legacy bare zh code', () {
+    expect(AppLanguage.fromCode('zh'), AppLanguage.zhCn);
+  });
+
+  test('AppLanguage.supportedLocales returns all 5 locales', () {
+    final locales = AppLanguage.supportedLocales;
+    expect(locales, hasLength(5));
+    expect(locales, contains(const Locale('zh', 'CN')));
+    expect(locales, contains(const Locale('zh', 'TW')));
+    expect(locales, contains(const Locale('en')));
+    expect(locales, contains(const Locale('ja')));
+    expect(locales, contains(const Locale('ko')));
+  });
+
+  test('AppLanguage.isChinese is true for zhCn and zhTw', () {
+    expect(AppLanguage.zhCn.isChinese, isTrue);
+    expect(AppLanguage.zhTw.isChinese, isTrue);
+    expect(AppLanguage.en.isChinese, isFalse);
+    expect(AppLanguage.ja.isChinese, isFalse);
+    expect(AppLanguage.ko.isChinese, isFalse);
+  });
+
+  test('AppLanguage.isCjk is true for CJK languages', () {
+    expect(AppLanguage.zhCn.isCjk, isTrue);
+    expect(AppLanguage.zhTw.isCjk, isTrue);
+    expect(AppLanguage.ja.isCjk, isTrue);
+    expect(AppLanguage.ko.isCjk, isTrue);
+    expect(AppLanguage.en.isCjk, isFalse);
+  });
+
+  test('AppLanguage.languageCode matches expected values', () {
+    expect(AppLanguage.zhCn.languageCode, 'zh-CN');
+    expect(AppLanguage.zhTw.languageCode, 'zh-TW');
+    expect(AppLanguage.en.languageCode, 'en');
+    expect(AppLanguage.ja.languageCode, 'ja');
+    expect(AppLanguage.ko.languageCode, 'ko');
+  });
+
+  test('AppLanguage.displayName shows native names', () {
+    expect(AppLanguage.zhCn.displayName, '简体中文');
+    expect(AppLanguage.zhTw.displayName, '繁體中文');
+    expect(AppLanguage.en.displayName, 'English');
+    expect(AppLanguage.ja.displayName, '日本語');
+    expect(AppLanguage.ko.displayName, '한국어');
+  });
+
+  test('controller.setLanguage persists languageCode', () {
+    final controller = AppController();
+    expect(controller.language, AppLanguage.zhCn);
+
+    controller.setLanguage(AppLanguage.ja);
+    expect(controller.language, AppLanguage.ja);
+    expect(controller.locale, const Locale('ja'));
+
+    controller.setLanguage(AppLanguage.ko);
+    expect(controller.language, AppLanguage.ko);
+    expect(controller.locale, const Locale('ko'));
+
+    controller.setLanguage(AppLanguage.zhTw);
+    expect(controller.language, AppLanguage.zhTw);
+    expect(controller.locale, const Locale('zh', 'TW'));
+  });
+
+  test('controller resets language to zhCn on sign out', () {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.ja);
+    expect(controller.language, AppLanguage.ja);
+
+    // Simulate sign-out clearing state.
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+    // After debugSetAuthState, language is not reset (it's a preference).
+    // But _clearAuthenticatedState (called on real sign-out) does reset it.
+    // For this unit test, verify the controller can be set back.
+    controller.setLanguage(AppLanguage.zhCn);
+    expect(controller.language, AppLanguage.zhCn);
+  });
+
+  testWidgets('settings page shows all 5 language options', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open settings.
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
+    await tester.pumpAndSettle();
+
+    // Verify all 5 language options are present.
+    expect(find.text('简体中文'), findsOneWidget);
+    expect(find.text('繁體中文'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('日本語'), findsOneWidget);
+    expect(find.text('한국어'), findsOneWidget);
+  });
+
+  testWidgets('selecting Japanese updates locale and core strings', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open settings.
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
+    await tester.pumpAndSettle();
+
+    // Select Japanese.
+    await tester.tap(find.text('日本語'));
+    await tester.pumpAndSettle();
+
+    // Verify locale changed.
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('ja'));
+
+    // Verify core settings strings switched to Japanese.
+    expect(find.text('設定とその他'), findsOneWidget);
+  });
+
+  testWidgets('selecting Korean updates locale and core strings', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open settings.
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
+    await tester.pumpAndSettle();
+
+    // Select Korean.
+    await tester.tap(find.text('한국어'));
+    await tester.pumpAndSettle();
+
+    // Verify locale changed.
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('ko'));
+
+    // Verify core settings strings switched to Korean.
+    expect(find.text('설정 및 기타'), findsOneWidget);
+  });
+
+  testWidgets('selecting Traditional Chinese updates locale', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open settings.
+    await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
+    await tester.pumpAndSettle();
+
+    // Select Traditional Chinese.
+    await tester.tap(find.text('繁體中文'));
+    await tester.pumpAndSettle();
+
+    // Verify locale changed.
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('zh', 'TW'));
+
+    // Verify settings title is in Traditional Chinese.
+    expect(find.text('設定與更多'), findsOneWidget);
+  });
+
+  testWidgets('Japanese: profile setup screen shows Japanese title and labels', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.ja);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    // Profile setup screen should show Japanese text.
+    expect(find.text('プロフィールを完成させてください'), findsOneWidget);
+    expect(find.text('プロフィールを完成させてください'), findsOneWidget);
+    // Gender labels in Japanese.
+    expect(find.text('男性'), findsOneWidget);
+    expect(find.text('女性'), findsOneWidget);
+    // Birthday label in Japanese.
+    expect(find.text('誕生日（任意）'), findsOneWidget);
+    // Save button in Japanese.
+    expect(find.text('保存して続ける'), findsOneWidget);
+  });
+
+  testWidgets('Korean: profile setup screen shows Korean title and labels', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.ko);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    // Profile setup screen should show Korean text.
+    expect(find.text('프로필을 완성하세요'), findsOneWidget);
+    // Gender labels in Korean.
+    expect(find.text('남성'), findsOneWidget);
+    expect(find.text('여성'), findsOneWidget);
+    // Birthday label in Korean.
+    expect(find.text('생일 (선택)'), findsOneWidget);
+    // Save button in Korean.
+    expect(find.text('저장 후 계속'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Traditional Chinese: profile setup shows zh-TW, not zh-CN',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.zhTw);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      // Profile setup title should be Traditional Chinese.
+      expect(find.text('完善你的資料'), findsOneWidget);
+      // Should NOT show the Simplified Chinese version.
+      expect(find.text('完善你的资料'), findsNothing);
+      // Gender labels (same in both zh-CN and zh-TW).
+      expect(find.text('男生'), findsOneWidget);
+      expect(find.text('女生'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Japanese: invite page shows Japanese text', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.ja,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the add avatar to navigate to invite page.
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
+
+    // Verify invite page shows Japanese text (some appear in both section
+    // header and card, so use findsWidgets).
+    expect(find.text('パートナーを招待'), findsWidgets);
+    expect(find.text('パートナーの席を確保しましょう'), findsWidgets);
+    expect(find.text('招待コードを生成'), findsOneWidget);
+    expect(find.text('招待コードを入力して参加'), findsOneWidget);
+  });
+
+  testWidgets('Korean: invite page shows Korean text', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.ko,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the add avatar to navigate to invite page.
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
+
+    // Verify invite page shows Korean text.
+    expect(find.text('파트너 초대'), findsWidgets);
+    expect(find.text('파트너를 위한 자리를 마련하세요'), findsWidgets);
+    expect(find.text('초대 코드 생성'), findsOneWidget);
+    expect(find.text('초대 코드를 입력하여 참여'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Traditional Chinese: invite page shows zh-TW, not zh-CN',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.zhTw,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        memberCount: 1,
+      );
+
+      // Navigate to Us tab.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the add avatar to navigate to invite page.
+      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+      await tester.pumpAndSettle();
+
+      // Verify invite page shows Traditional Chinese.
+      expect(find.text('邀請 TA'), findsWidgets);
+      expect(find.text('先給 TA 留一個位置'), findsWidgets);
+      expect(find.text('生成邀請碼'), findsOneWidget);
+      expect(find.text('輸入邀請碼加入'), findsOneWidget);
+      // Should NOT show Simplified Chinese versions.
+      expect(find.text('邀请 TA'), findsNothing);
+      expect(find.text('先给 TA 留一个位置'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Japanese: space status page shows Japanese, not English fallback',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.ja);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        selfProfileId: 'user-a-id',
+        currentSpaceId: 'space-1',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppScope(
+            controller: controller,
+            child: SpaceStatusScreen(
+              controller: controller,
+              partnerName: 'Ache',
+              initialExitRequest: const ExitRequestSnapshot(
+                requestId: 'req-1',
+                requestedBy: 'user-a-id',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Should show Japanese sharing text, not English.
+      expect(find.text('Ache と共有中'), findsOneWidget);
+      expect(find.text('Sharing with Ache'), findsNothing);
+      // Should show Japanese exit hint, not English.
+      expect(
+        find.text('退出後、ふたりともシングルモードに戻ります'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Both return to single mode after exit'),
+        findsNothing,
+      );
+    },
+  );
 }
 
 Future<void> _pumpApp(

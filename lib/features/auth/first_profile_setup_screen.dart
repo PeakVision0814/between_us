@@ -92,7 +92,6 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
     final strings = AppStrings.of(context);
-    final isChinese = strings.isChinese;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -110,20 +109,16 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isChinese ? '完善你的资料' : 'Complete your profile',
+                          strings.profileSetupTitle,
                           key: const ValueKey('profile-setup-title'),
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          isChinese
-                              ? '登录已经完成。请先填写昵称和性别，生日可以稍后补充为空。保存后即可进入 Between Us。'
-                              : 'Sign-in is complete. Finish your name and gender first. Birthday is optional, and you can continue after saving.',
-                        ),
+                        Text(strings.profileSetupSubtitle),
                         const SizedBox(height: 20),
                         if (controller.profileErrorCode case final errorCode?)
                           _ProfileErrorBanner(
-                            message: _errorText(errorCode, isChinese),
+                            message: _errorText(errorCode, strings),
                           ),
                         if (controller.profileErrorCode != null)
                           const SizedBox(height: 16),
@@ -135,10 +130,8 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                           textInputAction: TextInputAction.done,
                           maxLength: 40,
                           decoration: InputDecoration(
-                            labelText: isChinese ? '昵称' : 'Display name',
-                            hintText: isChinese
-                                ? '输入你想展示的昵称'
-                                : 'Enter the name you want to show',
+                            labelText: strings.profileDisplayNameLabel,
+                            hintText: strings.profileDisplayNameSetupHint,
                           ),
                           onChanged: (_) {
                             controller.clearProfileError();
@@ -148,7 +141,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isChinese ? '性别' : 'Gender',
+                          strings.profileGenderLabel,
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 12),
@@ -158,7 +151,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                           children: [
                             ChoiceChip(
                               key: const ValueKey('profile-gender-male'),
-                              label: Text(isChinese ? '男生' : 'Male'),
+                              label: Text(strings.profileGenderMaleLabel),
                               selected:
                                   _selectedGender == AppController.genderMale,
                               onSelected: controller.profileSaveInProgress
@@ -174,7 +167,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                             ),
                             ChoiceChip(
                               key: const ValueKey('profile-gender-female'),
-                              label: Text(isChinese ? '女生' : 'Female'),
+                              label: Text(strings.profileGenderFemaleLabel),
                               selected:
                                   _selectedGender == AppController.genderFemale,
                               onSelected: controller.profileSaveInProgress
@@ -192,7 +185,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          isChinese ? '生日（可选）' : 'Birthday (optional)',
+                          strings.profileBirthdayOptionalLabel,
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 12),
@@ -202,7 +195,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                               ? null
                               : _pickBirthday,
                           icon: const Icon(Icons.cake_outlined),
-                          label: Text(_birthdayLabel(isChinese)),
+                          label: Text(_birthdayLabel(strings)),
                         ),
                         if (_selectedBirthday != null) ...[
                           const SizedBox(height: 8),
@@ -218,7 +211,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                                       _selectedBirthday = null;
                                     });
                                   },
-                            child: Text(isChinese ? '清空生日' : 'Clear birthday'),
+                            child: Text(strings.profileClearBirthdayLabel),
                           ),
                         ],
                         const SizedBox(height: 24),
@@ -238,9 +231,7 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : Text(
-                                    isChinese ? '保存并进入' : 'Save and continue',
-                                  ),
+                                : Text(strings.profileSaveAndContinueLabel),
                           ),
                         ),
                       ],
@@ -255,9 +246,9 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
     );
   }
 
-  String _birthdayLabel(bool isChinese) {
+  String _birthdayLabel(AppStrings strings) {
     if (_selectedBirthday == null) {
-      return isChinese ? '选择生日' : 'Choose your birthday';
+      return strings.profileChooseBirthdayLabel;
     }
     final year = _selectedBirthday!.year;
     final month = _selectedBirthday!.month.toString().padLeft(2, '0');
@@ -265,34 +256,15 @@ class _FirstProfileSetupScreenState extends State<FirstProfileSetupScreen> {
     return '$year-$month-$day';
   }
 
-  String _errorText(String errorCode, bool isChinese) {
+  String _errorText(String errorCode, AppStrings strings) {
     return switch (errorCode) {
-      'initialize_failed' =>
-        isChinese
-            ? '资料服务初始化失败，请稍后重试。'
-            : 'Profile service failed to initialize. Please try again.',
-      'missing_user' =>
-        isChinese
-            ? '当前登录状态无效，请重新登录。'
-            : 'Your session is invalid. Please sign in again.',
-      'invalid_display_name' =>
-        isChinese
-            ? '昵称不能为空、不能使用默认占位名，且不能超过 40 个字符。'
-            : 'Display name must be 1 to 40 characters, and cannot be the default placeholder.',
-      'invalid_gender' =>
-        isChinese ? '请选择性别后再继续。' : 'Please choose your gender.',
-      'save_failed' =>
-        isChinese
-            ? '资料保存失败，请稍后重试。'
-            : 'Failed to save your profile. Please try again.',
-      'session_expired' =>
-        isChinese
-            ? '登录状态已过期，请重新登录。'
-            : 'Your session has expired. Please sign in again.',
-      _ =>
-        isChinese
-            ? '资料保存时发生异常，请重试。'
-            : 'Something went wrong while saving your profile. Please try again.',
+      'initialize_failed' => strings.profileSetupInitFailedError,
+      'missing_user' => strings.profileSetupMissingUserError,
+      'invalid_display_name' => strings.profileSetupInvalidNameError,
+      'invalid_gender' => strings.profileGenderRequiredError,
+      'save_failed' => strings.profileSetupSaveFailedError,
+      'session_expired' => strings.profileSetupSessionExpiredError,
+      _ => strings.profileSetupUnknownError,
     };
   }
 }

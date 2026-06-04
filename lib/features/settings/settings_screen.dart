@@ -164,11 +164,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       if (mounted) {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strings.isChinese ? '已成功加入空间' : 'Successfully joined the space',
-            ),
-          ),
+          SnackBar(content: Text(strings.inviteJoinSuccessMessage)),
         );
       }
     } catch (e) {
@@ -194,7 +190,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     if (message.contains('already belongs to an active couple_space')) {
       return strings.inviteAlreadyPairedError;
     }
-    return strings.isChinese ? '邀请码无效或已过期' : 'Invalid or expired invite code';
+    return strings.inviteCodeInvalidError;
   }
 
   void _openProfileScreen(AppController controller, AppStrings strings) {
@@ -247,14 +243,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(strings.isChinese ? '输入邀请码' : 'Enter invite code'),
+          title: Text(strings.inviteEnterCodeDialogTitle),
           content: TextField(
             controller: textController,
-            decoration: InputDecoration(
-              hintText: strings.isChinese
-                  ? '请输入对方分享的邀请码'
-                  : 'Enter the invite code shared by your partner',
-            ),
+            decoration: InputDecoration(hintText: strings.inviteEnterCodeDialogHint),
             autofocus: true,
             enabled: !_acceptingInvite,
           ),
@@ -263,7 +255,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
               onPressed: _acceptingInvite
                   ? null
                   : () => Navigator.pop(dialogContext),
-              child: Text(strings.isChinese ? '取消' : 'Cancel'),
+              child: Text(strings.profileCancelLabel),
             ),
             FilledButton(
               onPressed: _acceptingInvite
@@ -285,7 +277,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(strings.isChinese ? '加入' : 'Join'),
+                  : Text(strings.inviteJoinButton),
             ),
           ],
         ),
@@ -347,7 +339,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     final colorScheme = theme.colorScheme;
     final spaceName = _normalizeName(_spaceName) ?? strings.spaceNameValue;
     final selfGenderIcon = _genderIcon(selfGender);
-    final partnerLabel = partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+    final partnerLabel = partnerName ?? strings.partnerFallbackName;
 
     return Container(
       key: const ValueKey('us-hero-section'),
@@ -433,11 +425,11 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                             _HeroAvatarPair(
                               selfAvatarLabel: _avatarLabel(
                                 selfName,
-                                fallback: strings.isChinese ? '我' : 'M',
+                                fallback: strings.selfFallbackName,
                               ),
                               partnerAvatarLabel: _avatarLabel(
                                 partnerName,
-                                fallback: strings.isChinese ? 'TA' : 'P',
+                                fallback: strings.partnerFallbackName,
                               ),
                               isPaired: isPaired,
                               isDark: isDark,
@@ -464,9 +456,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
                                   child: _HeroNameLabel(
                                     name: isPaired
                                         ? partnerLabel
-                                        : (strings.isChinese
-                                              ? '邀请 TA'
-                                              : 'Invite'),
+                                        : strings.inviteInvitePartnerTitle,
                                     genderIcon: null,
                                     isPlaceholder: !isPaired,
                                     isDark: isDark,
@@ -521,7 +511,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   String _resolvedSelfName(AppController controller, AppStrings strings) {
     final normalized = _normalizeName(controller.displayName);
-    return normalized ?? (strings.isChinese ? '我' : 'Me');
+    return normalized ?? strings.selfFallbackName;
   }
 
   String? _resolvedPartnerName(AppController controller) {
@@ -604,9 +594,10 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     final coupleSpaceId = widget.controller.currentSpaceId;
     if (coupleSpaceId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请检查网络连接')));
+      final strings = AppStrings.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.networkCheckConnectionError)),
+      );
       return;
     }
 
@@ -634,13 +625,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
       if (mounted) {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strings.isChinese
-                  ? '邀请码生成失败，请稍后重试'
-                  : 'Failed to generate invite code. Please try again later.',
-            ),
-          ),
+          SnackBar(content: Text(strings.inviteGenerateFailedMessage)),
         );
       }
     } finally {
@@ -661,7 +646,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          strings.isChinese ? 'TA 的资料' : 'Partner profile',
+          strings.invitePartnerTitle,
           style: TextStyle(color: isDark ? AppTheme.warmWhite90 : null),
         ),
         backgroundColor: Colors.transparent,
@@ -685,14 +670,14 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final name = widget.partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+    final name = widget.partnerName ?? strings.partnerFallbackName;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PageSectionHeader(
-          title: strings.isChinese ? '关于 TA' : 'About partner',
-          subtitle: strings.isChinese ? '已加入空间' : 'Joined the space',
+          title: strings.inviteAboutPartnerTitle,
+          subtitle: strings.invitePartnerJoinedLabel,
         ),
         const SizedBox(height: 10),
         _UsCard(
@@ -718,7 +703,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          strings.isChinese ? '已加入空间' : 'Has joined the space',
+                          strings.invitePartnerJoinedLabel,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: isDark
                                 ? AppTheme.warmWhite60
@@ -733,9 +718,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
               const SizedBox(height: 16),
               PageInsetPanel(
                 child: Text(
-                  strings.isChinese
-                      ? '关于 TA 的更多资料，会出现在这里。'
-                      : 'More about your partner will appear here.',
+                  strings.invitePartnerMoreInfoLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: isDark
                         ? AppTheme.warmWhite60
@@ -762,10 +745,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PageSectionHeader(
-          title: strings.isChinese ? '邀请 TA' : 'Invite your partner',
-          subtitle: strings.isChinese
-              ? '先给 TA 留一个位置'
-              : 'Leave a spot for your partner',
+          title: strings.inviteInvitePartnerTitle,
+          subtitle: strings.inviteLeaveSpotSubtitle,
         ),
         const SizedBox(height: 10),
         _UsCard(
@@ -785,9 +766,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      strings.isChinese
-                          ? '先给 TA 留一个位置'
-                          : 'Leave a spot for your partner',
+                      strings.inviteLeaveSpotSubtitle,
                       style: theme.textTheme.titleMedium,
                     ),
                   ),
@@ -795,9 +774,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                strings.isChinese
-                    ? '等 TA 加入后，这里会慢慢变成只属于你们两个人的空间。'
-                    : 'Once your partner joins, this space will start to feel like it belongs to the two of you.',
+                strings.inviteSpotDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark
                       ? AppTheme.warmWhite60
@@ -817,10 +794,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
         ),
         const SizedBox(height: 24),
         PageSectionHeader(
-          title: strings.isChinese ? '邀请操作' : 'Invite actions',
-          subtitle: strings.isChinese
-              ? '生成或输入邀请码'
-              : 'Generate or enter an invite code',
+          title: strings.inviteActionsTitle,
+          subtitle: strings.inviteActionsSubtitle,
         ),
         const SizedBox(height: 10),
         _UsCard(
@@ -844,9 +819,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.vpn_key_outlined),
-                    label: Text(
-                      strings.isChinese ? '生成邀请码' : 'Generate invite code',
-                    ),
+                    label: Text(strings.inviteGenerateCodeButton),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -866,9 +839,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
                     label: Text(
                       widget.acceptingInvite
                           ? strings.inviteAccepting
-                          : (strings.isChinese
-                                ? '输入邀请码加入'
-                                : 'Enter invite code to join'),
+                          : strings.inviteEnterCodeJoinButton,
                     ),
                   ),
                 ),
@@ -881,9 +852,12 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   }
 
   String _inviteExpiryText(AppStrings strings, DateTime expiresAt) {
-    return strings.isChinese
-        ? '有效期至 ${expiresAt.month} 月 ${expiresAt.day} 日 ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}'
-        : 'Expires ${expiresAt.month}/${expiresAt.day} ${expiresAt.hour}:${expiresAt.minute.toString().padLeft(2, '0')}';
+    return strings.inviteExpiryText(
+      expiresAt.month,
+      expiresAt.day,
+      expiresAt.hour,
+      expiresAt.minute,
+    );
   }
 }
 
@@ -1034,7 +1008,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            child: Text(strings.profileCancelLabel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1055,7 +1029,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            child: Text(strings.profileCancelLabel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1118,7 +1092,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            child: Text(strings.profileCancelLabel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1172,7 +1146,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final partnerName =
-        widget.partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+        widget.partnerName ?? strings.partnerFallbackName;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1246,9 +1220,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      strings.isChinese
-                          ? '与 $partnerName 共享中'
-                          : 'Sharing with $partnerName',
+                      strings.spaceSharingWithPartner(partnerName),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isDark
                             ? AppTheme.warmWhite60
@@ -1265,9 +1237,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
         // Exit section.
         PageSectionHeader(
           title: strings.exitSpaceSection,
-          subtitle: strings.isChinese
-              ? '退出后双方回到单人态'
-              : 'Both return to single mode after exit',
+          subtitle: strings.exitSpaceReturnToSingleHint,
         ),
         const SizedBox(height: 10),
         _UsCard(
@@ -1922,7 +1892,7 @@ class _InviteCodeBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  strings.isChinese ? '当前邀请码' : 'Current invite code',
+                  strings.inviteCurrentCodeLabel,
                   style: theme.textTheme.labelLarge,
                 ),
                 const SizedBox(height: 8),
@@ -1942,7 +1912,7 @@ class _InviteCodeBox extends StatelessWidget {
           IconButton(
             key: const ValueKey('invite-code-copy-button'),
             icon: const Icon(Icons.copy_rounded, size: 20),
-            tooltip: strings.isChinese ? '复制邀请码' : 'Copy invite code',
+            tooltip: strings.inviteCopyCodeTooltip,
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: code));
               if (context.mounted) {

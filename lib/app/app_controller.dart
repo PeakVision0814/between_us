@@ -2,16 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'language_config.dart';
 import 'supabase_config.dart';
 
-enum AppLanguage { zhCn, en }
-
-extension AppLanguageLocale on AppLanguage {
-  Locale get locale => switch (this) {
-    AppLanguage.zhCn => const Locale('zh', 'CN'),
-    AppLanguage.en => const Locale('en'),
-  };
-}
+export 'language_config.dart' show AppLanguage;
 
 enum AppThemePreference { system, light, dark }
 
@@ -152,9 +146,7 @@ class AppController extends ChangeNotifier {
     }
     _language = language;
     notifyListeners();
-    _persistProfile({
-      'preferred_locale': language == AppLanguage.zhCn ? 'zh-CN' : 'en',
-    });
+    _persistProfile({'preferred_locale': language.languageCode});
   }
 
   void setThemePreference(AppThemePreference preference) {
@@ -443,7 +435,7 @@ class AppController extends ChangeNotifier {
       }
       final locale = profile['preferred_locale'] as String?;
       if (locale != null) {
-        final lang = locale == 'en' ? AppLanguage.en : AppLanguage.zhCn;
+        final lang = AppLanguage.fromCode(locale);
         if (_language != lang) {
           _language = lang;
           changed = true;

@@ -136,14 +136,11 @@ class SettingsMoreScreen extends StatelessWidget {
                   },
                   child: Column(
                     children: [
-                      RadioListTile<AppLanguage>(
-                        title: Text(strings.chineseLabel),
-                        value: AppLanguage.zhCn,
-                      ),
-                      RadioListTile<AppLanguage>(
-                        title: Text(strings.englishLabel),
-                        value: AppLanguage.en,
-                      ),
+                      for (final lang in AppLanguage.values)
+                        RadioListTile<AppLanguage>(
+                          title: Text(lang.displayName),
+                          value: lang,
+                        ),
                     ],
                   ),
                 ),
