@@ -16,24 +16,24 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDate;
+  late DateTime _displayMonth;
   List<CalendarEventRecord> _events = [];
   bool _submitting = false;
-
   bool _eventsLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    // Defer event loading to didChangeDependencies where context is available.
+    final now = DateTime.now();
+    _displayMonth = DateTime(now.year, now.month);
+    _selectedDate = _dateOnly(now);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedDate ??= _dateOnly(
-      AppStrings.of(context).calendarDefaultSelectedDate,
-    );
-    if (!_eventsLoaded && AppScope.of(context).hasActiveCoupleSpace) {
+    final controller = AppScope.of(context);
+    if (!_eventsLoaded && controller.hasActiveCoupleSpace) {
       _eventsLoaded = true;
       _loadEvents();
     }
@@ -41,8 +41,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _loadEvents() async {
     try {
-      final client = Supabase.instance.client;
-      final response = await client
+      final response = await Supabase.instance.client
           .from('calendar_events')
           .select()
           .filter('deleted_at', 'is', null)
@@ -59,12 +58,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         });
       }
     } catch (_) {
-      // Supabase not initialized or query failed
+      // Supabase not initialized or query failed.
     }
-  }
-
-  void _refreshEvents() {
-    _loadEvents();
   }
 
   Future<bool> _submitEvent({
@@ -97,7 +92,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         'recurrence': recurrence,
       });
 
-      _refreshEvents();
+      await _loadEvents();
       return true;
     } catch (_) {
       return false;
@@ -106,6 +101,173 @@ class _CalendarScreenState extends State<CalendarScreen> {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  void _showCreateDialog() {
+    final strings = AppStrings.of(context);
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    DateTime selectedDate = _selectedDate ?? DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.now();
+    String selectedType = 'date_plan';
+    bool isAllDay = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(strings.calendarCreateDialogTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: Text(
+                        strings.calendarTypeLabel(CalendarEntryType.datePlan),
+                      ),
+                      selected: selectedType == 'date_plan',
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() {
+                            selectedType = 'date_plan';
+                            isAllDay = false;
+                          });
+                        }
+                      },
+                    ),
+                    ChoiceChip(
+                      label: Text(
+                        strings.calendarTypeLabel(CalendarEntryType.reminder),
+                      ),
+                      selected: selectedType == 'reminder',
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() {
+                            selectedType = 'reminder';
+                            isAllDay = false;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    hintText: strings.calendarTitleHint,
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    hintText: strings.calendarDescriptionHint,
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(strings.calendarDateLabel),
+                  subtitle: Text(
+                    '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                ),
+                if (!isAllDay)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.access_time),
+                    title: Text(strings.calendarTimeLabel),
+                    subtitle: Text(
+                      '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                    ),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                      );
+                      if (picked != null) {
+                        setDialogState(() => selectedTime = picked);
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.profileCancelLabel),
+            ),
+            FilledButton(
+              onPressed: _submitting
+                  ? null
+                  : () async {
+                      final startsAt = isAllDay
+                          ? DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                            )
+                          : DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                              selectedTime.hour,
+                              selectedTime.minute,
+                            );
+
+                      final success = await _submitEvent(
+                        title: titleController.text,
+                        description: descriptionController.text.isEmpty
+                            ? null
+                            : descriptionController.text,
+                        startsAt: startsAt,
+                        eventType: selectedType,
+                        recurrence: 'none',
+                        allDay: isAllDay,
+                      );
+
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(strings.calendarCreateFailedError),
+                          ),
+                        );
+                      }
+                    },
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.calendarCreateButton),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -122,14 +284,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
           children: [
             PageSectionHeader(title: strings.calendarTab),
             const SizedBox(height: 12),
-            _CalendarPendingEmptyState(isChinese: strings.isChinese),
+            _CalendarPendingEmptyState(strings: strings),
           ],
         ),
       );
     }
 
-    final displayMonth = strings.calendarPrototypeDisplayMonth;
-    final visibleDays = strings.calendarVisibleDaysForMonth(displayMonth);
+    final visibleDays = strings.calendarVisibleDaysForMonth(_displayMonth);
+    final now = DateTime.now();
 
     final entries = _events.map(_recordToEntry).toList();
 
@@ -147,48 +309,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
             _selectedDate!,
           ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
         );
-    final upcomingEntries = _getUpcomingEntries(
-      entries,
-      strings.calendarPrototypeReferenceDate,
-    );
+    final upcomingEntries = _getUpcomingEntries(entries, now);
 
     return PageAtmosphere(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Overview card with month grid ──
+          // ── Add event button (top-right) ──
+          Row(
+            children: [
+              const Spacer(),
+              FilledButton.tonalIcon(
+                onPressed: isPaired ? _showCreateDialog : null,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(strings.createCalendarEntrySection),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── Month grid ──
           PageSurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.calendarOverviewTitle,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  strings.calendarOverviewSubtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark
-                        ? AppTheme.warmWhite60
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _MonthView(
-                  displayMonth: displayMonth,
-                  visibleDays: visibleDays,
-                  selectedDate: _selectedDate!,
-                  entriesByDay: entriesByDay,
-                  onSelectDate: (day) {
-                    setState(() {
-                      _selectedDate = _dateOnly(day);
-                    });
-                  },
-                  isDark: isDark,
-                ),
-              ],
+            child: _MonthView(
+              displayMonth: _displayMonth,
+              visibleDays: visibleDays,
+              selectedDate: _selectedDate!,
+              entriesByDay: entriesByDay,
+              onSelectDate: (day) {
+                setState(() {
+                  _selectedDate = _dateOnly(day);
+                });
+              },
+              isDark: isDark,
             ),
           ),
           const SizedBox(height: 24),
@@ -196,7 +349,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
           // ── Selected date details ──
           PageSectionHeader(
             title: strings.calendarDetailsTitle,
-            subtitle: strings.calendarDetailsHint,
           ),
           const SizedBox(height: 10),
           PageSurfaceCard(
@@ -233,11 +385,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           // ── Upcoming events ──
           PageSectionHeader(
             title: strings.calendarUpcomingTitle,
-            subtitle: strings.calendarUpcomingHint,
           ),
           const SizedBox(height: 10),
           if (upcomingEntries.isEmpty)
-            _UpcomingEmptyState(isChinese: strings.isChinese, isDark: isDark)
+            _UpcomingEmptyState(strings: strings, isDark: isDark)
           else
             ...upcomingEntries.map(
               (item) => Padding(
@@ -249,17 +400,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
             ),
-          const SizedBox(height: 24),
-
-          // ── Composer ──
-          PageSectionHeader(title: strings.calendarComposerTitle),
-          const SizedBox(height: 10),
-          _ComposerCard(
-            submitting: _submitting,
-            onSubmit: _submitEvent,
-            isDark: isDark,
-            isPaired: AppScope.of(context).hasActiveCoupleSpace,
-          ),
         ],
       ),
     );
@@ -660,17 +800,8 @@ class _SelectedDayEmptyState extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  strings.calendarEmptyDayTitle,
+                  strings.calendarSelectedDayEmpty,
                   style: theme.textTheme.titleSmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  strings.calendarEmptyDaySubtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? AppTheme.warmWhite60
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
                 ),
               ],
             ),
@@ -758,10 +889,7 @@ class _UpcomingEventCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              strings.formatCountdownLabel(
-                occurrence,
-                strings.calendarPrototypeReferenceDate,
-              ),
+              strings.formatCountdownLabel(occurrence, DateTime.now()),
               textAlign: TextAlign.right,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.primary,
@@ -777,9 +905,9 @@ class _UpcomingEventCard extends StatelessWidget {
 // ─── Calendar Pending Empty State ──────────────────────────────────────
 
 class _CalendarPendingEmptyState extends StatelessWidget {
-  const _CalendarPendingEmptyState({required this.isChinese});
+  const _CalendarPendingEmptyState({required this.strings});
 
-  final bool isChinese;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -798,15 +926,10 @@ class _CalendarPendingEmptyState extends StatelessWidget {
               size: 48,
             ),
             const SizedBox(height: 16),
-            Text(
-              isChinese ? '还没有日历事件' : 'No calendar events yet',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(strings.calendarNoEventsYet, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              isChinese
-                  ? '邀请对方加入后，即可开始使用'
-                  : 'Invite your partner to start using',
+              strings.invitePartnerToStartUsing,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: isDark
                     ? AppTheme.warmWhite60
@@ -823,9 +946,9 @@ class _CalendarPendingEmptyState extends StatelessWidget {
 // ─── Upcoming Empty State ────────────────────────────────────────────────
 
 class _UpcomingEmptyState extends StatelessWidget {
-  const _UpcomingEmptyState({required this.isChinese, required this.isDark});
+  const _UpcomingEmptyState({required this.strings, required this.isDark});
 
-  final bool isChinese;
+  final AppStrings strings;
   final bool isDark;
 
   @override
@@ -843,21 +966,7 @@ class _UpcomingEmptyState extends StatelessWidget {
               size: 48,
             ),
             const SizedBox(height: 16),
-            Text(
-              isChinese ? '还没有日历事件' : 'No calendar events yet',
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isChinese
-                  ? '在下方添加纪念日、约会或提醒'
-                  : 'Add anniversaries, dates, or reminders below',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark
-                    ? AppTheme.warmWhite60
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(strings.calendarNoEventsYet, style: theme.textTheme.titleMedium),
           ],
         ),
       ),
@@ -889,361 +998,6 @@ class _MetaChip extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
-      ),
-    );
-  }
-}
-
-// ─── Entry Chip ─────────────────────────────────────────────────────────
-
-class _EntryChip extends StatelessWidget {
-  const _EntryChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Composer Card ──────────────────────────────────────────────────────
-
-class _ComposerCard extends StatefulWidget {
-  const _ComposerCard({
-    required this.submitting,
-    required this.onSubmit,
-    required this.isDark,
-    required this.isPaired,
-  });
-
-  final bool submitting;
-  final Future<bool> Function({
-    required String title,
-    String? description,
-    required DateTime startsAt,
-    required String eventType,
-    required String recurrence,
-    bool allDay,
-  })
-  onSubmit;
-  final bool isDark;
-  final bool isPaired;
-
-  @override
-  State<_ComposerCard> createState() => _ComposerCardState();
-}
-
-class _ComposerCardState extends State<_ComposerCard> {
-  String _selectedType = 'anniversary';
-
-  void _showCreateDialog() {
-    final strings = AppStrings.of(context);
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
-    TimeOfDay selectedTime = TimeOfDay.now();
-    bool isAllDay = _selectedType == 'anniversary';
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(strings.isChinese ? '新建日历项' : 'Add to calendar'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: Text(
-                        strings.calendarTypeLabel(
-                          CalendarEntryType.anniversary,
-                        ),
-                      ),
-                      selected: _selectedType == 'anniversary',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setDialogState(() {
-                            _selectedType = 'anniversary';
-                            isAllDay = true;
-                          });
-                        }
-                      },
-                    ),
-                    ChoiceChip(
-                      label: Text(
-                        strings.calendarTypeLabel(CalendarEntryType.datePlan),
-                      ),
-                      selected: _selectedType == 'date_plan',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setDialogState(() {
-                            _selectedType = 'date_plan';
-                            isAllDay = false;
-                          });
-                        }
-                      },
-                    ),
-                    ChoiceChip(
-                      label: Text(
-                        strings.calendarTypeLabel(CalendarEntryType.reminder),
-                      ),
-                      selected: _selectedType == 'reminder',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setDialogState(() {
-                            _selectedType = 'reminder';
-                            isAllDay = false;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    hintText: strings.isChinese ? '标题' : 'Title',
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descriptionController,
-                  decoration: InputDecoration(
-                    hintText: strings.isChinese
-                        ? '描述（可选）'
-                        : 'Description (optional)',
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today),
-                  title: Text(strings.isChinese ? '日期' : 'Date'),
-                  subtitle: Text(
-                    '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setDialogState(() => selectedDate = picked);
-                    }
-                  },
-                ),
-                if (!isAllDay)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.access_time),
-                    title: Text(strings.isChinese ? '时间' : 'Time'),
-                    subtitle: Text(
-                      '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
-                    ),
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: selectedTime,
-                      );
-                      if (picked != null) {
-                        setDialogState(() => selectedTime = picked);
-                      }
-                    },
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(strings.isChinese ? '取消' : 'Cancel'),
-            ),
-            FilledButton(
-              onPressed: widget.submitting
-                  ? null
-                  : () async {
-                      final startsAt = isAllDay
-                          ? DateTime(
-                              selectedDate.year,
-                              selectedDate.month,
-                              selectedDate.day,
-                            )
-                          : DateTime(
-                              selectedDate.year,
-                              selectedDate.month,
-                              selectedDate.day,
-                              selectedTime.hour,
-                              selectedTime.minute,
-                            );
-
-                      final success = await widget.onSubmit(
-                        title: titleController.text,
-                        description: descriptionController.text.isEmpty
-                            ? null
-                            : descriptionController.text,
-                        startsAt: startsAt,
-                        eventType: _selectedType,
-                        recurrence: _selectedType == 'anniversary'
-                            ? 'yearly'
-                            : 'none',
-                        allDay: isAllDay,
-                      );
-
-                      if (success && context.mounted) {
-                        Navigator.pop(context);
-                      } else if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              strings.isChinese
-                                  ? '创建失败，请重试'
-                                  : 'Failed to create. Please try again.',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-              child: widget.submitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(strings.isChinese ? '创建' : 'Create'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-    final isDark = widget.isDark;
-
-    return PageSurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            strings.calendarComposerHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Opacity(
-            opacity: widget.isPaired ? 1.0 : 0.4,
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                GestureDetector(
-                  onTap: widget.isPaired
-                      ? () {
-                          setState(() => _selectedType = 'anniversary');
-                          _showCreateDialog();
-                        }
-                      : null,
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.anniversary,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.isPaired
-                      ? () {
-                          setState(() => _selectedType = 'date_plan');
-                          _showCreateDialog();
-                        }
-                      : null,
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.datePlan,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.isPaired
-                      ? () {
-                          setState(() => _selectedType = 'reminder');
-                          _showCreateDialog();
-                        }
-                      : null,
-                  child: _EntryChip(
-                    label: strings.calendarTypeLabel(
-                      CalendarEntryType.reminder,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          PageInsetPanel(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                PageIconBadge(
-                  icon: Icons.favorite_outline,
-                  color: AppTheme.blush,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        strings.calendarPeriodPlaceholderTitle,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        strings.calendarPeriodPlaceholderSubtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isDark
-                              ? AppTheme.warmWhite60
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

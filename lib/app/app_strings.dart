@@ -615,6 +615,13 @@ class AppStrings {
     ja: '招待コードが無効または期限切れです',
     ko: '초대 코드가 유효하지 않거나 만료되었습니다',
   );
+  String get invitePartnerToStartUsing => _resolve(
+    zhCn: '邀请对方加入后，即可开始使用',
+    zhTw: '邀請對方加入後，即可開始使用',
+    en: 'Invite your partner to start using',
+    ja: 'パートナーを招待して使い始めましょう',
+    ko: '파트너를 초대하여 사용을 시작하세요',
+  );
   String inviteExpiryText(int month, int day, int hour, int minute) => _resolve(
     zhCn: '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
     zhTw: '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
@@ -814,8 +821,11 @@ class AppStrings {
     ko: '다가오는 일정',
   );
   String get createCalendarEntrySection => _resolve(
-    zhCn: '新建日历项',
-    en: 'Add to calendar',
+    zhCn: '添加事件',
+    zhTw: '新增事件',
+    en: 'Add event',
+    ja: 'イベント追加',
+    ko: '이벤트 추가',
   );
   String get selectedDateLabel => isChinese ? '6 月 6 日 · 周六' : 'June 6 · Saturday';
   String get createAnniversaryLabel => _resolve(
@@ -1229,60 +1239,6 @@ class AppStrings {
     ko: '다크',
   );
 
-  List<CalendarItemCopy> get calendarItems => [
-    for (final item in calendarUpcomingEntries)
-      calendarItemCopyForOccurrence(item),
-  ];
-
-  /*
-      ? const [
-          CalendarItemCopy(
-            title: '关系纪念日',
-            subtitle: '晚饭想去河边那家小店',
-            dateLabel: '6 月 6 日',
-            countdownLabel: '还有 12 天',
-            typeLabel: '纪念日',
-          ),
-          CalendarItemCopy(
-            title: '周五约会夜',
-            subtitle: '电影还没定，先把时间留出来',
-            dateLabel: '5 月 29 日 19:30',
-            countdownLabel: '3 天后',
-            typeLabel: '约会',
-          ),
-          CalendarItemCopy(
-            title: '给阳台植物浇水',
-            subtitle: '顺手把新的花盆也挑一下',
-            dateLabel: '5 月 27 日 20:00',
-            countdownLabel: '明天',
-            typeLabel: '提醒',
-          ),
-        ]
-      : const [
-          CalendarItemCopy(
-            title: 'Relationship anniversary',
-            subtitle: 'Dinner could be at the little riverside place',
-            dateLabel: 'June 6',
-            countdownLabel: '12 days left',
-            typeLabel: 'Anniversary',
-          ),
-          CalendarItemCopy(
-            title: 'Friday date night',
-            subtitle: 'Movie not chosen yet, but the time is already saved',
-            dateLabel: 'May 29, 7:30 PM',
-            countdownLabel: 'In 3 days',
-            typeLabel: 'Date',
-          ),
-          CalendarItemCopy(
-            title: 'Water the balcony plants',
-            subtitle: 'Also pick a new pot while you are at it',
-            dateLabel: 'May 27, 8:00 PM',
-            countdownLabel: 'Tomorrow',
-            typeLabel: 'Reminder',
-          ),
-        ];
-
-*/
   List<PlanItemCopy> get plans => isChinese
       ? const [
           PlanItemCopy(
@@ -1390,33 +1346,9 @@ class AppStrings {
   DateTime get calendarPrototypeDisplayMonth => DateTime(2026, 6);
   DateTime get calendarPrototypeReferenceDate => DateTime(2026, 5, 27, 9);
 
-  String get calendarOverviewTitle => _resolve(
-    zhCn: '这个月的有日期安排',
-    en: 'This month\'s dated plans',
-  );
-  String get calendarOverviewSubtitle => _resolve(
-    zhCn: '纪念日、约会和提醒，只要定了日期，就都放在这里。',
-    en: 'If it has a date, this is where anniversaries, dates, and reminders belong.',
-  );
-  String get calendarOverviewCaption => _resolve(
-    zhCn: '月视图、当天详情和近期事项都来自同一份样例日历。',
-    en: 'The month view, day details, and coming-up list all come from the same sample calendar.',
-  );
   String get calendarDetailsTitle => _resolve(
     zhCn: '这一天有什么',
     en: 'What is on this day',
-  );
-  String get calendarDetailsHint => _resolve(
-    zhCn: '只看当前选中日期，不混入别的内容。',
-    en: 'Only items for the selected date appear here.',
-  );
-  String get calendarEmptyDayTitle => _resolve(
-    zhCn: '这一天先留白',
-    en: 'This day is still open',
-  );
-  String get calendarEmptyDaySubtitle => _resolve(
-    zhCn: '有明确日期的纪念日、约会或提醒，才会出现在这里。',
-    en: 'Only dated anniversaries, date plans, or reminders will show here.',
   );
   String get calendarUpcomingTitle => _resolve(
     zhCn: '近期事项',
@@ -1424,26 +1356,6 @@ class AppStrings {
     en: 'Coming up soon',
     ja: '近日の予定',
     ko: '다가오는 일정',
-  );
-  String get calendarUpcomingHint => _resolve(
-    zhCn: '按时间顺序往后看，和上面的月历是同一批内容。',
-    en: 'The next few dated items, in order, from the same calendar data.',
-  );
-  String get calendarComposerTitle => _resolve(
-    zhCn: '放进日历的内容',
-    en: 'What belongs in calendar',
-  );
-  String get calendarComposerHint => _resolve(
-    zhCn: '首版先只收纪念日、约会和提醒。',
-    en: 'For now, calendar only holds anniversaries, dates, and reminders.',
-  );
-  String get calendarPeriodPlaceholderTitle => _resolve(
-    zhCn: '经期记录会后续接入',
-    en: 'Cycle records come later',
-  );
-  String get calendarPeriodPlaceholderSubtitle => _resolve(
-    zhCn: '经期记录之后也会放在日历里，但会单独分区，也不会默认共享。',
-    en: 'Cycle records will live here later too, but in a clearly separate area and never shared by default.',
   );
   String get calendarRepeatYearlyLabel => _resolve(
     zhCn: '每年重复',
@@ -1503,6 +1415,72 @@ class AppStrings {
         CalendarRepeatRule.none => calendarRepeatOnceLabel,
         CalendarRepeatRule.yearly => calendarRepeatYearlyLabel,
       };
+
+  // ── Calendar composer dialog ──────────────────────────────────────────
+
+  String get calendarCreateDialogTitle => _resolve(
+    zhCn: '新建日历项',
+    zhTw: '新建日曆項',
+    en: 'Add to calendar',
+    ja: 'カレンダーに追加',
+    ko: '캘린더에 추가',
+  );
+  String get calendarTitleHint => _resolve(
+    zhCn: '标题',
+    zhTw: '標題',
+    en: 'Title',
+    ja: 'タイトル',
+    ko: '제목',
+  );
+  String get calendarDescriptionHint => _resolve(
+    zhCn: '描述（可选）',
+    zhTw: '描述（可選）',
+    en: 'Description (optional)',
+    ja: '説明（任意）',
+    ko: '설명 (선택)',
+  );
+  String get calendarDateLabel => _resolve(
+    zhCn: '日期',
+    zhTw: '日期',
+    en: 'Date',
+    ja: '日付',
+    ko: '날짜',
+  );
+  String get calendarTimeLabel => _resolve(
+    zhCn: '时间',
+    zhTw: '時間',
+    en: 'Time',
+    ja: '時間',
+    ko: '시간',
+  );
+  String get calendarCreateButton => _resolve(
+    zhCn: '创建',
+    zhTw: '建立',
+    en: 'Create',
+    ja: '作成',
+    ko: '생성',
+  );
+  String get calendarCreateFailedError => _resolve(
+    zhCn: '创建失败，请重试',
+    zhTw: '建立失敗，請重試',
+    en: 'Failed to create. Please try again.',
+    ja: '作成に失敗しました。もう一度お試しください。',
+    ko: '생성에 실패했습니다. 다시 시도하세요.',
+  );
+  String get calendarNoEventsYet => _resolve(
+    zhCn: '还没有日历事件',
+    zhTw: '還沒有日曆事件',
+    en: 'No calendar events yet',
+    ja: 'カレンダーイベントはまだありません',
+    ko: '캘린더 이벤트가 아직 없습니다',
+  );
+  String get calendarSelectedDayEmpty => _resolve(
+    zhCn: '这一天暂无安排',
+    zhTw: '這一天暫無安排',
+    en: 'Nothing scheduled this day',
+    ja: 'この日の予定はありません',
+    ko: '이 날은 예정이 없습니다',
+  );
 
   List<CalendarEntryData> get calendarPrototypeEntries => isChinese
       ? [
