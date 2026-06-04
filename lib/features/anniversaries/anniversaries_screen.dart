@@ -21,6 +21,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _submitting = false;
   bool _eventsLoaded = false;
 
+  @visibleForTesting
+  void debugSetEvents(List<CalendarEventRecord> events) {
+    setState(() {
+      _events = events;
+      _eventsLoaded = true;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +109,55 @@ class _CalendarScreenState extends State<CalendarScreen> {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  Future<void> _deleteEvent(String eventId) async {
+    if (!AppScope.read(context).hasActiveCoupleSpace) return;
+    final coupleSpaceId = AppScope.read(context).currentSpaceId;
+    if (coupleSpaceId == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('calendar_events')
+          .update({'deleted_at': DateTime.now().toIso8601String()})
+          .eq('id', eventId)
+          .eq('couple_space_id', coupleSpaceId)
+          .filter('deleted_at', 'is', null);
+
+      await _loadEvents();
+    } catch (_) {
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.calendarDeleteFailedError)),
+        );
+      }
+    }
+  }
+
+  void _confirmDeleteEvent(String eventId, String title) {
+    final strings = AppStrings.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.calendarDeleteConfirmTitle),
+        content: Text(strings.calendarDeleteConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(strings.profileCancelLabel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _deleteEvent(eventId);
+            },
+            child: Text(strings.calendarDeleteButton),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCreateDialog() {
@@ -362,6 +419,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         entry: entry,
                         occurrence: _occurrenceOnDay(entry, _selectedDate!),
                         isDark: isDark,
+                        onDelete: () =>
+                            _confirmDeleteEvent(entry.id, entry.title),
                       ),
                     ),
                   ),
@@ -385,6 +444,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   entry: item.entry,
                   occurrence: item.occurrence,
                   isDark: isDark,
+                  onDelete: () =>
+                      _confirmDeleteEvent(item.entry.id, item.entry.title),
                 ),
               ),
             ),
@@ -685,11 +746,13 @@ class _SelectedEntryCard extends StatelessWidget {
     required this.entry,
     required this.occurrence,
     required this.isDark,
+    this.onDelete,
   });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
   final bool isDark;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -725,6 +788,20 @@ class _SelectedEntryCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: strings.calendarDeleteButton,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -817,11 +894,13 @@ class _UpcomingEventCard extends StatelessWidget {
     required this.entry,
     required this.occurrence,
     required this.isDark,
+    this.onDelete,
   });
 
   final CalendarEntryData entry;
   final DateTime occurrence;
   final bool isDark;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -886,12 +965,31 @@ class _UpcomingEventCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              strings.formatCountdownLabel(occurrence, DateTime.now()),
-              textAlign: TextAlign.right,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.primary,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  strings.formatCountdownLabel(occurrence, DateTime.now()),
+                  textAlign: TextAlign.right,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.primary,
+                  ),
+                ),
+                if (onDelete != null) ...[
+                  const SizedBox(height: 4),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: strings.calendarDeleteButton,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

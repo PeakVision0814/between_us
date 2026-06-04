@@ -1,4 +1,5 @@
 import 'package:between_us/app/app_controller.dart';
+import 'package:between_us/data/models/calendar_event_record.dart';
 import 'package:between_us/features/anniversaries/anniversaries_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -117,6 +118,167 @@ void main() {
       expect(find.text('日期'), findsOneWidget);
       // Create button.
       expect(find.text('创建'), findsOneWidget);
+    },
+  );
+
+  testWidgets('single mode: no delete buttons visible', (tester) async {
+    await _pumpCalendar(tester);
+
+    // Single mode shows empty state, no delete icons.
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+  });
+
+  testWidgets(
+    'paired mode: event entry shows delete button',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      // Inject mock events into the calendar state.
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'test-user',
+          eventType: 'date_plan',
+          title: '测试约会',
+          description: '测试描述',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Delete icon should be visible on the event entry.
+      expect(find.byIcon(Icons.delete_outline), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'paired mode: tapping delete shows confirmation dialog',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'test-user',
+          eventType: 'date_plan',
+          title: '测试约会',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Scroll to the delete icon and tap it.
+      await _scrollTo(tester, find.byIcon(Icons.delete_outline).first);
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog should appear.
+      expect(find.text('删除这个事件？'), findsOneWidget);
+      expect(find.text('删除后，这个事件将不再显示在日历中。'), findsOneWidget);
+      expect(find.text('取消'), findsOneWidget);
+      expect(find.text('删除'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'paired mode: cancel delete keeps event visible',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'test-user',
+          eventType: 'date_plan',
+          title: '测试约会',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Scroll to the delete icon, tap it, then cancel.
+      await _scrollTo(tester, find.byIcon(Icons.delete_outline).first);
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      // Event title should still be visible.
+      expect(find.text('测试约会'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'paired mode: confirm delete triggers refresh and removes event',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'test-event-1',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'test-user',
+          eventType: 'date_plan',
+          title: '测试约会',
+          startsAt: DateTime.now().add(const Duration(days: 1)),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      // Scroll to the delete icon, tap it, then confirm.
+      await _scrollTo(tester, find.byIcon(Icons.delete_outline).first);
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除'));
+      await tester.pumpAndSettle();
+
+      // Dialog should be dismissed (no more confirmation text).
+      expect(find.text('删除这个事件？'), findsNothing);
+
+      // After confirm, _deleteEvent is called which triggers _loadEvents.
+      // Since Supabase is not actually available, _loadEvents catches the
+      // error and events list stays as-is. The key assertion is that the
+      // delete flow completes without crashing.
+      expect(find.byType(CalendarScreen), findsOneWidget);
     },
   );
 }

@@ -1478,6 +1478,34 @@ class AppStrings {
     ja: 'この日の予定はありません',
     ko: '이 날은 예정이 없습니다',
   );
+  String get calendarDeleteConfirmTitle => _resolve(
+    zhCn: '删除这个事件？',
+    zhTw: '刪除這個事件？',
+    en: 'Delete this event?',
+    ja: 'このイベントを削除しますか？',
+    ko: '이 이벤트를 삭제하시겠습니까?',
+  );
+  String get calendarDeleteConfirmBody => _resolve(
+    zhCn: '删除后，这个事件将不再显示在日历中。',
+    zhTw: '刪除後，這個事件將不再顯示在日曆中。',
+    en: 'Once deleted, this event will no longer appear in the calendar.',
+    ja: '削除すると、このイベントはカレンダーに表示されなくなります。',
+    ko: '삭제하면 이 이벤트는 캘린더에 더 이상 표시되지 않습니다.',
+  );
+  String get calendarDeleteButton => _resolve(
+    zhCn: '删除',
+    zhTw: '刪除',
+    en: 'Delete',
+    ja: '削除',
+    ko: '삭제',
+  );
+  String get calendarDeleteFailedError => _resolve(
+    zhCn: '删除失败，请重试',
+    zhTw: '刪除失敗，請重試',
+    en: 'Failed to delete. Please try again.',
+    ja: '削除に失敗しました。もう一度お試しください。',
+    ko: '삭제에 실패했습니다. 다시 시도하세요.',
+  );
 
   List<CalendarEntryData> get calendarPrototypeEntries => isChinese
       ? [
