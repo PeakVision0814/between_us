@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,6 +26,9 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   Future<List<NoteRecord>>? _notesFuture;
   Future<List<PlanRecord>>? _plansFuture;
   bool _submitting = false;
+  StreamSubscription<List<Map<String, dynamic>>>? _notesSub;
+  StreamSubscription<List<Map<String, dynamic>>>? _plansSub;
+  bool _subscriptionsActive = false;
 
   @override
   void initState() {
@@ -37,11 +42,73 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final isPaired = AppScope.of(context).hasActiveCoupleSpace;
+    final controller = AppScope.of(context);
+    final isPaired = controller.hasActiveCoupleSpace;
     if (isPaired && _notesFuture == null) {
       _notesFuture = _fetchNotes();
       _plansFuture = _fetchPlans();
     }
+    // 双人态建立 Realtime 订阅；单人态或空间 ID 为空时取消。
+    if (isPaired &&
+        controller.currentSpaceId != null &&
+        controller.supabaseReady) {
+      _setupRealtimeSubscriptions(controller.currentSpaceId!);
+    } else {
+      _cancelSubscriptions();
+    }
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
+
+  void _setupRealtimeSubscriptions(String spaceId) {
+    if (_subscriptionsActive) return;
+    _subscriptionsActive = true;
+
+    _notesSub = Supabase.instance.client
+        .from('notes')
+        .stream(primaryKey: ['id'])
+        .eq('couple_space_id', spaceId)
+        .listen((data) {
+          if (!mounted) return;
+          final notes =
+              data
+                  .where((json) => json['deleted_at'] == null)
+                  .map(NoteRecord.fromJson)
+                  .toList()
+                ..sort((a, b) => b.authoredAt.compareTo(a.authoredAt));
+          setState(() {
+            _notesFuture = Future.value(notes);
+          });
+        });
+
+    _plansSub = Supabase.instance.client
+        .from('plans')
+        .stream(primaryKey: ['id'])
+        .eq('couple_space_id', spaceId)
+        .listen((data) {
+          if (!mounted) return;
+          final plans =
+              data
+                  .where((json) => json['deleted_at'] == null)
+                  .map(PlanRecord.fromJson)
+                  .toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          setState(() {
+            _plansFuture = Future.value(plans);
+          });
+        });
+  }
+
+  void _cancelSubscriptions() {
+    _notesSub?.cancel();
+    _notesSub = null;
+    _plansSub?.cancel();
+    _plansSub = null;
+    _subscriptionsActive = false;
   }
 
   Future<List<NoteRecord>> _fetchNotes() async {
@@ -286,17 +353,6 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     setState(() => _activeMode = mode);
   }
 
-  String _resolveAuthorName(
-    String authorProfileId, {
-    required AppController controller,
-    required bool isChinese,
-  }) {
-    if (authorProfileId == controller.selfProfileId) {
-      return isChinese ? '我' : 'Me';
-    }
-    return controller.partnerDisplayName ?? (isChinese ? 'TA' : 'Partner');
-  }
-
   @override
   void didUpdateWidget(PlansNotesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -446,7 +502,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _NoteCard(
                           note: NoteItemCopy(
-                            author: _resolveAuthorName(
+                            author: resolveNoteAuthorName(
                               note.authorProfileId,
                               controller: controller,
                               isChinese: strings.isChinese,
@@ -1084,4 +1140,17 @@ String _planStatusLabel(String status, {required bool isChinese}) {
     'archived' => isChinese ? '已归档' : 'Archived',
     _ => status,
   };
+}
+
+/// 解析随记作者显示名称。
+/// 当前用户返回"我/Me"，伴侣返回昵称或 fallback。
+String resolveNoteAuthorName(
+  String authorProfileId, {
+  required AppController controller,
+  required bool isChinese,
+}) {
+  if (authorProfileId == controller.selfProfileId) {
+    return isChinese ? '我' : 'Me';
+  }
+  return controller.partnerDisplayName ?? (isChinese ? 'TA' : 'Partner');
 }

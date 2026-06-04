@@ -7,6 +7,7 @@ import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../app/app_controller.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import '../timeline/timeline_screen.dart' show resolveNoteAuthorName;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -88,11 +89,13 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         if (noteData != null) {
           final authorId = noteData['author_profile_id'] as String?;
-          final authorName = _resolveAuthorName(
-            authorId,
-            controller: appController,
-            isChinese: strings.isChinese,
-          );
+          final authorName = authorId != null
+              ? resolveNoteAuthorName(
+                  authorId,
+                  controller: appController,
+                  isChinese: strings.isChinese,
+                )
+              : (strings.isChinese ? 'TA' : 'Partner');
           _recentNote = NoteItemCopy(
             author: authorName,
             timeLabel: _formatTimeAgo(
@@ -161,17 +164,6 @@ class _HomeScreenState extends State<HomeScreen> {
     'reminder' => CalendarEntryType.reminder,
     _ => CalendarEntryType.datePlan,
   };
-
-  static String _resolveAuthorName(
-    String? authorProfileId, {
-    required AppController controller,
-    required bool isChinese,
-  }) {
-    if (authorProfileId == controller.selfProfileId) {
-      return isChinese ? '我' : 'Me';
-    }
-    return controller.partnerDisplayName ?? (isChinese ? 'TA' : 'Partner');
-  }
 
   static String _mapPlanStatus(String status, bool isChinese) =>
       switch (status) {

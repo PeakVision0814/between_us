@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:between_us/features/auth/email_register_screen.dart';
+import 'package:between_us/features/timeline/timeline_screen.dart'
+    show resolveNoteAuthorName;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -1428,6 +1430,135 @@ void main() {
       supabaseReady: true,
       displayName: 'Xiaoman',
       memberCount: 2,
+    );
+
+    expect(controller.hasActiveCoupleSpace, isFalse);
+  });
+
+  test('resolveNoteAuthorName: current user returns 我 in Chinese', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: '小满',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: '阿澈',
+    );
+
+    expect(
+      resolveNoteAuthorName('user-1', controller: controller, isChinese: true),
+      '我',
+    );
+  });
+
+  test('resolveNoteAuthorName: current user returns Me in English', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    expect(
+      resolveNoteAuthorName('user-1', controller: controller, isChinese: false),
+      'Me',
+    );
+  });
+
+  test('resolveNoteAuthorName: partner returns partnerDisplayName', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: '小满',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: '阿澈',
+    );
+
+    expect(
+      resolveNoteAuthorName(
+        'partner-id',
+        controller: controller,
+        isChinese: true,
+      ),
+      '阿澈',
+    );
+  });
+
+  test('resolveNoteAuthorName: partner fallback to TA when name null', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: '小满',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+    );
+
+    expect(
+      resolveNoteAuthorName(
+        'partner-id',
+        controller: controller,
+        isChinese: true,
+      ),
+      'TA',
+    );
+  });
+
+  test('resolveNoteAuthorName: partner fallback to Partner in English', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+    );
+
+    expect(
+      resolveNoteAuthorName(
+        'partner-id',
+        controller: controller,
+        isChinese: false,
+      ),
+      'Partner',
+    );
+  });
+
+  test('resolveNoteAuthorName: never returns raw UUID', () {
+    final controller = AppController();
+    controller.debugSeedLoadedProfile(
+      userId: 'user-1',
+      displayName: '小满',
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: '阿澈',
+    );
+
+    final self = resolveNoteAuthorName(
+      'user-1',
+      controller: controller,
+      isChinese: true,
+    );
+    final partner = resolveNoteAuthorName(
+      'partner-uuid-12345',
+      controller: controller,
+      isChinese: true,
+    );
+
+    expect(self, isNot(contains('user-1')));
+    expect(partner, isNot(contains('uuid')));
+    expect(partner, isNot(contains('12345')));
+  });
+
+  test('single mode: plans page shows empty state, not business content', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+      memberCount: 1,
     );
 
     expect(controller.hasActiveCoupleSpace, isFalse);
