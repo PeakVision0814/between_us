@@ -846,11 +846,6 @@ class AppStrings {
     ja: 'リマインダー',
     ko: '알림',
   );
-  String get periodPlaceholderLabel => _resolve(
-    zhCn: '经期记录以后会放在日历里，但会单独区分，也不会默认共享。',
-    en: 'Cycle records will appear in calendar later, clearly separated and never shared by default.',
-  );
-
   String get plansNotesTitle => plansNotesTab;
   String get plansNotesLeadTitle => _resolve(
     zhCn: '没定日期的，先放这里',
@@ -1206,14 +1201,6 @@ class AppStrings {
     ja: 'エクスポートと解除',
     ko: '내보내기 및 연결 해제',
   );
-  String get localPrototypeHint => _resolve(
-    zhCn: '这些设置会应用到你当前使用的设备。',
-    zhTw: '這些設定會應用到你當前使用的設備。',
-    en: 'These settings apply to the device you are using now.',
-    ja: 'これらの設定は現在使用中のデバイスに適用されます。',
-    ko: '이 설정은 현재 사용 중인 기기에 적용됩니다.',
-  );
-
   String get themeSystemLabel => _resolve(
     zhCn: '跟随系统',
     zhTw: '跟隨系統',
@@ -1332,17 +1319,6 @@ class AppStrings {
     zhCn: '2025 年 10 月 5 日',
     en: 'October 5, 2025',
   );
-  String get cyclePrivacyValue => _resolve(
-    zhCn: '经期记录以后会进入日历，但默认只属于记录的人，明确开启后才共享。',
-    en: 'Cycle records will later appear in calendar, but they belong to the recorder unless sharing is explicitly enabled.',
-  );
-  String get exportUnlinkValue => _resolve(
-    zhCn: '导出和解绑先放在这里预留，真实行为等共享版本接入后再开放。',
-    en: 'Export and unlink stay here as placeholders until the shared version is wired.',
-  );
-  DateTime get calendarPrototypeDisplayMonth => DateTime(2026, 6);
-  DateTime get calendarPrototypeReferenceDate => DateTime(2026, 5, 27, 9);
-
   String get calendarDetailsTitle => _resolve(
     zhCn: '这一天有什么',
     en: 'What is on this day',
@@ -1514,122 +1490,6 @@ class AppStrings {
     ko: '$name 생성',
   );
 
-  List<CalendarEntryData> get calendarPrototypeEntries => isChinese
-      ? [
-          CalendarEntryData(
-            id: 'relationship-anniversary',
-            type: CalendarEntryType.anniversary,
-            title: '在一起纪念日',
-            description: '晚上想去河边那家小店慢慢吃顿饭。',
-            startsAt: DateTime(2025, 6, 6),
-            repeatRule: CalendarRepeatRule.yearly,
-          ),
-          CalendarEntryData(
-            id: 'friday-date-night',
-            type: CalendarEntryType.datePlan,
-            title: '周五约会夜',
-            description: '电影还没定，但晚上 19:30 先留给我们。',
-            startsAt: DateTime(2026, 5, 29, 19, 30),
-            repeatRule: CalendarRepeatRule.none,
-          ),
-          CalendarEntryData(
-            id: 'plant-reminder',
-            type: CalendarEntryType.reminder,
-            title: '给阳台植物浇水',
-            description: '顺手看看要不要带一个新的小花盆回来。',
-            startsAt: DateTime(2026, 5, 27, 20),
-            repeatRule: CalendarRepeatRule.none,
-          ),
-        ]
-      : [
-          CalendarEntryData(
-            id: 'relationship-anniversary',
-            type: CalendarEntryType.anniversary,
-            title: 'Relationship anniversary',
-            description:
-                'A slow dinner by the riverside sounds right for that night.',
-            startsAt: DateTime(2025, 6, 6),
-            repeatRule: CalendarRepeatRule.yearly,
-          ),
-          CalendarEntryData(
-            id: 'friday-date-night',
-            type: CalendarEntryType.datePlan,
-            title: 'Friday date night',
-            description:
-                'The movie can wait. 7:30 PM is already saved for the two of you.',
-            startsAt: DateTime(2026, 5, 29, 19, 30),
-            repeatRule: CalendarRepeatRule.none,
-          ),
-          CalendarEntryData(
-            id: 'plant-reminder',
-            type: CalendarEntryType.reminder,
-            title: 'Water the balcony plants',
-            description:
-                'Maybe bring back a new little pot while you are at it.',
-            startsAt: DateTime(2026, 5, 27, 20),
-            repeatRule: CalendarRepeatRule.none,
-          ),
-        ];
-
-  List<CalendarEntryOccurrence> get calendarUpcomingEntries {
-    final upcoming = [
-      for (final entry in calendarPrototypeEntries)
-        if (entry.nextOccurrenceFrom(calendarPrototypeReferenceDate)
-            case final occurrence?)
-          CalendarEntryOccurrence(entry: entry, occurrence: occurrence),
-    ];
-
-    upcoming.sort((left, right) => left.occurrence.compareTo(right.occurrence));
-    return upcoming;
-  }
-
-  DateTime get calendarDefaultSelectedDate {
-    final displayMonth = calendarPrototypeDisplayMonth;
-    final inMonthEntries = [
-      for (final item in calendarUpcomingEntries)
-        if (item.occurrence.year == displayMonth.year &&
-            item.occurrence.month == displayMonth.month)
-          item,
-    ];
-    if (inMonthEntries.isNotEmpty) {
-      return _dateOnly(inMonthEntries.first.occurrence);
-    }
-
-    final visibleDays = calendarVisibleDaysForMonth(displayMonth);
-    final visibleEntries = [
-      for (final item in calendarUpcomingEntries)
-        if (visibleDays.any((day) => _sameDate(day, item.occurrence))) item,
-    ];
-    if (visibleEntries.isNotEmpty) {
-      return _dateOnly(visibleEntries.first.occurrence);
-    }
-
-    return _dateOnly(displayMonth);
-  }
-
-  CalendarEntryOccurrence get calendarFeaturedEntry {
-    final matches = entriesForCalendarDay(calendarDefaultSelectedDate);
-    if (matches.isNotEmpty) {
-      return matches.first;
-    }
-
-    return calendarUpcomingEntries.first;
-  }
-
-  CalendarItemCopy get calendarFeaturedItem =>
-      calendarItemCopyForOccurrence(calendarFeaturedEntry);
-
-  List<CalendarEntryOccurrence> entriesForCalendarDay(DateTime day) {
-    final normalizedDay = _dateOnly(day);
-    final matches = [
-      for (final item in calendarUpcomingEntries)
-        if (_sameDate(item.occurrence, normalizedDay)) item,
-    ];
-
-    matches.sort((left, right) => left.occurrence.compareTo(right.occurrence));
-    return matches;
-  }
-
   List<DateTime> calendarVisibleDaysForMonth(DateTime displayMonth) {
     final monthStart = DateTime(displayMonth.year, displayMonth.month);
     var gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
@@ -1641,27 +1501,6 @@ class AppStrings {
     return List<DateTime>.generate(
       42,
       (index) => gridStart.add(Duration(days: index)),
-    );
-  }
-
-  CalendarItemCopy calendarItemCopyForOccurrence(
-    CalendarEntryOccurrence item, {
-    bool includeWeekday = false,
-  }) {
-    return CalendarItemCopy(
-      id: item.entry.id,
-      title: item.entry.title,
-      subtitle: item.entry.description,
-      dateLabel: formatCalendarDate(
-        item.occurrence,
-        includeWeekday: includeWeekday,
-        includeTime: item.showsTime,
-      ),
-      countdownLabel: formatCountdownLabel(
-        item.occurrence,
-        calendarPrototypeReferenceDate,
-      ),
-      typeLabel: calendarTypeLabel(item.entry.type),
     );
   }
 
@@ -1736,9 +1575,6 @@ class AppStrings {
     };
   }
 
-  DateTime _dateOnly(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
-
   bool _sameDate(DateTime left, DateTime right) =>
       left.year == right.year &&
       left.month == right.month &&
@@ -1804,24 +1640,6 @@ class AppStrings {
     '토요일',
     '일요일',
   ];
-}
-
-class CalendarItemCopy {
-  const CalendarItemCopy({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.dateLabel,
-    required this.countdownLabel,
-    required this.typeLabel,
-  });
-
-  final String id;
-  final String title;
-  final String subtitle;
-  final String dateLabel;
-  final String countdownLabel;
-  final String typeLabel;
 }
 
 class CalendarEntryOccurrence {
