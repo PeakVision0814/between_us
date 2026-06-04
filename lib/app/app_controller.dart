@@ -351,14 +351,15 @@ class AppController extends ChangeNotifier {
       final client = Supabase.instance.client;
       Map<String, dynamic>? profile;
       for (var attempt = 0; attempt < 3; attempt++) {
-        profile = await client
-            .from('profiles')
-            .select(
-              'display_name, gender, birthday, preferred_locale, theme_preference, notification_preview_enabled',
-            )
-            .eq('id', userId)
-            .maybeSingle();
-        if (profile != null) {
+        final response = await client.rpc('get_my_profile');
+        final rows = switch (response) {
+          final List<dynamic> r when r.isNotEmpty =>
+            r.first as Map<String, dynamic>,
+          final Map<String, dynamic> row => row,
+          _ => null,
+        };
+        if (rows != null) {
+          profile = rows;
           break;
         }
         if (attempt < 2) {
@@ -394,12 +395,17 @@ class AppController extends ChangeNotifier {
           }
         }
         if (partnerProfileId != null) {
-          final partnerProfile = await client
-              .from('profiles')
-              .select('display_name')
-              .eq('id', partnerProfileId)
-              .maybeSingle();
-          partnerDisplayName = partnerProfile?['display_name'] as String?;
+          final partnerResponse = await client.rpc(
+            'get_partner_public_profile',
+            params: {'p_profile_id': partnerProfileId},
+          );
+          final partnerRow = switch (partnerResponse) {
+            final List<dynamic> r when r.isNotEmpty =>
+              r.first as Map<String, dynamic>,
+            final Map<String, dynamic> row => row,
+            _ => null,
+          };
+          partnerDisplayName = partnerRow?['display_name'] as String?;
         }
       }
 
@@ -541,6 +547,14 @@ class AppController extends ChangeNotifier {
       gender: _gender ?? genderUnset,
       birthday: _birthday,
     );
+  }
+
+  /// 刷新当前用户的空间和成员状态。
+  /// 在接受邀请成功后调用，确保 AppController 持有的
+  /// currentSpaceId、memberCount、partnerDisplayName 等字段同步更新。
+  Future<void> refreshAfterInviteAccepted() async {
+    _loadedPreferencesUserId = null;
+    await loadPreferences(force: true);
   }
 
   void clearProfileError() {

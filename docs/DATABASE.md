@@ -263,7 +263,7 @@
 
 - 用户可以读取和更新自己的 `profiles` 行
 - 当前已支持用户读取和更新自己的 `display_name`、`gender`、`birthday` 以及个人偏好字段
-- 同一 `couple_space` 的活跃成员互相读取必要 profile 字段属于 8.4 收尾项，至少应覆盖作者昵称和安全边界内的 TA 资料展示
+- 同一 `couple_space` 的活跃成员可通过 `get_partner_public_profile()` 函数读取对方的 `display_name` 和 `avatar_url`（migration `20260604100000`）。不直接开放 RLS 行策略读取 profiles 整行，避免暴露 `gender`/`birthday` 等敏感字段
 - 对方 `gender` / `birthday` 不能默认扩大暴露范围；如需展示，必须先确认产品边界和 RLS 策略
 - 用户只能修改自己的语言、主题、时区和通知偏好
 - 活跃成员才能读取所在 `couple_space`

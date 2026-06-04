@@ -233,6 +233,12 @@ class AppStrings {
       : 'Show note and reminder text directly inside notifications.';
   String get spaceNameTitle => isChinese ? '空间名称' : 'Space name';
   String get inviteStatusTitle => isChinese ? '邀请状态' : 'Invite status';
+  String get inviteCodeCopied => isChinese ? '邀请码已复制' : 'Invite code copied';
+  String get inviteCodeEmptyError =>
+      isChinese ? '请输入邀请码' : 'Please enter an invite code';
+  String get inviteAlreadyPairedError =>
+      isChinese ? '你已经在配对空间中' : 'You are already in a paired space';
+  String get inviteAccepting => isChinese ? '正在加入...' : 'Joining...';
   String get sharedRulesTitle => isChinese ? '共享规则' : 'Shared rules';
   String get relationshipDateTitle => isChinese ? '关系起点' : 'Relationship date';
   String get cyclePrivacyTitle => isChinese ? '经期记录共享规则' : 'Cycle sharing rule';

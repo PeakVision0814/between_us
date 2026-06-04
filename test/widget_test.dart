@@ -1269,6 +1269,169 @@ void main() {
       expect(textFormFields, findsOneWidget);
     },
   );
+
+  testWidgets(
+    'single mode: invite page shows generate and enter invite code buttons',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.en,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        memberCount: 1,
+      );
+
+      // Navigate to Us tab
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the add avatar to navigate to invite page
+      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+      await tester.pumpAndSettle();
+
+      // Verify invite page structure
+      expect(
+        find.byKey(const ValueKey('us-invite-placeholder-section')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('us-space-invite-actions')),
+        findsOneWidget,
+      );
+      expect(find.text('Generate invite code'), findsOneWidget);
+      expect(find.text('Enter invite code to join'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'paired mode: Us page shows partner slot, not single invite entry',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        language: AppLanguage.en,
+        displayName: 'Xiaoman',
+        gender: AppController.genderFemale,
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+
+      // Navigate to Us tab
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Paired mode shows partner slot, not single slot
+      expect(
+        find.byKey(const ValueKey('us-hero-partner-slot')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('us-hero-single-slot')), findsNothing);
+
+      // Navigate to partner screen
+      await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
+      await tester.pumpAndSettle();
+
+      // Partner screen shows paired content, not invite content
+      expect(
+        find.byKey(const ValueKey('us-partner-profile-section')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('us-invite-placeholder-section')),
+        findsNothing,
+      );
+      expect(find.text('Ache'), findsWidgets);
+    },
+  );
+
+  testWidgets('single mode: invite page has copy button for invite code', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.en,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    // Navigate to Us tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the add avatar to navigate to invite page
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
+
+    // Verify invite page structure is present
+    expect(
+      find.byKey(const ValueKey('us-invite-placeholder-section')),
+      findsOneWidget,
+    );
+    // Copy button should not be visible yet (no invite code generated)
+    expect(find.byKey(const ValueKey('invite-code-copy-button')), findsNothing);
+  });
+
+  test(
+    'hasActiveCoupleSpace is true when memberCount >= 2 and spaceId set',
+    () {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+        displayName: 'Xiaoman',
+        currentSpaceId: 'space-1',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+      );
+
+      expect(controller.hasActiveCoupleSpace, isTrue);
+      expect(controller.memberCount, 2);
+      expect(controller.partnerDisplayName, 'Ache');
+    },
+  );
+
+  test('hasActiveCoupleSpace is false when memberCount < 2', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      currentSpaceId: 'space-1',
+      memberCount: 1,
+    );
+
+    expect(controller.hasActiveCoupleSpace, isFalse);
+  });
+
+  test('hasActiveCoupleSpace is false when currentSpaceId is null', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      memberCount: 2,
+    );
+
+    expect(controller.hasActiveCoupleSpace, isFalse);
+  });
 }
 
 Future<void> _pumpApp(

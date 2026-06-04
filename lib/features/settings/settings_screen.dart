@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_controller.dart';
@@ -26,6 +27,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String? _currentInviteCode;
   DateTime? _currentInviteExpiresAt;
   bool _generatingInvite = false;
+  bool _acceptingInvite = false;
   Timer? _spaceRefreshTimer;
 
   @override
@@ -168,21 +170,36 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _acceptInvite(String code) async {
+    final trimmedCode = code.trim();
+    if (trimmedCode.isEmpty) {
+      if (!mounted) return;
+      final strings = AppStrings.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.inviteCodeEmptyError)));
+      return;
+    }
+
+    setState(() => _acceptingInvite = true);
+    final appController = AppScope.read(context);
+
     try {
       await Supabase.instance.client.rpc(
         'accept_couple_invite',
-        params: {'p_plain_code': code},
+        params: {'p_plain_code': trimmedCode},
       );
+
+      // 刷新 AppController 的空间和成员状态
+      await appController.refreshAfterInviteAccepted();
 
       await _loadSpaceData();
 
       if (mounted) {
+        final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppStrings.of(context).isChinese
-                  ? '已成功加入空间'
-                  : 'Successfully joined the space',
+              strings.isChinese ? '已成功加入空间' : 'Successfully joined the space',
             ),
           ),
         );
@@ -190,17 +207,27 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('[Invite] accept failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppStrings.of(context).isChinese
-                  ? '邀请码无效或已过期'
-                  : 'Invalid or expired invite code',
-            ),
-          ),
-        );
+        final strings = AppStrings.of(context);
+        final message = _mapInviteError(e, strings);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _acceptingInvite = false);
       }
     }
+  }
+
+  String _mapInviteError(Object error, AppStrings strings) {
+    final message = error.toString().toLowerCase();
+    // 后端 RPC 对无效、过期、已使用统一抛同一文案，前端不做假区分。
+    // 只对"已在配对空间"这个可明确区分的场景单独提示。
+    if (message.contains('already belongs to an active couple_space')) {
+      return strings.inviteAlreadyPairedError;
+    }
+    return strings.isChinese ? '邀请码无效或已过期' : 'Invalid or expired invite code';
   }
 
   void _openProfileScreen(AppController controller, AppStrings strings) {
@@ -226,6 +253,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           currentInviteCode: _currentInviteCode,
           currentInviteExpiresAt: _currentInviteExpiresAt,
           generatingInvite: _generatingInvite,
+          acceptingInvite: _acceptingInvite,
           onGenerateInvite: _generateInviteCode,
           onShowInviteDialog: _showInviteCodeDialog,
         ),
@@ -235,34 +263,54 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   void _showInviteCodeDialog() {
     final strings = AppStrings.of(context);
-    final controller = TextEditingController();
+    final textController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.isChinese ? '输入邀请码' : 'Enter invite code'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: strings.isChinese
-                ? '请输入对方分享的邀请码'
-                : 'Enter the invite code shared by your partner',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(strings.isChinese ? '输入邀请码' : 'Enter invite code'),
+          content: TextField(
+            controller: textController,
+            decoration: InputDecoration(
+              hintText: strings.isChinese
+                  ? '请输入对方分享的邀请码'
+                  : 'Enter the invite code shared by your partner',
+            ),
+            autofocus: true,
+            enabled: !_acceptingInvite,
           ),
-          autofocus: true,
+          actions: [
+            TextButton(
+              onPressed: _acceptingInvite
+                  ? null
+                  : () => Navigator.pop(dialogContext),
+              child: Text(strings.isChinese ? '取消' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: _acceptingInvite
+                  ? null
+                  : () async {
+                      final code = textController.text.trim();
+                      if (code.isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text(strings.inviteCodeEmptyError)),
+                        );
+                        return;
+                      }
+                      Navigator.pop(dialogContext);
+                      await _acceptInvite(code);
+                    },
+              child: _acceptingInvite
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.isChinese ? '加入' : 'Join'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(strings.isChinese ? '取消' : 'Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _acceptInvite(controller.text.trim());
-            },
-            child: Text(strings.isChinese ? '加入' : 'Join'),
-          ),
-        ],
       ),
     );
   }
@@ -532,6 +580,7 @@ class _PartnerScreen extends StatelessWidget {
     required this.currentInviteCode,
     required this.currentInviteExpiresAt,
     required this.generatingInvite,
+    required this.acceptingInvite,
     required this.onGenerateInvite,
     required this.onShowInviteDialog,
   });
@@ -542,6 +591,7 @@ class _PartnerScreen extends StatelessWidget {
   final String? currentInviteCode;
   final DateTime? currentInviteExpiresAt;
   final bool generatingInvite;
+  final bool acceptingInvite;
   final VoidCallback onGenerateInvite;
   final VoidCallback onShowInviteDialog;
 
@@ -733,7 +783,9 @@ class _PartnerScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: generatingInvite ? null : onGenerateInvite,
+                    onPressed: (generatingInvite || acceptingInvite)
+                        ? null
+                        : onGenerateInvite,
                     icon: generatingInvite
                         ? const SizedBox(
                             width: 16,
@@ -750,12 +802,20 @@ class _PartnerScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: onShowInviteDialog,
-                    icon: const Icon(Icons.login),
+                    onPressed: acceptingInvite ? null : onShowInviteDialog,
+                    icon: acceptingInvite
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.login),
                     label: Text(
-                      strings.isChinese
-                          ? '输入邀请码加入'
-                          : 'Enter invite code to join',
+                      acceptingInvite
+                          ? strings.inviteAccepting
+                          : (strings.isChinese
+                                ? '输入邀请码加入'
+                                : 'Enter invite code to join'),
                     ),
                   ),
                 ),
@@ -1287,7 +1347,7 @@ class _HeroNameLabel extends StatelessWidget {
   }
 }
 
-/// Invite code display box.
+/// Invite code display box with copy button.
 class _InviteCodeBox extends StatelessWidget {
   const _InviteCodeBox({
     required this.code,
@@ -1303,6 +1363,7 @@ class _InviteCodeBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final strings = AppStrings.of(context);
 
     return Container(
       width: double.infinity,
@@ -1321,9 +1382,7 @@ class _InviteCodeBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppStrings.of(context).isChinese
-                      ? '当前邀请码'
-                      : 'Current invite code',
+                  strings.isChinese ? '当前邀请码' : 'Current invite code',
                   style: theme.textTheme.labelLarge,
                 ),
                 const SizedBox(height: 8),
@@ -1338,6 +1397,20 @@ class _InviteCodeBox extends StatelessWidget {
                 Text(expiryText, style: theme.textTheme.bodySmall),
               ],
             ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            key: const ValueKey('invite-code-copy-button'),
+            icon: const Icon(Icons.copy_rounded, size: 20),
+            tooltip: strings.isChinese ? '复制邀请码' : 'Copy invite code',
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: code));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(strings.inviteCodeCopied)),
+                );
+              }
+            },
           ),
         ],
       ),

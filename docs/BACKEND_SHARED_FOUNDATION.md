@@ -26,7 +26,7 @@
 - 共享空间 owner 约束
 - RLS policy
 - 最小 invite 生命周期 RPC
-- 伴侣互相可见 profiles 的 RLS 策略（`20260528150000_add_profiles_select_couple_partner.sql`）
+- 伴侣互相可见 profiles 的 SECURITY DEFINER 函数（`20260604100000_add_profiles_select_couple_partner.sql`）
 
 ## 关系边界
 
@@ -90,8 +90,9 @@
 
 `profiles`
 
-- `select`: 本人可读取自己的完整资料；同一 `couple_space` 的活跃成员可读取对方的 `display_name` 和 `avatar_url`
+- `select`: 本人可读取自己的完整资料；同一 `couple_space` 的活跃成员可通过 `get_partner_public_profile()` 函数读取对方的 `display_name` 和 `avatar_url`
 - `update`: 只能改自己
+- 伴侣可见通过 SECURITY DEFINER 函数实现，不直接开放 RLS 行策略读取 profiles 整行（migration `20260604100000`）
 
 `couple_spaces`
 
@@ -230,10 +231,11 @@
 - 邮箱验证码登录与注册分离
 - 注册后资料引导
 - 邀请码生成与接受流程接入
+- 邀请配对闭环完成：创建邀请码 → 输入邀请码 → 接受邀请 → 双方进入 active 双人空间
 - 日历、计划、随记接入共享空间同步
 - `AppController` 统一持有当前用户资料和 `currentSpaceId`
 
 ## 还需要产品收口的少量边界
 
 1. `pending_partner` 状态下是否允许提前写入共享内容：产品结论为不允许。单人态采用严格能力白名单，`pending_partner` 只用于邀请，不承载计划、随记、日历事件等业务写入。
-2. 邀请码有效期默认值当前定为 `7 days`，如果产品要改为更短或更长，需要同步 RPC 默认参数。
+2. 邀请码有效期默认值当前定为 `24 hours`（已在 migration `20260528120000` 中从 7 天改为 24 小时），如果产品要改为更短或更长，需要同步 RPC 默认参数。
