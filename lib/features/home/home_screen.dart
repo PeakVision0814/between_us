@@ -221,10 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
           const SizedBox(height: 24),
-          PageSectionHeader(
-            title: strings.quickLinksSection,
-            subtitle: strings.homeSubtitle,
-          ),
+          PageSectionHeader(title: strings.quickLinksSection),
           const SizedBox(height: 10),
           _QuickActions(
             onOpenCalendar: widget.onOpenCalendar,
@@ -364,18 +361,6 @@ class _HomeHero extends StatelessWidget {
                   height: 1.25,
                 ),
               ),
-              const SizedBox(height: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Text(
-                  strings.relationshipMood,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark
-                        ? AppTheme.warmWhite60
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
               const SizedBox(height: 22),
 
               // ── Hero moment (frosted inset) ──
@@ -387,27 +372,12 @@ class _HomeHero extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // ── Mini status slots ──
-              Row(
-                children: [
-                  Expanded(
-                    child: _HeroMiniSlot(
-                      icon: Icons.home_work_outlined,
-                      label: strings.spaceStatusLabel,
-                      value: strings.spaceStatusValue,
-                      isDark: isDark,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _HeroMiniSlot(
-                      icon: Icons.nightlight_round,
-                      label: strings.overviewChipOne,
-                      value: strings.overviewChipTwo,
-                      isDark: isDark,
-                    ),
-                  ),
-                ],
+              // ── Mini status slot ──
+              _HeroMiniSlot(
+                icon: Icons.home_work_outlined,
+                label: strings.spaceStatusLabel,
+                value: strings.spaceStatusValue,
+                isDark: isDark,
               ),
               const SizedBox(height: 14),
 
@@ -1086,7 +1056,6 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.add_task_outlined,
                 title: strings.createPlanLabel,
                 titleKey: const ValueKey('home-quick-action-plan'),
-                subtitle: strings.plansSectionTitle,
                 color: AppTheme.mint,
                 onTap: isPaired ? onCreatePlan : null,
               ),
@@ -1097,7 +1066,6 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.edit_note_outlined,
                 title: strings.writeNoteLabel,
                 titleKey: const ValueKey('home-quick-action-note'),
-                subtitle: strings.notesSectionTitle,
                 color: AppTheme.blush,
                 onTap: isPaired ? onWriteNote : null,
               ),
@@ -1108,7 +1076,6 @@ class _QuickActions extends StatelessWidget {
         _WideActionTile(
           icon: Icons.calendar_month_outlined,
           title: strings.goCalendarLabel,
-          subtitle: strings.nextDateSection,
           onTap: onOpenCalendar,
         ),
       ],
@@ -1120,8 +1087,7 @@ class _QuickActionTile extends StatelessWidget {
   const _QuickActionTile({
     required this.icon,
     required this.title,
-    required this.titleKey,
-    required this.subtitle,
+    this.titleKey,
     required this.color,
     required this.onTap,
   });
@@ -1129,7 +1095,6 @@ class _QuickActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final Key? titleKey;
-  final String subtitle;
   final Color color;
   final VoidCallback? onTap;
 
@@ -1148,7 +1113,6 @@ class _QuickActionTile extends StatelessWidget {
             child: PageListItem(
               title: title,
               titleKey: titleKey,
-              subtitle: subtitle,
               leading: PageIconBadge(icon: icon, color: color, size: 40),
               compact: true,
             ),
@@ -1163,13 +1127,11 @@ class _WideActionTile extends StatelessWidget {
   const _WideActionTile({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   @override
@@ -1191,23 +1153,9 @@ class _WideActionTile extends StatelessWidget {
                 PageIconBadge(icon: icon, color: AppTheme.gold, size: 40),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isDark
-                              ? AppTheme.warmWhite60
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 Icon(

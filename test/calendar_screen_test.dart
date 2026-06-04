@@ -29,7 +29,7 @@ void main() {
   });
 
   testWidgets(
-    'paired mode: calendar shows month view, detail, and add button',
+    'paired mode: calendar shows month view, detail, and add icon',
     (tester) async {
       await _pumpCalendar(
         tester,
@@ -43,11 +43,8 @@ void main() {
       final expectedMonth = '${now.year} 年 ${now.month} 月';
       expect(find.text(expectedMonth), findsOneWidget);
 
-      // Add event button should be enabled in paired mode.
-      final addButton = find.widgetWithText(FilledButton, '添加事件');
-      expect(addButton, findsOneWidget);
-      final button = tester.widget<FilledButton>(addButton);
-      expect(button.onPressed, isNotNull);
+      // Add event icon button should be visible in paired mode.
+      expect(find.byIcon(Icons.add), findsOneWidget);
 
       // Selected date label should be rendered.
       await _scrollTo(
@@ -104,8 +101,8 @@ void main() {
         supabaseReady: true,
       );
 
-      // Tap the add event button.
-      await tester.tap(find.widgetWithText(FilledButton, '添加事件'));
+      // Tap the + icon button inside the month view card.
+      await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
 
       // Dialog should appear with the expected title.

@@ -316,19 +316,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Add event button (top-right) ──
-          Row(
-            children: [
-              const Spacer(),
-              FilledButton.tonalIcon(
-                onPressed: isPaired ? _showCreateDialog : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(strings.createCalendarEntrySection),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
           // ── Month grid ──
           PageSurfaceCard(
             child: _MonthView(
@@ -341,6 +328,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   _selectedDate = _dateOnly(day);
                 });
               },
+              onAddEvent: _showCreateDialog,
               isDark: isDark,
             ),
           ),
@@ -494,6 +482,7 @@ class _MonthView extends StatelessWidget {
     required this.entriesByDay,
     required this.onSelectDate,
     required this.isDark,
+    this.onAddEvent,
   });
 
   final DateTime displayMonth;
@@ -502,6 +491,7 @@ class _MonthView extends StatelessWidget {
   final Map<String, List<CalendarEntryData>> entriesByDay;
   final ValueChanged<DateTime> onSelectDate;
   final bool isDark;
+  final VoidCallback? onAddEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -513,17 +503,25 @@ class _MonthView extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                strings.formatCalendarMonthYear(displayMonth),
-                style: Theme.of(context).textTheme.titleMedium,
+              Expanded(
+                child: Text(
+                  strings.formatCalendarMonthYear(displayMonth),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-              Icon(
-                Icons.calendar_today_outlined,
-                color: colorScheme.primary,
-                size: 20,
-              ),
+              if (onAddEvent != null)
+                IconButton(
+                  onPressed: onAddEvent,
+                  icon: const Icon(Icons.add, size: 20),
+                  tooltip: strings.createCalendarEntrySection,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),

@@ -686,15 +686,6 @@ class AppStrings {
     ko: '우리',
   );
 
-  String get homeTitle => _resolve(
-    zhCn: '今天先看看这些',
-    en: 'A few things worth checking today',
-  );
-  String get homeSubtitle => _resolve(
-    zhCn: '重要日子、最近动态和手边计划，都先放回同一个地方。',
-    en: 'Keep your next date, latest update, and nearby plans in one shared place.',
-  );
-
   String get overviewSection => _resolve(
     zhCn: '我们概览',
     zhTw: '我們概覽',
@@ -710,16 +701,22 @@ class AppStrings {
     ko: '다음 중요한 날',
   );
   String get recentUpdateSection => _resolve(
-    zhCn: '最近动态预览',
-    en: 'Latest shared update',
+    zhCn: '最近随记',
+    zhTw: '最近隨記',
+    en: 'Recent note',
+    ja: '最近のメモ',
+    ko: '최근 메모',
   );
   String get recentPlanSection => _resolve(
-    zhCn: '最近一个计划提醒',
-    en: 'One plan worth moving',
+    zhCn: '最近计划',
+    zhTw: '最近計畫',
+    en: 'Recent plan',
+    ja: '最近のプラン',
+    ko: '최근 계획',
   );
   String get quickLinksSection => _resolve(
-    zhCn: '快捷入口',
-    zhTw: '快捷入口',
+    zhCn: '快速操作',
+    zhTw: '快速操作',
     en: 'Quick actions',
     ja: 'クイックアクション',
     ko: '빠른 실행',
