@@ -24,10 +24,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   int _memberCount = 0;
   bool _loadingSpaceData = false;
 
-  String? _currentInviteCode;
-  DateTime? _currentInviteExpiresAt;
-  bool _generatingInvite = false;
   bool _acceptingInvite = false;
+  int _previousMemberCount = 0;
   Timer? _spaceRefreshTimer;
 
   @override
@@ -106,66 +104,15 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       _loadingSpaceData = false;
     }
 
+    // 当成员数从 1 变为 2 时，同步刷新 AppController 的空间状态。
+    // 确保 A 侧在 B 接受邀请后能及时进入双人态。
+    if (_memberCount >= 2 && _previousMemberCount < 2 && mounted) {
+      await appController.refreshAfterInviteAccepted();
+    }
+    _previousMemberCount = _memberCount;
+
     if (mounted) {
       setState(() {});
-    }
-  }
-
-  String _generateRandomCode() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    final random = Random();
-    return List.generate(8, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
-  Future<void> _generateInviteCode() async {
-    if (_generatingInvite) return;
-
-    final coupleSpaceId = AppScope.read(context).currentSpaceId;
-    if (coupleSpaceId == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请检查网络连接')));
-      return;
-    }
-
-    setState(() => _generatingInvite = true);
-
-    try {
-      final code = _generateRandomCode();
-      final response = await Supabase.instance.client.rpc(
-        'create_couple_invite',
-        params: {'p_couple_space_id': coupleSpaceId, 'p_plain_code': code},
-      );
-
-      final data = switch (response) {
-        final List<dynamic> rows when rows.isNotEmpty =>
-          rows.first as Map<String, dynamic>,
-        final Map<String, dynamic> row => row,
-        _ => throw StateError('Unexpected invite response: $response'),
-      };
-      setState(() {
-        _currentInviteCode = code;
-        _currentInviteExpiresAt = DateTime.parse(data['expires_at'] as String);
-      });
-    } catch (e) {
-      debugPrint('[Invite] generate failed: $e');
-      if (mounted) {
-        final strings = AppStrings.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strings.isChinese
-                  ? '邀请码生成失败，请稍后重试'
-                  : 'Failed to generate invite code. Please try again later.',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _generatingInvite = false);
-      }
     }
   }
 
@@ -250,11 +197,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           controller: controller,
           isPaired: isPaired,
           partnerName: partnerName,
-          currentInviteCode: _currentInviteCode,
-          currentInviteExpiresAt: _currentInviteExpiresAt,
-          generatingInvite: _generatingInvite,
+          initialInviteCode: null,
+          initialInviteExpiresAt: null,
           acceptingInvite: _acceptingInvite,
-          onGenerateInvite: _generateInviteCode,
           onShowInviteDialog: _showInviteCodeDialog,
         ),
       ),
@@ -572,28 +517,98 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 // Partner Screen (secondary page)
 // ═══════════════════════════════════════════════════════════════════════
 
-class _PartnerScreen extends StatelessWidget {
+class _PartnerScreen extends StatefulWidget {
   const _PartnerScreen({
     required this.controller,
     required this.isPaired,
     required this.partnerName,
-    required this.currentInviteCode,
-    required this.currentInviteExpiresAt,
-    required this.generatingInvite,
+    required this.initialInviteCode,
+    required this.initialInviteExpiresAt,
     required this.acceptingInvite,
-    required this.onGenerateInvite,
     required this.onShowInviteDialog,
   });
 
   final AppController controller;
   final bool isPaired;
   final String? partnerName;
-  final String? currentInviteCode;
-  final DateTime? currentInviteExpiresAt;
-  final bool generatingInvite;
+  final String? initialInviteCode;
+  final DateTime? initialInviteExpiresAt;
   final bool acceptingInvite;
-  final VoidCallback onGenerateInvite;
   final VoidCallback onShowInviteDialog;
+
+  @override
+  State<_PartnerScreen> createState() => _PartnerScreenState();
+}
+
+class _PartnerScreenState extends State<_PartnerScreen> {
+  String? _inviteCode;
+  DateTime? _inviteExpiresAt;
+  bool _generatingInvite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _inviteCode = widget.initialInviteCode;
+    _inviteExpiresAt = widget.initialInviteExpiresAt;
+  }
+
+  String _generateRandomCode() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return List.generate(8, (_) => chars[random.nextInt(chars.length)]).join();
+  }
+
+  Future<void> _generateInviteCode() async {
+    if (_generatingInvite) return;
+
+    final coupleSpaceId = widget.controller.currentSpaceId;
+    if (coupleSpaceId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请检查网络连接')));
+      return;
+    }
+
+    setState(() => _generatingInvite = true);
+
+    try {
+      final code = _generateRandomCode();
+      final response = await Supabase.instance.client.rpc(
+        'create_couple_invite',
+        params: {'p_couple_space_id': coupleSpaceId, 'p_plain_code': code},
+      );
+
+      final data = switch (response) {
+        final List<dynamic> rows when rows.isNotEmpty =>
+          rows.first as Map<String, dynamic>,
+        final Map<String, dynamic> row => row,
+        _ => throw StateError('Unexpected invite response: $response'),
+      };
+      setState(() {
+        _inviteCode = code;
+        _inviteExpiresAt = DateTime.parse(data['expires_at'] as String);
+      });
+    } catch (e) {
+      debugPrint('[Invite] generate failed: $e');
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              strings.isChinese
+                  ? '邀请码生成失败，请稍后重试'
+                  : 'Failed to generate invite code. Please try again later.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _generatingInvite = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -616,7 +631,7 @@ class _PartnerScreen extends StatelessWidget {
       ),
       body: PageAtmosphere(
         padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
-        child: isPaired
+        child: widget.isPaired
             ? _buildPairedContent(context, strings, isDark)
             : _buildSingleContent(context, strings, isDark),
       ),
@@ -630,7 +645,7 @@ class _PartnerScreen extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final name = partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
+    final name = widget.partnerName ?? (strings.isChinese ? 'TA' : 'Partner');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,15 +764,11 @@ class _PartnerScreen extends StatelessWidget {
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (currentInviteCode != null &&
-                  currentInviteExpiresAt != null) ...[
+              if (_inviteCode != null && _inviteExpiresAt != null) ...[
                 const SizedBox(height: 16),
                 _InviteCodeBox(
-                  code: currentInviteCode!,
-                  expiryText: _inviteExpiryText(
-                    strings,
-                    currentInviteExpiresAt!,
-                  ),
+                  code: _inviteCode!,
+                  expiryText: _inviteExpiryText(strings, _inviteExpiresAt!),
                   isDark: isDark,
                 ),
               ],
@@ -783,10 +794,10 @@ class _PartnerScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: (generatingInvite || acceptingInvite)
+                    onPressed: (_generatingInvite || widget.acceptingInvite)
                         ? null
-                        : onGenerateInvite,
-                    icon: generatingInvite
+                        : _generateInviteCode,
+                    icon: _generatingInvite
                         ? const SizedBox(
                             width: 16,
                             height: 16,
@@ -802,8 +813,10 @@ class _PartnerScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: acceptingInvite ? null : onShowInviteDialog,
-                    icon: acceptingInvite
+                    onPressed: widget.acceptingInvite
+                        ? null
+                        : widget.onShowInviteDialog,
+                    icon: widget.acceptingInvite
                         ? const SizedBox(
                             width: 16,
                             height: 16,
@@ -811,7 +824,7 @@ class _PartnerScreen extends StatelessWidget {
                           )
                         : const Icon(Icons.login),
                     label: Text(
-                      acceptingInvite
+                      widget.acceptingInvite
                           ? strings.inviteAccepting
                           : (strings.isChinese
                                 ? '输入邀请码加入'
