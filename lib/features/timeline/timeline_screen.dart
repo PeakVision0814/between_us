@@ -286,6 +286,17 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
     setState(() => _activeMode = mode);
   }
 
+  String _resolveAuthorName(
+    String authorProfileId, {
+    required AppController controller,
+    required bool isChinese,
+  }) {
+    if (authorProfileId == controller.selfProfileId) {
+      return isChinese ? '我' : 'Me';
+    }
+    return controller.partnerDisplayName ?? (isChinese ? 'TA' : 'Partner');
+  }
+
   @override
   void didUpdateWidget(PlansNotesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -426,6 +437,7 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                   );
                 }
 
+                final controller = AppScope.of(context);
                 final notes = snapshot.data!;
                 return Column(
                   children: [
@@ -434,7 +446,11 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _NoteCard(
                           note: NoteItemCopy(
-                            author: note.authorProfileId,
+                            author: _resolveAuthorName(
+                              note.authorProfileId,
+                              controller: controller,
+                              isChinese: strings.isChinese,
+                            ),
                             timeLabel: _formatTimeLabel(
                               note.authoredAt,
                               isChinese: strings.isChinese,
@@ -691,7 +707,20 @@ class _NoteCard extends StatelessWidget {
                 color: AppTheme.blush,
                 size: 28,
               ),
-              const Spacer(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  note.author,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
               Text(
                 note.timeLabel,
                 style: theme.textTheme.bodySmall?.copyWith(

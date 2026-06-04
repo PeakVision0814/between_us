@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         Supabase.instance.client
             .from('notes')
-            .select('body, authored_at')
+            .select('body, authored_at, author_profile_id')
             .filter('deleted_at', 'is', null)
             .order('authored_at', ascending: false)
             .limit(1)
@@ -87,8 +87,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         if (noteData != null) {
+          final authorId = noteData['author_profile_id'] as String?;
+          final authorName = _resolveAuthorName(
+            authorId,
+            controller: appController,
+            isChinese: strings.isChinese,
+          );
           _recentNote = NoteItemCopy(
-            author: '',
+            author: authorName,
             timeLabel: _formatTimeAgo(
               DateTime.parse(noteData['authored_at'] as String),
               strings.isChinese,
@@ -155,6 +161,17 @@ class _HomeScreenState extends State<HomeScreen> {
     'reminder' => CalendarEntryType.reminder,
     _ => CalendarEntryType.datePlan,
   };
+
+  static String _resolveAuthorName(
+    String? authorProfileId, {
+    required AppController controller,
+    required bool isChinese,
+  }) {
+    if (authorProfileId == controller.selfProfileId) {
+      return isChinese ? '我' : 'Me';
+    }
+    return controller.partnerDisplayName ?? (isChinese ? 'TA' : 'Partner');
+  }
 
   static String _mapPlanStatus(String status, bool isChinese) =>
       switch (status) {
@@ -891,6 +908,7 @@ class _NotePreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final strings = AppStrings.of(context);
 
     return PageSurfaceCard(
@@ -910,7 +928,25 @@ class _NotePreviewCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(note!.timeLabel, style: theme.textTheme.bodySmall),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              note!.author,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            note!.timeLabel,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 7),
                       Text(
                         note!.text,
