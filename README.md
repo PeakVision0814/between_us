@@ -14,8 +14,9 @@ notes, and maintain shared "we" settings.
   `Plans & Notes`, and `We`.
 - Make the product feel like a calm shared life space instead of a heavy task
   tool or a pressure-driven diary.
-- Default to Simplified Chinese for the real target users, while keeping
-  English as an optional language setting.
+- Default to Simplified Chinese for the real target users. The first
+  multi-language infrastructure pass supports Simplified Chinese, Traditional
+  Chinese, English, Japanese, and Korean.
 - Support system, light, and dark themes as first-class product behavior.
 - Validate retention before adding extra modules.
 - Treat privacy, ownership, and deletion rules as product requirements.
@@ -70,16 +71,19 @@ The current MVP centers on the logged-in shared life-space loop:
 - Solo mode can use the core content flow before pairing, then move into paired
   mode through invite codes.
 
-Authentication, invitations, shared sync, and Row Level Security are now part of
-the foundation. Future work should finish the phase 8 profile/identity closure
-before moving into sensitive data or private beta work.
+Authentication, invitations, shared sync, Row Level Security, the profile loop,
+solo-mode capability boundaries, first-pass multi-language infrastructure, and
+the couple-space exit MVP are now part of the foundation. Before moving into
+sensitive data or private beta work, use two real accounts to manually verify
+invite pairing, space exit, and language preference recovery.
 
 ## Shared Foundation Rules
 
 Shared data work must respect:
 
 - Who creates a couple space and how the second person is invited.
-- How couple membership is limited, revoked, or unlinked.
+- How more complex unlinking rules work, including rejection, cancellation,
+  forced exit, timeout handling, and notifications.
 - What happens to shared data after unlinking or deletion requests.
 - How export, retention, and permanent deletion are handled.
 - How notifications and previews avoid leaking private content.
