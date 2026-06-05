@@ -580,13 +580,6 @@ class AppStrings {
     ja: '招待コードの生成に失敗しました。後でもう一度お試しください。',
     ko: '초대 코드 생성에 실패했습니다. 나중에 다시 시도하세요.',
   );
-  String get inviteSpaceNotReadyError => _resolve(
-    zhCn: '空间尚未就绪，请稍后重试',
-    zhTw: '空間尚未就緒，請稍後重試',
-    en: 'Space not ready. Please try again later.',
-    ja: 'スペースの準備ができていません。後でもう一度お試しください。',
-    ko: '공간이 준비되지 않았습니다. 나중에 다시 시도하세요.',
-  );
   String get inviteEnterCodeDialogTitle => _resolve(
     zhCn: '输入邀请码',
     zhTw: '輸入邀請碼',
