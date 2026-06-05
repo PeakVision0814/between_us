@@ -26,17 +26,12 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   bool _acceptingInvite = false;
   int _previousMemberCount = 0;
-  Timer? _spaceRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadSpaceData();
-    _spaceRefreshTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => _loadSpaceData(),
-    );
   }
 
   @override
@@ -54,7 +49,6 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _spaceRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     // Safe to remove listener — AppScope.of(context) is still valid in dispose.
     try {
@@ -487,6 +481,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
     required bool isDark,
   }) {
     final controller = AppScope.of(context);
+
     return _SpaceModule(
       key: const ValueKey('us-space-section'),
       isDark: isDark,
@@ -580,6 +575,19 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     super.initState();
     _inviteCode = widget.initialInviteCode;
     _inviteExpiresAt = widget.initialInviteExpiresAt;
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   String _generateRandomCode() {
@@ -671,6 +679,12 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final name = widget.partnerName ?? strings.partnerFallbackName;
+    final relationshipStartDate = widget.controller.relationshipStartDate;
+    final dateLabel = relationshipStartDate != null
+        ? strings.relationshipStartDaysLabel(
+            DateTime.now().difference(relationshipStartDate).inDays + 1,
+          )
+        : strings.noRelationshipDate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,8 +743,96 @@ class _PartnerScreenState extends State<_PartnerScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        PageSectionHeader(
+          title: strings.relationshipStartDateLabel,
+          subtitle: dateLabel,
+        ),
+        const SizedBox(height: 10),
+        _UsCard(
+          isDark: isDark,
+          variant: PageSurfaceVariant.primary,
+          key: const ValueKey('us-relationship-date-section'),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+              onTap: () => _selectRelationshipStartDate(context, strings),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            strings.setRelationshipStartDate,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            dateLabel,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark
+                                  ? AppTheme.warmWhite60
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDark
+                          ? AppTheme.warmWhite60
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _selectRelationshipStartDate(
+    BuildContext context,
+    AppStrings strings,
+  ) async {
+    final now = DateTime.now();
+    final initialDate = widget.controller.relationshipStartDate ?? now;
+    final firstDate = DateTime(2000);
+    final lastDate = now;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isAfter(lastDate) ? lastDate : initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      helpText: strings.setRelationshipStartDate,
+    );
+
+    if (picked != null && context.mounted) {
+      final success = await widget.controller.saveRelationshipStartDate(picked);
+      if (success && context.mounted) {
+        // 刷新数据
+        await widget.controller.loadPreferences(force: true);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.relationshipStartDateLabel)),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildSingleContent(

@@ -34,12 +34,14 @@ class AppController extends ChangeNotifier {
   String? _currentSpaceId;
   int _memberCount = 0;
   String? _partnerDisplayName;
+  DateTime? _relationshipStartDate;
   bool _profileCheckInProgress = false;
   bool _profileSaveInProgress = false;
   String? _profileErrorCode;
   StreamSubscription<AuthState>? _authStateSubscription;
   Future<void> _sessionSyncQueue = Future<void>.value();
   Future<void> Function()? _debugSignOutAction;
+  RealtimeChannel? _realtimeChannel;
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
@@ -67,6 +69,7 @@ class AppController extends ChangeNotifier {
   String? get currentSpaceId => _currentSpaceId;
   int get memberCount => _memberCount;
   String? get partnerDisplayName => _partnerDisplayName;
+  DateTime? get relationshipStartDate => _relationshipStartDate;
   bool get hasActiveCoupleSpace => _memberCount >= 2 && _currentSpaceId != null;
   bool get profileCheckInProgress => _profileCheckInProgress;
   bool get profileSaveInProgress => _profileSaveInProgress;
@@ -401,6 +404,19 @@ class AppController extends ChangeNotifier {
         }
       }
 
+      DateTime? relationshipStartDate;
+      if (currentSpaceId != null) {
+        final spaceResponse = await client
+            .from('couple_spaces')
+            .select('relationship_start_date')
+            .eq('id', currentSpaceId)
+            .maybeSingle();
+        final dateStr = spaceResponse?['relationship_start_date'] as String?;
+        if (dateStr != null && dateStr.isNotEmpty) {
+          relationshipStartDate = DateTime.tryParse(dateStr);
+        }
+      }
+
       var changed = false;
       if (_selfProfileId != userId) {
         _selfProfileId = userId;
@@ -433,6 +449,10 @@ class AppController extends ChangeNotifier {
         _partnerDisplayName = partnerDisplayName;
         changed = true;
       }
+      if (_relationshipStartDate != relationshipStartDate) {
+        _relationshipStartDate = relationshipStartDate;
+        changed = true;
+      }
       final locale = profile['preferred_locale'] as String?;
       if (locale != null) {
         final lang = AppLanguage.fromCode(locale);
@@ -459,6 +479,8 @@ class AppController extends ChangeNotifier {
         changed = true;
       }
       _loadedPreferencesUserId = userId;
+      // 订阅 Realtime（如果空间 ID 变化或首次加载）
+      _subscribeToRealtime();
       if (changed) notifyListeners();
     } catch (error) {
       if (_isJwtExpired(error)) {
@@ -541,10 +563,139 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  Future<bool> saveRelationshipStartDate(DateTime date) async {
+    if (!_supabaseReady) {
+      _setProfileError('initialize_failed');
+      return false;
+    }
+
+    final spaceId = _currentSpaceId;
+    if (spaceId == null) {
+      _setProfileError('no_active_space');
+      return false;
+    }
+
+    _profileSaveInProgress = true;
+    _profileErrorCode = null;
+    notifyListeners();
+
+    try {
+      final normalizedDate = DateUtils.dateOnly(date);
+      await Supabase.instance.client
+          .from('couple_spaces')
+          .update({
+            'relationship_start_date': _formatDateForStorage(normalizedDate),
+          })
+          .eq('id', spaceId);
+      _relationshipStartDate = normalizedDate;
+      _profileErrorCode = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Space] Save relationship start date failed: $error');
+      if (_isJwtExpired(error)) {
+        _profileErrorCode = 'session_expired';
+        notifyListeners();
+        await _handleExpiredSession();
+      } else {
+        _profileErrorCode = 'save_failed';
+        notifyListeners();
+      }
+      return false;
+    } finally {
+      _profileSaveInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  String _formatDateForStorage(DateTime value) {
+    final normalized = DateUtils.dateOnly(value);
+    final month = normalized.month.toString().padLeft(2, '0');
+    final day = normalized.day.toString().padLeft(2, '0');
+    return '${normalized.year}-$month-$day';
+  }
+
+  /// 订阅 Supabase Realtime，监听当前空间的数据变化。
+  /// 当 couple_spaces / calendar_events / plans / notes 发生变更时，
+  /// 自动调用 loadPreferences 刷新数据并 notifyListeners。
+  void _subscribeToRealtime() {
+    _unsubscribeFromRealtime();
+
+    final spaceId = _currentSpaceId;
+    if (spaceId == null || !_supabaseReady) return;
+
+    final client = Supabase.instance.client;
+
+    _realtimeChannel = client
+        .channel('public:space:$spaceId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'couple_spaces',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'calendar_events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'plans',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notes',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .subscribe();
+  }
+
+  void _unsubscribeFromRealtime() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+  }
+
+  void _onRealtimeDataChanged() {
+    debugPrint('[Realtime] Data changed, refreshing preferences');
+    _loadedPreferencesUserId = null;
+    loadPreferences(force: true);
+  }
+
   /// 刷新当前用户的空间和成员状态。
   /// 在接受邀请成功后调用，确保 AppController 持有的
   /// currentSpaceId、memberCount、partnerDisplayName 等字段同步更新。
   Future<void> refreshAfterInviteAccepted() async {
+    _loadedPreferencesUserId = null;
+    await loadPreferences(force: true);
+  }
+
+  /// 供页面下拉刷新调用，强制重新加载所有数据。
+  Future<void> refreshAllData() async {
     _loadedPreferencesUserId = null;
     await loadPreferences(force: true);
   }
@@ -669,6 +820,7 @@ class AppController extends ChangeNotifier {
     String? currentSpaceId,
     int memberCount = 0,
     String? partnerDisplayName,
+    DateTime? relationshipStartDate,
   }) {
     _loadedPreferencesUserId = userId;
     _selfProfileId = userId;
@@ -678,6 +830,7 @@ class AppController extends ChangeNotifier {
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
+    _relationshipStartDate = relationshipStartDate;
   }
 
   @visibleForTesting
@@ -709,6 +862,7 @@ class AppController extends ChangeNotifier {
   /// 清理已登录态数据，将 authStatus 设为 unauthenticated。
   /// 供 userId == null 和 JWT expired 两条路径共用。
   void _clearAuthenticatedState() {
+    _unsubscribeFromRealtime();
     _authStatus = AppAuthStatus.unauthenticated;
     _pendingEmail = null;
     _authErrorCode = null;
@@ -720,6 +874,7 @@ class AppController extends ChangeNotifier {
     _currentSpaceId = null;
     _memberCount = 0;
     _partnerDisplayName = null;
+    _relationshipStartDate = null;
     _profileCheckInProgress = false;
     _profileSaveInProgress = false;
     _profileErrorCode = null;
@@ -879,6 +1034,7 @@ class AppController extends ChangeNotifier {
     String? currentSpaceId,
     int memberCount = 0,
     String? partnerDisplayName,
+    DateTime? relationshipStartDate,
     bool profileCheckInProgress = false,
     String? profileErrorCode,
   }) {
@@ -893,6 +1049,7 @@ class AppController extends ChangeNotifier {
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
+    _relationshipStartDate = relationshipStartDate;
     _profileCheckInProgress = profileCheckInProgress;
     _profileErrorCode = profileErrorCode;
     notifyListeners();
@@ -900,6 +1057,7 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _unsubscribeFromRealtime();
     _authStateSubscription?.cancel();
     super.dispose();
   }

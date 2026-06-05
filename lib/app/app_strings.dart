@@ -970,6 +970,48 @@ class AppStrings {
     ja: 'ふたりのスペース',
     ko: '우리의 공간',
   );
+  String get relationshipStartDateLabel => _resolve(
+    zhCn: '在一起日期',
+    zhTw: '在一起日期',
+    en: 'Together since',
+    ja: '付き合い始めた日',
+    ko: '함께한 날짜',
+  );
+  String relationshipStartDaysLabel(int days) => _resolve(
+    zhCn: '在一起 $days 天',
+    zhTw: '在一起 $days 天',
+    en: 'Together $days days',
+    ja: '一緒に $days 日',
+    ko: '함께 $days 일',
+  );
+  String get setRelationshipStartDate => _resolve(
+    zhCn: '设置日期',
+    zhTw: '設置日期',
+    en: 'Set date',
+    ja: '日付を設定',
+    ko: '날짜 설정',
+  );
+  String get noRelationshipDate => _resolve(
+    zhCn: '未设置',
+    zhTw: '未設置',
+    en: 'Not set',
+    ja: '未設定',
+    ko: '미설정',
+  );
+  String get nextEventLabel => _resolve(
+    zhCn: '下一个安排',
+    zhTw: '下一個安排',
+    en: 'Next event',
+    ja: '次の予定',
+    ko: '다음 일정',
+  );
+  String get noUpcomingEvent => _resolve(
+    zhCn: '暂无安排',
+    zhTw: '暫無安排',
+    en: 'No upcoming events',
+    ja: '予定なし',
+    ko: '예정 없음',
+  );
   String get privacySection => _resolve(
     zhCn: '隐私与共享',
     zhTw: '隱私與共享',

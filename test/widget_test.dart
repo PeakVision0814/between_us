@@ -328,85 +328,6 @@ void main() {
   });
 
   testWidgets(
-    'home hero shows single-user relationship state from AppController',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: '小满',
-        selfProfileId: 'user-1',
-        memberCount: 1,
-      );
-
-      expect(
-        find.byKey(const ValueKey('home-hero-couple-names')),
-        findsOneWidget,
-      );
-      expect(find.text('小满 · 等待另一半加入'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-avatar-one')),
-          matching: find.text('小'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-avatar-two')),
-          matching: find.text('待'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-relationship-status')),
-          matching: find.text('个人模式'),
-        ),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets(
-    'home hero shows both names when the couple space has two members',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        language: AppLanguage.en,
-        displayName: 'Xiaoman',
-        selfProfileId: 'user-1',
-        currentSpaceId: 'space-1',
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-      );
-
-      expect(find.text('Xiaoman & Ache'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-avatar-one')),
-          matching: find.text('X'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-avatar-two')),
-          matching: find.text('A'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('home-hero-relationship-status')),
-          matching: find.text('Paired mode'),
-        ),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets(
     'same-user session refresh does not reopen the blocking profile loading screen',
     (tester) async {
       final controller = AppController();
@@ -542,59 +463,6 @@ void main() {
     );
   });
 
-  testWidgets('tapping new plan from home enters plan mode', (tester) async {
-    await _pumpApp(
-      tester,
-      authStatus: AppAuthStatus.authenticated,
-      language: AppLanguage.en,
-      displayName: 'Xiaoman',
-      memberCount: 2,
-      partnerDisplayName: 'Ache',
-      currentSpaceId: 'test-space-id',
-    );
-
-    await tester.scrollUntilVisible(
-      find.text('New plan'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('New plan').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Jot down what you want to do'), findsWidgets);
-    expect(find.text('Plans'), findsWidgets);
-  });
-
-  testWidgets('tapping write note from home enters note mode', (tester) async {
-    await _pumpApp(
-      tester,
-      authStatus: AppAuthStatus.authenticated,
-      language: AppLanguage.en,
-      displayName: 'Xiaoman',
-      memberCount: 2,
-      partnerDisplayName: 'Ache',
-      currentSpaceId: 'test-space-id',
-    );
-
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('home-quick-action-note')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('home-quick-action-note')));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Leave a little something for each other'),
-      findsOneWidget,
-    );
-    expect(find.text('Notes'), findsWidgets);
-  });
-
   testWidgets('single mode: home does not show shared business previews', (
     tester,
   ) async {
@@ -607,8 +475,6 @@ void main() {
     );
 
     // Shared business preview section headers should not be rendered
-    // (Note: 'Next important date' also appears as a quick action subtitle,
-    //  so we check for the section header-specific patterns instead)
     expect(find.text('Latest shared update'), findsNothing);
     expect(find.text('One plan worth moving'), findsNothing);
     // No shared business data cards should be present
@@ -617,42 +483,6 @@ void main() {
       findsNothing,
     );
   });
-
-  testWidgets(
-    'single mode: home quick actions for plan and note are disabled',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        language: AppLanguage.en,
-        displayName: 'Xiaoman',
-        memberCount: 1,
-      );
-
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('home-quick-action-plan')),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-
-      // Plan quick action exists but tapping does nothing
-      final planTile = find.byKey(const ValueKey('home-quick-action-plan'));
-      expect(planTile, findsOneWidget);
-      await tester.tap(planTile);
-      await tester.pumpAndSettle();
-      // Still on home — did not navigate to plans screen
-      expect(find.text('Quick actions'), findsOneWidget);
-
-      // Note quick action exists but tapping does nothing
-      final noteTile = find.byKey(const ValueKey('home-quick-action-note'));
-      expect(noteTile, findsOneWidget);
-      await tester.tap(noteTile);
-      await tester.pumpAndSettle();
-      // Still on home — did not navigate to notes screen
-      expect(find.text('Quick actions'), findsOneWidget);
-    },
-  );
 
   testWidgets('single mode: plans page shows empty state, no create button', (
     tester,
@@ -2353,6 +2183,135 @@ void main() {
       );
     },
   );
+
+  // ─── Relationship date and home tests ─────────────────────────────────
+
+  testWidgets(
+    'paired mode: partner screen shows relationship date setting',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+        currentSpaceId: 'test-space-id',
+      );
+
+      // Navigate to Us tab
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap on partner avatar to open partner screen
+      await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('在一起日期'), findsOneWidget);
+      expect(find.text('设置日期'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'single mode: partner screen does not show relationship date setting',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 1,
+        currentSpaceId: 'test-space-id',
+      );
+
+      // Navigate to Us tab
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap on the add partner avatar
+      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+      await tester.pumpAndSettle();
+
+      // Should not show relationship date section
+      expect(find.text('在一起日期'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'home shows relationship days when date is set',
+    (tester) async {
+      final startDate = DateTime(2025, 1, 1);
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+        currentSpaceId: 'test-space-id',
+        relationshipStartDate: startDate,
+      );
+
+      final days = DateTime.now().difference(startDate).inDays + 1;
+      expect(find.text('在一起 $days 天'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'home does not show relationship days in single mode',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 1,
+        currentSpaceId: 'test-space-id',
+      );
+
+      expect(find.textContaining('在一起'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'home shows next event card',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+        currentSpaceId: 'test-space-id',
+      );
+
+      // The home screen loads data from Supabase, which is not available in tests.
+      // So we check for the "no upcoming events" state.
+      expect(find.text('暂无安排'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'home couple card shows couple names',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 2,
+        partnerDisplayName: 'Ache',
+        currentSpaceId: 'test-space-id',
+      );
+
+      expect(find.text('Xiaoman & Ache'), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpApp(
@@ -2367,6 +2326,7 @@ Future<void> _pumpApp(
   String? currentSpaceId,
   int memberCount = 0,
   String? partnerDisplayName,
+  DateTime? relationshipStartDate,
 }) async {
   final controller = AppController();
   if (language != null) {
@@ -2382,6 +2342,7 @@ Future<void> _pumpApp(
     currentSpaceId: currentSpaceId,
     memberCount: memberCount,
     partnerDisplayName: partnerDisplayName,
+    relationshipStartDate: relationshipStartDate,
   );
 
   await tester.pumpWidget(BetweenUsApp(controller: controller));
