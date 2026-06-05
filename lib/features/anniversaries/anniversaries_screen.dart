@@ -21,6 +21,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Map<String, String> _eventCreators = {};
   bool _submitting = false;
   bool _eventsLoaded = false;
+  bool _loadingEvents = false;
+  DateTime? _lastLoadTime;
 
   @visibleForTesting
   void debugSetEvents(List<CalendarEventRecord> events) {
@@ -60,16 +62,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _onControllerChanged() {
-    _loadEvents();
+    _loadEvents(force: true);
   }
 
   Future<void> _onRefresh() async {
     final controller = AppScope.read(context);
     await controller.refreshAllData();
-    await _loadEvents();
+    await _loadEvents(force: true);
   }
 
-  Future<void> _loadEvents() async {
+  Future<void> _loadEvents({bool force = false}) async {
+    if (!force && _lastLoadTime != null &&
+        DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
+      return;
+    }
+    if (_loadingEvents) return;
+    _loadingEvents = true;
+
     try {
       final response = await Supabase.instance.client
           .from('calendar_events')
@@ -88,8 +97,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           _eventCreators = {for (final e in records) e.id: e.createdBy};
         });
       }
-    } catch (_) {
-      // Supabase not initialized or query failed.
+      _lastLoadTime = DateTime.now();
+    } catch (e) {
+      debugPrint('[Calendar] loadEvents failed: $e');
+    } finally {
+      _loadingEvents = false;
     }
   }
 
@@ -125,7 +137,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       await _loadEvents();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Calendar] submitEvent failed: $e');
       return false;
     } finally {
       if (mounted) {
