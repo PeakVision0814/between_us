@@ -161,7 +161,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           .filter('deleted_at', 'is', null);
 
       await _loadEvents();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Calendar] deleteEvent failed: $e');
       if (mounted) {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(

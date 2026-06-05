@@ -931,7 +931,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
             .update({'date': _formatDate(picked)})
             .eq('id', anniversary.id);
         await _loadAnniversaries();
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Partner] editAnniversaryDate failed: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(strings.networkCheckConnectionError)),
@@ -1021,7 +1022,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
           'is_custom': true,
         });
         await _loadAnniversaries();
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Partner] addCustomAnniversary failed: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(strings.networkCheckConnectionError)),
@@ -1061,7 +1063,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
             .delete()
             .eq('id', anniversary.id);
         await _loadAnniversaries();
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Partner] deleteAnniversary failed: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(strings.networkCheckConnectionError)),
