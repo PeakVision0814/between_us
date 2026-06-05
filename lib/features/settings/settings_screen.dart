@@ -565,10 +565,27 @@ class _PartnerScreen extends StatefulWidget {
   State<_PartnerScreen> createState() => _PartnerScreenState();
 }
 
+class _AnniversaryItem {
+  const _AnniversaryItem({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.date,
+    required this.isCustom,
+  });
+
+  final String id;
+  final String type;
+  final String title;
+  final DateTime date;
+  final bool isCustom;
+}
+
 class _PartnerScreenState extends State<_PartnerScreen> {
   String? _inviteCode;
   DateTime? _inviteExpiresAt;
   bool _generatingInvite = false;
+  List<_AnniversaryItem> _anniversaries = [];
 
   @override
   void initState() {
@@ -576,6 +593,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     _inviteCode = widget.initialInviteCode;
     _inviteExpiresAt = widget.initialInviteExpiresAt;
     widget.controller.addListener(_onControllerChanged);
+    _loadAnniversaries();
   }
 
   @override
@@ -585,8 +603,37 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   }
 
   void _onControllerChanged() {
-    if (mounted) {
-      setState(() {});
+    _loadAnniversaries();
+  }
+
+  Future<void> _loadAnniversaries() async {
+    if (!widget.controller.supabaseReady ||
+        !widget.controller.hasActiveCoupleSpace) {
+      return;
+    }
+    try {
+      final response = await Supabase.instance.client
+          .from('anniversaries')
+          .select('id, type, title, date, is_custom')
+          .eq('couple_space_id', widget.controller.currentSpaceId!)
+          .order('is_custom', ascending: true)
+          .order('date', ascending: true);
+
+      if (!mounted) return;
+      final items = (response as List<dynamic>)
+          .map(
+            (row) => _AnniversaryItem(
+              id: row['id'] as String,
+              type: row['type'] as String,
+              title: row['title'] as String,
+              date: DateTime.parse(row['date'] as String),
+              isCustom: row['is_custom'] as bool? ?? false,
+            ),
+          )
+          .toList();
+      setState(() => _anniversaries = items);
+    } catch (_) {
+      // Query failed.
     }
   }
 
@@ -679,12 +726,6 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final name = widget.partnerName ?? strings.partnerFallbackName;
-    final relationshipStartDate = widget.controller.relationshipStartDate;
-    final dateLabel = relationshipStartDate != null
-        ? strings.relationshipStartDaysLabel(
-            DateTime.now().difference(relationshipStartDate).inDays + 1,
-          )
-        : strings.noRelationshipDate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,95 +785,225 @@ class _PartnerScreenState extends State<_PartnerScreen> {
           ),
         ),
         const SizedBox(height: 24),
+        // ── 纪念日区域 ──
         PageSectionHeader(
-          title: strings.relationshipStartDateLabel,
-          subtitle: dateLabel,
+          title: strings.anniversarySectionTitle,
         ),
         const SizedBox(height: 10),
-        _UsCard(
-          isDark: isDark,
-          variant: PageSurfaceVariant.primary,
-          key: const ValueKey('us-relationship-date-section'),
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppTheme.radius2xl),
-              onTap: () => _selectRelationshipStartDate(context, strings),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 20,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            strings.setRelationshipStartDate,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            dateLabel,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: isDark
-                                  ? AppTheme.warmWhite60
-                                  : colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+        ..._anniversaries.map(
+          (anniversary) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _AnniversaryCard(
+              anniversary: anniversary,
+              isDark: isDark,
+              onTap: () => _editAnniversaryDate(context, strings, anniversary),
+              onDelete: anniversary.isCustom
+                  ? () => _deleteAnniversary(context, strings, anniversary)
+                  : null,
+            ),
+          ),
+        ),
+        // 添加自定义纪念日按钮
+        if (_anniversaries.where((a) => a.isCustom).length < 2)
+          _UsCard(
+            isDark: isDark,
+            variant: PageSurfaceVariant.primary,
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+                onTap: () => _addCustomAnniversary(context, strings),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: colorScheme.primary,
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: isDark
-                          ? AppTheme.warmWhite60
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                  ],
+                      const SizedBox(width: 14),
+                      Text(
+                        strings.addCustomAnniversary,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Future<void> _selectRelationshipStartDate(
+  Future<void> _editAnniversaryDate(
     BuildContext context,
     AppStrings strings,
+    _AnniversaryItem anniversary,
   ) async {
     final now = DateTime.now();
-    final initialDate = widget.controller.relationshipStartDate ?? now;
-    final firstDate = DateTime(2000);
-    final lastDate = now;
-
     final picked = await showDatePicker(
       context: context,
-      initialDate: initialDate.isAfter(lastDate) ? lastDate : initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      helpText: strings.setRelationshipStartDate,
+      initialDate: anniversary.date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 10),
+      helpText: anniversary.title,
     );
 
     if (picked != null && context.mounted) {
-      final success = await widget.controller.saveRelationshipStartDate(picked);
-      if (success && context.mounted) {
-        // 刷新数据
-        await widget.controller.loadPreferences(force: true);
+      try {
+        await Supabase.instance.client
+            .from('anniversaries')
+            .update({'date': _formatDate(picked)})
+            .eq('id', anniversary.id);
+        await _loadAnniversaries();
+      } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(strings.relationshipStartDateLabel)),
+            SnackBar(content: Text(strings.networkCheckConnectionError)),
           );
         }
       }
     }
+  }
+
+  Future<void> _addCustomAnniversary(
+    BuildContext context,
+    AppStrings strings,
+  ) async {
+    if (_anniversaries.where((a) => a.isCustom).length >= 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.maxCustomAnniversariesReached)),
+      );
+      return;
+    }
+
+    final titleController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(strings.addCustomAnniversary),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  hintText: strings.customAnniversaryTitleHint,
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: Text(strings.anniversaryDateLabel),
+                subtitle: Text(_formatDate(selectedDate)),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: dialogContext,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(DateTime.now().year + 10),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(strings.profileCancelLabel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final title = titleController.text.trim();
+                if (title.isEmpty) return;
+                Navigator.pop(dialogContext, {
+                  'title': title,
+                  'date': selectedDate,
+                });
+              },
+              child: Text(strings.profileSaveLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && context.mounted) {
+      try {
+        await Supabase.instance.client.from('anniversaries').insert({
+          'couple_space_id': widget.controller.currentSpaceId!,
+          'type': 'custom',
+          'title': result['title'] as String,
+          'date': _formatDate(result['date'] as DateTime),
+          'is_custom': true,
+        });
+        await _loadAnniversaries();
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.networkCheckConnectionError)),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAnniversary(
+    BuildContext context,
+    AppStrings strings,
+    _AnniversaryItem anniversary,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(strings.deleteAnniversary),
+        content: Text(strings.deleteAnniversaryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(strings.profileCancelLabel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(strings.deleteAnniversary),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await Supabase.instance.client
+            .from('anniversaries')
+            .delete()
+            .eq('id', anniversary.id);
+        await _loadAnniversaries();
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.networkCheckConnectionError)),
+          );
+        }
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   Widget _buildSingleContent(
@@ -1442,6 +1613,95 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Anniversary Card
+// ═══════════════════════════════════════════════════════════════════════
+
+class _AnniversaryCard extends StatelessWidget {
+  const _AnniversaryCard({
+    required this.anniversary,
+    required this.isDark,
+    required this.onTap,
+    this.onDelete,
+  });
+
+  final _AnniversaryItem anniversary;
+  final bool isDark;
+  final VoidCallback onTap;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final strings = AppStrings.of(context);
+
+    final dateStr =
+        '${anniversary.date.year}-${anniversary.date.month.toString().padLeft(2, '0')}-${anniversary.date.day.toString().padLeft(2, '0')}';
+
+    final icon = switch (anniversary.type) {
+      'first_met' => Icons.people_outline,
+      'relationship_start' => Icons.favorite_outline,
+      _ => Icons.celebration_outlined,
+    };
+
+    return _UsCard(
+      isDark: isDark,
+      variant: PageSurfaceVariant.primary,
+      key: ValueKey('us-anniversary-${anniversary.id}'),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: colorScheme.primary),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        anniversary.title,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateStr,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppTheme.warmWhite60
+                              : colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (onDelete != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: strings.deleteAnniversary,
+                    onPressed: onDelete,
+                  )
+                else
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: isDark
+                        ? AppTheme.warmWhite60
+                        : colorScheme.onSurfaceVariant,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

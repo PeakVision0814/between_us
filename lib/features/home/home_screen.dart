@@ -31,6 +31,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _quote;
   _AnniversaryCountdown? _nextAnniversary;
+  DateTime? _relationshipStartDate;
 
   @override
   void didChangeDependencies() {
@@ -38,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = AppScope.of(context);
     controller.addListener(_onControllerChanged);
     _quote ??= _pickQuote();
-    _loadNextAnniversary();
+    _loadAnniversaryData();
   }
 
   @override
@@ -51,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onControllerChanged() {
-    _loadNextAnniversary();
+    _loadAnniversaryData();
   }
 
   String _pickQuote() {
@@ -59,24 +60,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return quotes[Random().nextInt(quotes.length)];
   }
 
-  Future<void> _loadNextAnniversary() async {
+  Future<void> _loadAnniversaryData() async {
     final controller = AppScope.read(context);
     if (!controller.supabaseReady || !controller.hasActiveCoupleSpace) {
-      if (mounted && _nextAnniversary != null) {
-        setState(() => _nextAnniversary = null);
+      if (mounted) {
+        setState(() {
+          _nextAnniversary = null;
+          _relationshipStartDate = null;
+        });
       }
       return;
     }
 
     try {
       final response = await Supabase.instance.client
-          .from('calendar_events')
-          .select('title, starts_at')
-          .eq('couple_space_id', controller.currentSpaceId!)
-          .eq('event_type', 'anniversary')
-          .eq('recurrence', 'yearly')
-          .filter('deleted_at', 'is', null)
-          .order('starts_at', ascending: true);
+          .from('anniversaries')
+          .select('type, title, date')
+          .eq('couple_space_id', controller.currentSpaceId!);
 
       if (!mounted) return;
 
@@ -85,29 +85,40 @@ class _HomeScreenState extends State<HomeScreen> {
           .toList();
 
       if (events.isEmpty) {
-        if (_nextAnniversary != null) {
-          setState(() => _nextAnniversary = null);
+        if (mounted) {
+          setState(() {
+            _nextAnniversary = null;
+            _relationshipStartDate = null;
+          });
         }
         return;
       }
 
-      // 找到最近的下一个纪念日
       final now = DateTime.now();
       _AnniversaryCountdown? nearest;
+      DateTime? relationshipStart;
 
       for (final event in events) {
-        final startsAt = DateTime.parse(event['starts_at'] as String);
+        final date = DateTime.parse(event['date'] as String);
         final title = event['title'] as String;
+        final type = event['type'] as String;
+
+        // 记录恋爱纪念日日期
+        if (type == 'relationship_start') {
+          relationshipStart = date;
+        }
 
         // 计算今年的纪念日日期
-        var thisYear = DateTime(now.year, startsAt.month, startsAt.day);
+        var thisYear = DateTime(now.year, date.month, date.day);
         if (thisYear.isBefore(now)) {
-          // 今年已过，计算明年的
-          thisYear = DateTime(now.year + 1, startsAt.month, startsAt.day);
+          thisYear = DateTime(now.year + 1, date.month, date.day);
         }
 
         final daysUntil = thisYear.difference(now).inDays;
-        final candidate = _AnniversaryCountdown(title: title, daysUntil: daysUntil);
+        final candidate = _AnniversaryCountdown(
+          title: title,
+          daysUntil: daysUntil,
+        );
 
         if (nearest == null || candidate.daysUntil < nearest.daysUntil) {
           nearest = candidate;
@@ -115,7 +126,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       if (mounted) {
-        setState(() => _nextAnniversary = nearest);
+        setState(() {
+          _nextAnniversary = nearest;
+          _relationshipStartDate = relationshipStart;
+        });
       }
     } catch (_) {
       // 查询失败，保持当前状态
@@ -163,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 quote: _quote ?? '',
                 memberCount: controller.memberCount,
                 partnerDisplayName: controller.partnerDisplayName,
-                relationshipStartDate: controller.relationshipStartDate,
+                relationshipStartDate: _relationshipStartDate,
                 nextAnniversary: _nextAnniversary,
               ),
             ],

@@ -1043,34 +1043,73 @@ class AppStrings {
     ja: 'ふたりのスペース',
     ko: '우리의 공간',
   );
-  String get relationshipStartDateLabel => _resolve(
-    zhCn: '在一起日期',
-    zhTw: '在一起日期',
-    en: 'Together since',
-    ja: '付き合い始めた日',
-    ko: '함께한 날짜',
+
+  // ── Anniversary ──────────────────────────────────────────────────────
+
+  String get anniversarySectionTitle => _resolve(
+    zhCn: '纪念日',
+    zhTw: '紀念日',
+    en: 'Anniversaries',
+    ja: '記念日',
+    ko: '기념일',
   );
-  String relationshipStartDaysLabel(int days) => _resolve(
-    zhCn: '在一起 $days 天',
-    zhTw: '在一起 $days 天',
-    en: 'Together $days days',
-    ja: '一緒に $days 日',
-    ko: '함께 $days 일',
+  String get firstMetAnniversary => _resolve(
+    zhCn: '相识纪念日',
+    zhTw: '相識紀念日',
+    en: 'First Met',
+    ja: '出会った記念日',
+    ko: '처음 만난 날',
   );
-  String get setRelationshipStartDate => _resolve(
-    zhCn: '设置日期',
-    zhTw: '設置日期',
-    en: 'Set date',
-    ja: '日付を設定',
-    ko: '날짜 설정',
+  String get relationshipStartAnniversary => _resolve(
+    zhCn: '恋爱纪念日',
+    zhTw: '戀愛紀念日',
+    en: 'Together Since',
+    ja: '付き合い始めた記念日',
+    ko: '사귀기 시작한 날',
   );
-  String get noRelationshipDate => _resolve(
-    zhCn: '未设置',
-    zhTw: '未設置',
-    en: 'Not set',
-    ja: '未設定',
-    ko: '미설정',
+  String get addCustomAnniversary => _resolve(
+    zhCn: '添加自定义纪念日',
+    zhTw: '添加自定義紀念日',
+    en: 'Add custom anniversary',
+    ja: 'カスタム記念日を追加',
+    ko: '커스텀 기념일 추가',
   );
+  String get customAnniversaryTitleHint => _resolve(
+    zhCn: '纪念日名称',
+    zhTw: '紀念日名稱',
+    en: 'Anniversary title',
+    ja: '記念日の名前',
+    ko: '기념일 이름',
+  );
+  String get deleteAnniversary => _resolve(
+    zhCn: '删除纪念日',
+    zhTw: '刪除紀念日',
+    en: 'Delete anniversary',
+    ja: '記念日を削除',
+    ko: '기념일 삭제',
+  );
+  String get deleteAnniversaryConfirm => _resolve(
+    zhCn: '确定要删除这个纪念日吗？',
+    zhTw: '確定要刪除這個紀念日嗎？',
+    en: 'Are you sure you want to delete this anniversary?',
+    ja: 'この記念日を削除しますか？',
+    ko: '이 기념일을 삭제하시겠습니까?',
+  );
+  String get maxCustomAnniversariesReached => _resolve(
+    zhCn: '最多只能添加两个自定义纪念日',
+    zhTw: '最多只能添加兩個自定義紀念日',
+    en: 'You can add up to 2 custom anniversaries',
+    ja: 'カスタム記念日は最大2つまで',
+    ko: '커스텀 기념일은 최대 2개까지',
+  );
+  String get anniversaryDateLabel => _resolve(
+    zhCn: '日期',
+    zhTw: '日期',
+    en: 'Date',
+    ja: '日付',
+    ko: '날짜',
+  );
+
   String get nextEventLabel => _resolve(
     zhCn: '下一个安排',
     zhTw: '下一個安排',

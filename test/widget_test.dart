@@ -2186,10 +2186,10 @@ void main() {
     },
   );
 
-  // ─── Relationship date and home tests ─────────────────────────────────
+  // ─── Anniversary and home tests ─────────────────────────────────────
 
   testWidgets(
-    'paired mode: partner screen shows relationship date setting',
+    'paired mode: partner screen shows anniversary section',
     (tester) async {
       await _pumpApp(
         tester,
@@ -2213,13 +2213,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
       await tester.pumpAndSettle();
 
-      expect(find.text('在一起日期'), findsOneWidget);
-      expect(find.text('设置日期'), findsOneWidget);
+      // Anniversary section title should be visible
+      expect(find.text('纪念日'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'single mode: partner screen does not show relationship date setting',
+    'single mode: partner screen does not show anniversary section',
     (tester) async {
       await _pumpApp(
         tester,
@@ -2242,15 +2242,14 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
       await tester.pumpAndSettle();
 
-      // Should not show relationship date section
-      expect(find.text('在一起日期'), findsNothing);
+      // Should not show anniversary section in single mode
+      expect(find.text('纪念日'), findsNothing);
     },
   );
 
   testWidgets(
-    'home hero card shows relationship days when date is set',
+    'home hero card loads anniversary data from Supabase',
     (tester) async {
-      final startDate = DateTime(2025, 1, 1);
       await _pumpApp(
         tester,
         authStatus: AppAuthStatus.authenticated,
@@ -2258,12 +2257,11 @@ void main() {
         memberCount: 2,
         partnerDisplayName: 'Ache',
         currentSpaceId: 'test-space-id',
-        relationshipStartDate: startDate,
       );
 
-      final days = DateTime.now().difference(startDate).inDays + 1;
-      expect(find.text('$days'), findsOneWidget);
-      expect(find.byKey(const ValueKey('home-hero-days')), findsOneWidget);
+      // Days are loaded from anniversaries table via Supabase.
+      // In test environment, Supabase is not available, so days won't show.
+      expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
     },
   );
 
@@ -2344,7 +2342,6 @@ Future<void> _pumpApp(
   String? currentSpaceId,
   int memberCount = 0,
   String? partnerDisplayName,
-  DateTime? relationshipStartDate,
 }) async {
   final controller = AppController();
   if (language != null) {
@@ -2360,7 +2357,6 @@ Future<void> _pumpApp(
     currentSpaceId: currentSpaceId,
     memberCount: memberCount,
     partnerDisplayName: partnerDisplayName,
-    relationshipStartDate: relationshipStartDate,
   );
 
   await tester.pumpWidget(BetweenUsApp(controller: controller));

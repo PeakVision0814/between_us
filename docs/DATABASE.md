@@ -93,7 +93,6 @@
 - `created_by uuid not null`
 - `space_name text null`
 - `status text not null`
-- `relationship_start_date date null`
 - `created_at timestamptz not null`
 - `updated_at timestamptz not null`
 - `closed_at timestamptz null`
@@ -138,6 +137,30 @@
 - `accepted_at timestamptz null`
 - `revoked_at timestamptz null`
 
+### `anniversaries`
+
+用途：
+
+- 存放纪念日信息（相识纪念日、恋爱纪念日、自定义纪念日）
+
+建议字段：
+
+- `id uuid primary key`
+- `couple_space_id uuid not null`
+- `type text not null` — `first_met`（相识）、`relationship_start`（恋爱）、`custom`（自定义）
+- `title text not null`
+- `date date not null`
+- `is_custom boolean not null default false`
+- `created_at timestamptz not null`
+- `updated_at timestamptz not null`
+
+说明：
+
+- 空间创建时自动预置 `first_met` 和 `relationship_start` 两条固有纪念日
+- 用户最多可添加 2 条自定义纪念日
+- 在一起天数基于 `type = 'relationship_start'` 的纪念日计算
+- RLS 策略：同一 `couple_space` 的活跃成员可读写
+
 ### `calendar_events`
 
 用途：
@@ -146,7 +169,6 @@
 
 承载内容类型：
 
-- 纪念日
 - 约会安排
 - 提醒
 - 已经确定日期的计划

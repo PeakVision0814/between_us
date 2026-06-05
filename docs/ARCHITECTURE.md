@@ -172,8 +172,8 @@
 |------|---------|------|
 | 情绪文案 | 随机轮换 | 预设文案列表 |
 | 天气图标 | 后期实现 | 需要天气 API |
-| 在一起天数 | `couple_spaces.relationship_start_date` | 已实现 |
-| 纪念日提醒 | `calendar_events`（类型为纪念日） | 需要查询最近的纪念日 |
+| 在一起天数 | `anniversaries`（type='relationship_start'） | 已实现 |
+| 纪念日提醒 | `anniversaries` 表 | 已实现 |
 | 伴侣头像 | `partnerDisplayName` 首字母 | 已实现 |
 | 伴侣昵称 | `controller.partnerDisplayName` | 已实现 |
 | 伴侣心情 | 后期实现 | 需要心情状态功能 |
