@@ -589,11 +589,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   static DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
-
-  static String _dateKey(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 }
 
 // ─── Month View ─────────────────────────────────────────────────────────
@@ -696,11 +691,6 @@ class _MonthView extends StatelessWidget {
       left.year == right.year &&
       left.month == right.month &&
       left.day == right.day;
-
-  static String _dateKey(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 }
 
 // ─── Day Cell ───────────────────────────────────────────────────────────
@@ -1231,3 +1221,8 @@ Color _colorForType(CalendarEntryType type) {
     CalendarEntryType.reminder => AppTheme.sage,
   };
 }
+
+String _dateKey(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
