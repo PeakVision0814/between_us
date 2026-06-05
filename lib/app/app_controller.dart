@@ -344,23 +344,74 @@ class AppController extends ChangeNotifier {
       final client = Supabase.instance.client;
       Map<String, dynamic>? profile;
       for (var attempt = 0; attempt < 3; attempt++) {
-        final response = await client.rpc('get_my_profile');
-        final rows = switch (response) {
-          final List<dynamic> r when r.isNotEmpty =>
-            r.first as Map<String, dynamic>,
-          final Map<String, dynamic> row => row,
-          _ => null,
-        };
-        if (rows != null) {
-          profile = rows;
-          break;
+        try {
+          final response = await client.rpc('get_my_profile');
+          final rows = switch (response) {
+            final List<dynamic> r when r.isNotEmpty =>
+              r.first as Map<String, dynamic>,
+            final Map<String, dynamic> row => row,
+            _ => null,
+          };
+          if (rows != null) {
+            profile = rows;
+            break;
+          }
+        } catch (e) {
+          debugPrint('[Profile] get_my_profile attempt $attempt failed: $e');
         }
         if (attempt < 2) {
           await Future<void>.delayed(const Duration(milliseconds: 250));
         }
       }
-      if (profile == null) {
-        return;
+
+      if (profile != null) {
+        final name = profile['display_name'] as String?;
+        final gender = profile['gender'] as String?;
+        final birthdayStr = profile['birthday'] as String?;
+        final locale = profile['preferred_locale'] as String?;
+        final theme = profile['theme_preference'] as String?;
+        final notif = profile['notification_preview_enabled'] as bool?;
+
+        var changed = false;
+        if (_displayName != name) {
+          _displayName = name;
+          changed = true;
+        }
+        if (_gender != gender) {
+          _gender = gender;
+          changed = true;
+        }
+        final birthday =
+            birthdayStr != null ? DateTime.tryParse(birthdayStr) : null;
+        if (_birthday != birthday) {
+          _birthday = birthday;
+          changed = true;
+        }
+        if (locale != null) {
+          final parsed = AppLanguage.fromCode(locale);
+          if (_language != parsed) {
+            _language = parsed;
+            changed = true;
+          }
+        }
+        if (theme != null) {
+          final parsed = switch (theme) {
+            'light' => AppThemePreference.light,
+            'dark' => AppThemePreference.dark,
+            _ => AppThemePreference.system,
+          };
+          if (_themePreference != parsed) {
+            _themePreference = parsed;
+            changed = true;
+          }
+        }
+        if (notif != null && _notificationPreviewEnabled != notif) {
+          _notificationPreviewEnabled = notif;
+          changed = true;
+        }
+        if (changed) notifyListeners();
+      } else {
+        debugPrint('[Profile] get_my_profile returned null after retries');
       }
 
       String? currentSpaceId;
@@ -407,21 +458,6 @@ class AppController extends ChangeNotifier {
         _selfProfileId = userId;
         changed = true;
       }
-      final displayName = profile['display_name'] as String?;
-      if (_displayName != displayName) {
-        _displayName = displayName;
-        changed = true;
-      }
-      final gender = profile['gender'] as String?;
-      if (_gender != gender) {
-        _gender = gender;
-        changed = true;
-      }
-      final birthday = _parseBirthday(profile['birthday']);
-      if (_birthday != birthday) {
-        _birthday = birthday;
-        changed = true;
-      }
       if (_currentSpaceId != currentSpaceId) {
         _currentSpaceId = currentSpaceId;
         changed = true;
@@ -432,31 +468,6 @@ class AppController extends ChangeNotifier {
       }
       if (_partnerDisplayName != partnerDisplayName) {
         _partnerDisplayName = partnerDisplayName;
-        changed = true;
-      }
-      final locale = profile['preferred_locale'] as String?;
-      if (locale != null) {
-        final lang = AppLanguage.fromCode(locale);
-        if (_language != lang) {
-          _language = lang;
-          changed = true;
-        }
-      }
-      final theme = profile['theme_preference'] as String?;
-      if (theme != null) {
-        final pref = switch (theme) {
-          'light' => AppThemePreference.light,
-          'dark' => AppThemePreference.dark,
-          _ => AppThemePreference.system,
-        };
-        if (_themePreference != pref) {
-          _themePreference = pref;
-          changed = true;
-        }
-      }
-      final notif = profile['notification_preview_enabled'] as bool?;
-      if (notif != null && _notificationPreviewEnabled != notif) {
-        _notificationPreviewEnabled = notif;
         changed = true;
       }
       _loadedPreferencesUserId = userId;
@@ -939,13 +950,6 @@ class AppController extends ChangeNotifier {
 
   bool _hasCompletedGender(String? value) {
     return value == genderMale || value == genderFemale;
-  }
-
-  DateTime? _parseBirthday(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateUtils.dateOnly(DateTime.parse(value));
   }
 
   String? _formatBirthdayForStorage(DateTime? value) {
