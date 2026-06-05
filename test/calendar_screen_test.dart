@@ -156,6 +156,11 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
+      // Scroll to the upcoming event section to find the delete icon.
+      await _scrollTo(
+        tester,
+        find.byKey(const ValueKey('calendar-upcoming-test-event-1')),
+      );
       // Delete icon should be visible on the event entry.
       expect(find.byIcon(Icons.delete_outline), findsWidgets);
     },
@@ -399,10 +404,26 @@ Future<void> _pumpCalendar(
 }
 
 Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    200,
-    scrollable: find.byType(Scrollable),
+  final scrollableFinder = find.descendant(
+    of: find.byType(CalendarScreen),
+    matching: find.byType(Scrollable),
   );
-  await tester.pumpAndSettle();
+  // Try scrollUntilVisible first (works when target is already in widget tree).
+  try {
+    await tester.scrollUntilVisible(
+      finder,
+      200,
+      scrollable: scrollableFinder,
+    );
+    await tester.pumpAndSettle();
+    return;
+  } catch (_) {
+    // Target may not be built yet due to ListView lazy rendering.
+    // Scroll down in increments until it appears.
+  }
+  for (var i = 0; i < 10; i++) {
+    await tester.drag(scrollableFinder, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    if (finder.evaluate().isNotEmpty) return;
+  }
 }

@@ -35,6 +35,26 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = AppScope.of(context);
+    controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    try {
+      final controller = AppScope.read(context);
+      controller.removeListener(_onControllerChanged);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    _loadData();
+  }
+
   Future<void> _loadData() async {
     final appController = AppScope.read(context);
     if (!appController.supabaseReady) {
@@ -87,6 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _onRefresh() async {
+    final controller = AppScope.read(context);
+    await controller.refreshAllData();
+    await _loadData();
+  }
+
   static CalendarEntryType _mapEventType(String type) => switch (type) {
     'anniversary' => CalendarEntryType.anniversary,
     'reminder' => CalendarEntryType.reminder,
@@ -97,37 +123,62 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
     final isPaired = controller.hasActiveCoupleSpace;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return PageAtmosphere(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 大卡片：情侣名称 + 头像 + 空间状态
-          _HomeCoupleCard(
-            displayName: controller.displayName,
-            memberCount: controller.memberCount,
-            partnerDisplayName: controller.partnerDisplayName,
-            onOpenUs: widget.onOpenUs,
-          ),
-          // 双人态下显示额外信息
-          if (isPaired) ...[
-            const SizedBox(height: 20),
-            // 恋爱天数卡片
-            if (controller.relationshipStartDate != null) ...[
-              _RelationshipDaysCard(
-                startDate: controller.relationshipStartDate!,
-              ),
-              const SizedBox(height: 16),
-            ],
-            // 下一个重要事件卡片
-            _NextEventCard(
-              item: _nextDate,
-              onOpenCalendar: widget.onOpenCalendar,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppTheme.pageBackgroundDark
+                  : AppTheme.pageBackgroundLight,
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? AppTheme.pageAtmosphereDark
+                    : AppTheme.pageAtmosphereLight,
+              ),
+            ),
+          ),
+        ),
+        RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              // 大卡片：情侣名称 + 头像 + 空间状态
+              _HomeCoupleCard(
+                displayName: controller.displayName,
+                memberCount: controller.memberCount,
+                partnerDisplayName: controller.partnerDisplayName,
+                onOpenUs: widget.onOpenUs,
+              ),
+              // 双人态下显示额外信息
+              if (isPaired) ...[
+                const SizedBox(height: 20),
+                // 恋爱天数卡片
+                if (controller.relationshipStartDate != null) ...[
+                  _RelationshipDaysCard(
+                    startDate: controller.relationshipStartDate!,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // 下一个重要事件卡片
+                _NextEventCard(
+                  item: _nextDate,
+                  onOpenCalendar: widget.onOpenCalendar,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

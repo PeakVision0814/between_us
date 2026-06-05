@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:between_us/features/auth/email_register_screen.dart';
+import 'package:between_us/features/anniversaries/anniversaries_screen.dart'
+    show CalendarScreen;
 import 'package:between_us/features/settings/settings_screen.dart'
     show SpaceStatusScreen, ExitRequestSnapshot;
 import 'package:between_us/features/timeline/timeline_screen.dart'
@@ -453,7 +455,10 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('calendar-selected-date-label')),
       200,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.descendant(
+        of: find.byType(CalendarScreen),
+        matching: find.byType(Scrollable),
+      ),
     );
     await tester.pumpAndSettle();
 

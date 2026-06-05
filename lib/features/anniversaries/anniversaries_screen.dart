@@ -43,10 +43,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final controller = AppScope.of(context);
+    controller.addListener(_onControllerChanged);
     if (!_eventsLoaded && controller.hasActiveCoupleSpace) {
       _eventsLoaded = true;
       _loadEvents();
     }
+  }
+
+  @override
+  void dispose() {
+    try {
+      final controller = AppScope.read(context);
+      controller.removeListener(_onControllerChanged);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    _loadEvents();
+  }
+
+  Future<void> _onRefresh() async {
+    final controller = AppScope.read(context);
+    await controller.refreshAllData();
+    await _loadEvents();
   }
 
   Future<void> _loadEvents() async {
@@ -371,91 +391,115 @@ class _CalendarScreenState extends State<CalendarScreen> {
         );
     final upcomingEntries = _getUpcomingEntries(entries, now);
 
-    return PageAtmosphere(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Month grid ──
-          PageSurfaceCard(
-            child: _MonthView(
-              displayMonth: _displayMonth,
-              visibleDays: visibleDays,
-              selectedDate: _selectedDate!,
-              entriesByDay: entriesByDay,
-              onSelectDate: (day) {
-                setState(() {
-                  _selectedDate = _dateOnly(day);
-                });
-              },
-              onAddEvent: _showCreateDialog,
-              isDark: isDark,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppTheme.pageBackgroundDark
+                  : AppTheme.pageBackgroundLight,
             ),
           ),
-          const SizedBox(height: 24),
-
-          // ── Selected date details ──
-          PageSectionHeader(
-            title: strings.calendarDetailsTitle,
-          ),
-          const SizedBox(height: 10),
-          PageSurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.formatCalendarDate(
-                    _selectedDate!,
-                    includeWeekday: true,
-                  ),
-                  key: const ValueKey('calendar-selected-date-label'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 14),
-                if (selectedEntries.isEmpty)
-                  _SelectedDayEmptyState(strings: strings, isDark: isDark)
-                else
-                  ...selectedEntries.map(
-                    (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _SelectedEntryCard(
-                        entry: entry,
-                        occurrence: _occurrenceOnDay(entry, _selectedDate!),
-                        isDark: isDark,
-                        onDelete: () =>
-                            _confirmDeleteEvent(entry.id, entry.title),
-                        createdBy: _eventCreators[entry.id],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ── Upcoming events ──
-          PageSectionHeader(
-            title: strings.calendarUpcomingTitle,
-          ),
-          const SizedBox(height: 10),
-          if (upcomingEntries.isEmpty)
-            _UpcomingEmptyState(strings: strings, isDark: isDark)
-          else
-            ...upcomingEntries.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _UpcomingEventCard(
-                  entry: item.entry,
-                  occurrence: item.occurrence,
-                  isDark: isDark,
-                  onDelete: () =>
-                      _confirmDeleteEvent(item.entry.id, item.entry.title),
-                  createdBy: _eventCreators[item.entry.id],
-                ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? AppTheme.pageAtmosphereDark
+                    : AppTheme.pageAtmosphereLight,
               ),
             ),
-        ],
-      ),
+          ),
+        ),
+        RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              // ── Month grid ──
+              PageSurfaceCard(
+                child: _MonthView(
+                  displayMonth: _displayMonth,
+                  visibleDays: visibleDays,
+                  selectedDate: _selectedDate!,
+                  entriesByDay: entriesByDay,
+                  onSelectDate: (day) {
+                    setState(() {
+                      _selectedDate = _dateOnly(day);
+                    });
+                  },
+                  onAddEvent: _showCreateDialog,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Selected date details ──
+              PageSectionHeader(
+                title: strings.calendarDetailsTitle,
+              ),
+              const SizedBox(height: 10),
+              PageSurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.formatCalendarDate(
+                        _selectedDate!,
+                        includeWeekday: true,
+                      ),
+                      key: const ValueKey('calendar-selected-date-label'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 14),
+                    if (selectedEntries.isEmpty)
+                      _SelectedDayEmptyState(strings: strings, isDark: isDark)
+                    else
+                      ...selectedEntries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _SelectedEntryCard(
+                            entry: entry,
+                            occurrence: _occurrenceOnDay(entry, _selectedDate!),
+                            isDark: isDark,
+                            onDelete: () =>
+                                _confirmDeleteEvent(entry.id, entry.title),
+                            createdBy: _eventCreators[entry.id],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Upcoming events ──
+              PageSectionHeader(
+                title: strings.calendarUpcomingTitle,
+              ),
+              const SizedBox(height: 10),
+              if (upcomingEntries.isEmpty)
+                _UpcomingEmptyState(strings: strings, isDark: isDark)
+              else
+                ...upcomingEntries.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _UpcomingEventCard(
+                      entry: item.entry,
+                      occurrence: item.occurrence,
+                      isDark: isDark,
+                      onDelete: () =>
+                          _confirmDeleteEvent(item.entry.id, item.entry.title),
+                      createdBy: _eventCreators[item.entry.id],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
