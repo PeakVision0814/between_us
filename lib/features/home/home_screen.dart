@@ -73,16 +73,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final response = await Supabase.instance.client
+      final spaceId = controller.currentSpaceId!;
+      var response = await Supabase.instance.client
           .from('anniversaries')
           .select('type, title, date')
-          .eq('couple_space_id', controller.currentSpaceId!);
+          .eq('couple_space_id', spaceId);
 
       if (!mounted) return;
 
-      final events = (response as List<dynamic>)
+      var events = (response as List<dynamic>)
           .map((e) => e as Map<String, dynamic>)
           .toList();
+
+      // 自动补建缺失的固有纪念日（兼容迁移前创建的空间）
+      final hasFirstMet = events.any((e) => e['type'] == 'first_met');
+      final hasRelationshipStart = events.any(
+        (e) => e['type'] == 'relationship_start',
+      );
+      if (!hasFirstMet || !hasRelationshipStart) {
+        final today = _formatDateForStorage(DateTime.now());
+        final toInsert = <Map<String, dynamic>>[];
+        if (!hasFirstMet) {
+          toInsert.add({
+            'couple_space_id': spaceId,
+            'type': 'first_met',
+            'title': '相识纪念日',
+            'date': today,
+            'is_custom': false,
+          });
+        }
+        if (!hasRelationshipStart) {
+          toInsert.add({
+            'couple_space_id': spaceId,
+            'type': 'relationship_start',
+            'title': '恋爱纪念日',
+            'date': today,
+            'is_custom': false,
+          });
+        }
+        await Supabase.instance.client.from('anniversaries').insert(toInsert);
+        // 重新查询
+        response = await Supabase.instance.client
+            .from('anniversaries')
+            .select('type, title, date')
+            .eq('couple_space_id', spaceId);
+        if (!mounted) return;
+        events = (response as List<dynamic>)
+            .map((e) => e as Map<String, dynamic>)
+            .toList();
+      }
 
       if (events.isEmpty) {
         if (mounted) {
@@ -103,12 +142,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final title = event['title'] as String;
         final type = event['type'] as String;
 
-        // 记录恋爱纪念日日期
         if (type == 'relationship_start') {
           relationshipStart = date;
         }
 
-        // 计算今年的纪念日日期
         var thisYear = DateTime(now.year, date.month, date.day);
         if (thisYear.isBefore(now)) {
           thisYear = DateTime(now.year + 1, date.month, date.day);
@@ -134,6 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // 查询失败，保持当前状态
     }
+  }
+
+  static String _formatDateForStorage(DateTime value) {
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day';
   }
 
   Future<void> _onRefresh() async {

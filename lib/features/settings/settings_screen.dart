@@ -612,14 +612,16 @@ class _PartnerScreenState extends State<_PartnerScreen> {
       return;
     }
     try {
+      final spaceId = widget.controller.currentSpaceId!;
       final response = await Supabase.instance.client
           .from('anniversaries')
           .select('id, type, title, date, is_custom')
-          .eq('couple_space_id', widget.controller.currentSpaceId!)
+          .eq('couple_space_id', spaceId)
           .order('is_custom', ascending: true)
           .order('date', ascending: true);
 
       if (!mounted) return;
+
       final items = (response as List<dynamic>)
           .map(
             (row) => _AnniversaryItem(
@@ -631,6 +633,57 @@ class _PartnerScreenState extends State<_PartnerScreen> {
             ),
           )
           .toList();
+
+      // 自动补建缺失的固有纪念日（兼容迁移前创建的空间）
+      final hasFirstMet = items.any((a) => a.type == 'first_met');
+      final hasRelationshipStart = items.any(
+        (a) => a.type == 'relationship_start',
+      );
+      if (!hasFirstMet || !hasRelationshipStart) {
+        final today = _formatDate(DateTime.now());
+        final toInsert = <Map<String, dynamic>>[];
+        if (!hasFirstMet) {
+          toInsert.add({
+            'couple_space_id': spaceId,
+            'type': 'first_met',
+            'title': '相识纪念日',
+            'date': today,
+            'is_custom': false,
+          });
+        }
+        if (!hasRelationshipStart) {
+          toInsert.add({
+            'couple_space_id': spaceId,
+            'type': 'relationship_start',
+            'title': '恋爱纪念日',
+            'date': today,
+            'is_custom': false,
+          });
+        }
+        await Supabase.instance.client.from('anniversaries').insert(toInsert);
+        // 重新加载
+        final refreshed = await Supabase.instance.client
+            .from('anniversaries')
+            .select('id, type, title, date, is_custom')
+            .eq('couple_space_id', spaceId)
+            .order('is_custom', ascending: true)
+            .order('date', ascending: true);
+        if (!mounted) return;
+        final refreshedItems = (refreshed as List<dynamic>)
+            .map(
+              (row) => _AnniversaryItem(
+                id: row['id'] as String,
+                type: row['type'] as String,
+                title: row['title'] as String,
+                date: DateTime.parse(row['date'] as String),
+                isCustom: row['is_custom'] as bool? ?? false,
+              ),
+            )
+            .toList();
+        setState(() => _anniversaries = refreshedItems);
+        return;
+      }
+
       setState(() => _anniversaries = items);
     } catch (_) {
       // Query failed.

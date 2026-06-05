@@ -1,3 +1,7 @@
-select id, couple_space_id, created_by, accepted_by, accepted_at, revoked_at, expires_at
-from public.couple_invites
-where couple_space_id = '29f5d8e1-a458-4d04-ad03-7e5f25e391f5';
+  SELECT cs.id AS space_id
+  FROM couple_spaces cs
+  JOIN couple_memberships cm ON cm.couple_space_id = cs.id
+  WHERE cm.profile_id = auth.uid()
+  AND cm.status = 'active'
+  AND cs.status = 'active'
+  LIMIT 1;
