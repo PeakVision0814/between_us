@@ -41,6 +41,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _selectedDate = _dateOnly(now);
   }
 
+  void _previousMonth() {
+    setState(() {
+      _displayMonth = DateTime(
+        _displayMonth.year,
+        _displayMonth.month - 1,
+      );
+      _selectedDate = _dateOnly(_displayMonth);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _displayMonth = DateTime(
+        _displayMonth.year,
+        _displayMonth.month + 1,
+      );
+      _selectedDate = _dateOnly(_displayMonth);
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -445,6 +465,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     });
                   },
                   onAddEvent: _showCreateDialog,
+                  onPreviousMonth: _previousMonth,
+                  onNextMonth: _nextMonth,
                   isDark: isDark,
                 ),
               ),
@@ -602,6 +624,8 @@ class _MonthView extends StatelessWidget {
     required this.onSelectDate,
     required this.isDark,
     this.onAddEvent,
+    this.onPreviousMonth,
+    this.onNextMonth,
   });
 
   final DateTime displayMonth;
@@ -611,6 +635,8 @@ class _MonthView extends StatelessWidget {
   final ValueChanged<DateTime> onSelectDate;
   final bool isDark;
   final VoidCallback? onAddEvent;
+  final VoidCallback? onPreviousMonth;
+  final VoidCallback? onNextMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -623,12 +649,34 @@ class _MonthView extends StatelessWidget {
         children: [
           Row(
             children: [
+              if (onPreviousMonth != null)
+                IconButton(
+                  onPressed: onPreviousMonth,
+                  icon: const Icon(Icons.chevron_left, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
               Expanded(
                 child: Text(
                   strings.formatCalendarMonthYear(displayMonth),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+              if (onNextMonth != null)
+                IconButton(
+                  onPressed: onNextMonth,
+                  icon: const Icon(Icons.chevron_right, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
               if (onAddEvent != null)
                 IconButton(
                   onPressed: onAddEvent,
