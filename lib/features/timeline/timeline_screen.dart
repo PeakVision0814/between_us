@@ -121,7 +121,8 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
       return (response as List)
           .map((json) => NoteRecord.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PlansNotes] fetchNotes failed: $e');
       return [];
     }
   }
@@ -142,7 +143,8 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
       return (response as List)
           .map((json) => PlanRecord.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PlansNotes] fetchPlans failed: $e');
       return [];
     }
   }
@@ -175,7 +177,8 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
 
       _refreshPlans();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PlansNotes] submitPlan failed: $e');
       return false;
     } finally {
       if (mounted) {
@@ -281,7 +284,8 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
 
       _refreshNotes();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PlansNotes] submitNote failed: $e');
       return false;
     } finally {
       if (mounted) {
