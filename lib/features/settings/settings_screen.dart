@@ -586,6 +586,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   DateTime? _inviteExpiresAt;
   bool _generatingInvite = false;
   List<_AnniversaryItem> _anniversaries = [];
+  bool _loadingAnniversaries = false;
 
   @override
   void initState() {
@@ -607,22 +608,29 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   }
 
   Future<void> _loadAnniversaries() async {
+    if (_loadingAnniversaries) return;
+    _loadingAnniversaries = true;
+
     if (!widget.controller.supabaseReady ||
         !widget.controller.hasActiveCoupleSpace) {
+      _loadingAnniversaries = false;
       return;
     }
     try {
       final spaceId = widget.controller.currentSpaceId!;
-      final response = await Supabase.instance.client
+      var response = await Supabase.instance.client
           .from('anniversaries')
           .select('id, type, title, date, is_custom')
           .eq('couple_space_id', spaceId)
           .order('is_custom', ascending: true)
           .order('date', ascending: true);
 
-      if (!mounted) return;
+      if (!mounted) {
+        _loadingAnniversaries = false;
+        return;
+      }
 
-      final items = (response as List<dynamic>)
+      var items = (response as List<dynamic>)
           .map(
             (row) => _AnniversaryItem(
               id: row['id'] as String,
@@ -661,15 +669,17 @@ class _PartnerScreenState extends State<_PartnerScreen> {
           });
         }
         await Supabase.instance.client.from('anniversaries').insert(toInsert);
-        // 重新加载
-        final refreshed = await Supabase.instance.client
+        response = await Supabase.instance.client
             .from('anniversaries')
             .select('id, type, title, date, is_custom')
             .eq('couple_space_id', spaceId)
             .order('is_custom', ascending: true)
             .order('date', ascending: true);
-        if (!mounted) return;
-        final refreshedItems = (refreshed as List<dynamic>)
+        if (!mounted) {
+          _loadingAnniversaries = false;
+          return;
+        }
+        items = (response as List<dynamic>)
             .map(
               (row) => _AnniversaryItem(
                 id: row['id'] as String,
@@ -680,13 +690,15 @@ class _PartnerScreenState extends State<_PartnerScreen> {
               ),
             )
             .toList();
-        setState(() => _anniversaries = refreshedItems);
-        return;
       }
 
-      setState(() => _anniversaries = items);
-    } catch (_) {
-      // Query failed.
+      if (mounted) {
+        setState(() => _anniversaries = items);
+      }
+    } catch (e) {
+      debugPrint('[Partner] loadAnniversaries failed: $e');
+    } finally {
+      _loadingAnniversaries = false;
     }
   }
 

@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _quote;
   _AnniversaryCountdown? _nextAnniversary;
   DateTime? _relationshipStartDate;
+  bool _loadingAnniversary = false;
 
   @override
   void didChangeDependencies() {
@@ -61,6 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadAnniversaryData() async {
+    if (_loadingAnniversary) return;
+    _loadingAnniversary = true;
+
     final controller = AppScope.read(context);
     if (!controller.supabaseReady || !controller.hasActiveCoupleSpace) {
       if (mounted) {
@@ -69,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _relationshipStartDate = null;
         });
       }
+      _loadingAnniversary = false;
       return;
     }
 
@@ -79,7 +84,10 @@ class _HomeScreenState extends State<HomeScreen> {
           .select('type, title, date')
           .eq('couple_space_id', spaceId);
 
-      if (!mounted) return;
+      if (!mounted) {
+        _loadingAnniversary = false;
+        return;
+      }
 
       var events = (response as List<dynamic>)
           .map((e) => e as Map<String, dynamic>)
@@ -112,25 +120,17 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
         await Supabase.instance.client.from('anniversaries').insert(toInsert);
-        // 重新查询
         response = await Supabase.instance.client
             .from('anniversaries')
             .select('type, title, date')
             .eq('couple_space_id', spaceId);
-        if (!mounted) return;
+        if (!mounted) {
+          _loadingAnniversary = false;
+          return;
+        }
         events = (response as List<dynamic>)
             .map((e) => e as Map<String, dynamic>)
             .toList();
-      }
-
-      if (events.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _nextAnniversary = null;
-            _relationshipStartDate = null;
-          });
-        }
-        return;
       }
 
       final now = DateTime.now();
@@ -168,8 +168,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _relationshipStartDate = relationshipStart;
         });
       }
-    } catch (_) {
-      // 查询失败，保持当前状态
+    } catch (e) {
+      debugPrint('[Home] loadAnniversaryData failed: $e');
+    } finally {
+      _loadingAnniversary = false;
     }
   }
 
@@ -181,7 +183,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _onRefresh() async {
     final controller = AppScope.read(context);
+    controller.removeListener(_onControllerChanged);
     await controller.refreshAllData();
+    await _loadAnniversaryData();
+    controller.addListener(_onControllerChanged);
   }
 
   @override
