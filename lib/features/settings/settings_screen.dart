@@ -717,19 +717,18 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   Future<void> _generateInviteCode() async {
     if (_generatingInvite) return;
 
-    final coupleSpaceId = widget.controller.currentSpaceId;
-    if (coupleSpaceId == null) {
-      if (!mounted) return;
-      final strings = AppStrings.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.networkCheckConnectionError)),
-      );
-      return;
-    }
-
     setState(() => _generatingInvite = true);
 
     try {
+      var coupleSpaceId = widget.controller.currentSpaceId;
+      if (coupleSpaceId == null) {
+        await widget.controller.refreshAllData();
+        coupleSpaceId = widget.controller.currentSpaceId;
+      }
+      if (coupleSpaceId == null) {
+        throw StateError('No currentSpaceId available for invite generation');
+      }
+
       final code = _generateRandomCode();
       final response = await Supabase.instance.client.rpc(
         'create_couple_invite',
