@@ -23,6 +23,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   String? _coupleSpaceId;
   int _memberCount = 0;
   bool _loadingSpaceData = false;
+  DateTime? _lastLoadTime;
 
   bool _acceptingInvite = false;
   int _previousMemberCount = 0;
@@ -44,7 +45,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
 
   void _onControllerChanged() {
     // Reload space data when controller state changes.
-    _loadSpaceData();
+    _loadSpaceData(force: true);
   }
 
   @override
@@ -63,11 +64,15 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _loadSpaceData();
+      _loadSpaceData(force: true);
     }
   }
 
-  Future<void> _loadSpaceData() async {
+  Future<void> _loadSpaceData({bool force = false}) async {
+    if (!force && _lastLoadTime != null &&
+        DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
+      return;
+    }
     if (_loadingSpaceData) return;
     _loadingSpaceData = true;
     final appController = AppScope.read(context);
@@ -112,6 +117,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
         _memberCount = (membersResponse as List).length;
         debugPrint('[Space] id=$_coupleSpaceId members=$_memberCount');
       }
+      _lastLoadTime = DateTime.now();
     } catch (e) {
       debugPrint('[Space] load failed: $e');
     } finally {
@@ -153,7 +159,7 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
       // 刷新 AppController 的空间和成员状态
       await appController.refreshAfterInviteAccepted();
 
-      await _loadSpaceData();
+      await _loadSpaceData(force: true);
 
       if (mounted) {
         final strings = AppStrings.of(context);
