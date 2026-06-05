@@ -193,8 +193,8 @@
 规则：
 
 - 只有明确绑定日期或时间的内容进入 `calendar_events`
-- `event_type` 首版建议支持：`anniversary`、`date_plan`、`reminder`
-- 首版纪念日重复规则建议支持：`none`、`yearly`
+- `event_type` 支持：`date_plan`（约会）、`reminder`（提醒）
+- 纪念日已独立到 `anniversaries` 表，不再使用 `calendar_events`
 - 如果事件来自计划笔记，应记录 `source_plan_id`
 - `calendar_events` 必须归属于有效双人空间，不能归属于个人 profile
 - 单人态不创建个人版日历事件
