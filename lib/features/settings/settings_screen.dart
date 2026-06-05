@@ -717,12 +717,19 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   Future<void> _generateInviteCode() async {
     if (_generatingInvite) return;
 
-    final coupleSpaceId = widget.controller.currentSpaceId;
+    var coupleSpaceId = widget.controller.currentSpaceId;
+
+    // If space ID is missing, try to reload preferences (may create the space).
+    if (coupleSpaceId == null) {
+      await widget.controller.loadPreferences(force: true);
+      coupleSpaceId = widget.controller.currentSpaceId;
+    }
+
     if (coupleSpaceId == null) {
       if (!mounted) return;
       final strings = AppStrings.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.networkCheckConnectionError)),
+        SnackBar(content: Text(strings.inviteSpaceNotReadyError)),
       );
       return;
     }
