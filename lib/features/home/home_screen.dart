@@ -33,6 +33,13 @@ class _HomeScreenState extends State<HomeScreen> {
   _AnniversaryCountdown? _nextAnniversary;
   DateTime? _relationshipStartDate;
   bool _loadingAnniversary = false;
+  DateTime? _lastLoadTime;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => _loadAnniversaryData());
+  }
 
   @override
   void didChangeDependencies() {
@@ -40,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = AppScope.of(context);
     controller.addListener(_onControllerChanged);
     _quote ??= _pickQuote();
-    _loadAnniversaryData();
   }
 
   @override
@@ -53,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onControllerChanged() {
-    _loadAnniversaryData();
+    _loadAnniversaryData(force: true);
   }
 
   String _pickQuote() {
@@ -61,7 +67,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return quotes[Random().nextInt(quotes.length)];
   }
 
-  Future<void> _loadAnniversaryData() async {
+  Future<void> _loadAnniversaryData({bool force = false}) async {
+    if (!force && _lastLoadTime != null &&
+        DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
+      return;
+    }
     if (_loadingAnniversary) return;
     _loadingAnniversary = true;
 
@@ -168,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _relationshipStartDate = relationshipStart;
         });
       }
+      _lastLoadTime = DateTime.now();
     } catch (e) {
       debugPrint('[Home] loadAnniversaryData failed: $e');
     } finally {
@@ -185,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = AppScope.read(context);
     controller.removeListener(_onControllerChanged);
     await controller.refreshAllData();
-    await _loadAnniversaryData();
+    await _loadAnniversaryData(force: true);
     controller.addListener(_onControllerChanged);
   }
 

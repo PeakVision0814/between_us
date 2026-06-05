@@ -218,19 +218,30 @@ class AppTheme {
     BoxShadow(color: Color(0x0A000000), offset: Offset(0, 2), blurRadius: 8),
   ];
 
-  static const List<BoxShadow> shadowHeroLight = [
-    BoxShadow(color: Color(0x12000000), offset: Offset(0, 4), blurRadius: 20),
-    BoxShadow(color: Color(0x08000000), offset: Offset(0, 1), blurRadius: 6),
+  static List<BoxShadow> shadowHeroLight = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.08),
+      blurRadius: 20,
+      offset: const Offset(0, 10),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.04),
+      blurRadius: 40,
+      offset: const Offset(0, 20),
+    ),
   ];
 
-  static const List<BoxShadow> shadowHeroDark = [
+  static List<BoxShadow> shadowHeroDark = [
     BoxShadow(
-      color: Color(0x407040A0),
-      offset: Offset(0, 0),
-      blurRadius: 24,
-      spreadRadius: -2,
+      color: Colors.black.withValues(alpha: 0.2),
+      blurRadius: 20,
+      offset: const Offset(0, 10),
     ),
-    BoxShadow(color: Color(0x205030A0), offset: Offset(0, 4), blurRadius: 16),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.1),
+      blurRadius: 40,
+      offset: const Offset(0, 20),
+    ),
   ];
 
   static const List<BoxShadow> shadowCardLight = [
