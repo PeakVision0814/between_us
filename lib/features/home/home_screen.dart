@@ -1,10 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../app/app_controller.dart';
-import '../../shared/widgets/page_visual_language.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -27,19 +29,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  CalendarItemCopy? _nextDate;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  String? _quote;
+  _AnniversaryCountdown? _nextAnniversary;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final controller = AppScope.of(context);
     controller.addListener(_onControllerChanged);
+    _quote ??= _pickQuote();
+    _loadNextAnniversary();
   }
 
   @override
@@ -52,77 +51,85 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onControllerChanged() {
-    _loadData();
+    _loadNextAnniversary();
   }
 
-  Future<void> _loadData() async {
-    final appController = AppScope.read(context);
-    if (!appController.supabaseReady) {
-      debugPrint(
-        '[Home] skip load: supabase not ready (${appController.supabaseFailureReason ?? 'unknown'})',
-      );
-      return;
-    }
-    if (!appController.hasActiveCoupleSpace) {
-      debugPrint('[Home] skip load: no active couple space');
+  String _pickQuote() {
+    final quotes = AppStrings.of(context).homeHeroQuotes;
+    return quotes[Random().nextInt(quotes.length)];
+  }
+
+  Future<void> _loadNextAnniversary() async {
+    final controller = AppScope.read(context);
+    if (!controller.supabaseReady || !controller.hasActiveCoupleSpace) {
+      if (mounted && _nextAnniversary != null) {
+        setState(() => _nextAnniversary = null);
+      }
       return;
     }
 
     try {
-      final eventData = await Supabase.instance.client
+      final response = await Supabase.instance.client
           .from('calendar_events')
-          .select('title, description, starts_at, event_type')
+          .select('title, starts_at')
+          .eq('couple_space_id', controller.currentSpaceId!)
+          .eq('event_type', 'anniversary')
+          .eq('recurrence', 'yearly')
           .filter('deleted_at', 'is', null)
-          .gte('starts_at', DateTime.now().toIso8601String().substring(0, 10))
-          .order('starts_at', ascending: true)
-          .limit(1)
-          .maybeSingle();
+          .order('starts_at', ascending: true);
 
       if (!mounted) return;
-      final strings = AppStrings.of(context);
 
-      if (eventData != null) {
-        final startsAt = DateTime.parse(eventData['starts_at'] as String);
-        final eventType = eventData['event_type'] as String;
-        setState(() {
-          _nextDate = CalendarItemCopy(
-            id: 'home-featured',
-            title: eventData['title'] as String,
-            subtitle: eventData['description'] as String? ?? '',
-            dateLabel: strings.formatCalendarDate(
-              startsAt,
-              includeTime: startsAt.hour != 0,
-            ),
-            countdownLabel: strings.formatCountdownLabel(
-              startsAt,
-              DateTime.now(),
-            ),
-            typeLabel: strings.calendarTypeLabel(_mapEventType(eventType)),
-          );
-        });
+      final events = (response as List<dynamic>)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+
+      if (events.isEmpty) {
+        if (_nextAnniversary != null) {
+          setState(() => _nextAnniversary = null);
+        }
+        return;
       }
-    } catch (e) {
-      debugPrint('[Home] load failed: $e');
-      // Query failed; keep nulls.
+
+      // 找到最近的下一个纪念日
+      final now = DateTime.now();
+      _AnniversaryCountdown? nearest;
+
+      for (final event in events) {
+        final startsAt = DateTime.parse(event['starts_at'] as String);
+        final title = event['title'] as String;
+
+        // 计算今年的纪念日日期
+        var thisYear = DateTime(now.year, startsAt.month, startsAt.day);
+        if (thisYear.isBefore(now)) {
+          // 今年已过，计算明年的
+          thisYear = DateTime(now.year + 1, startsAt.month, startsAt.day);
+        }
+
+        final daysUntil = thisYear.difference(now).inDays;
+        final candidate = _AnniversaryCountdown(title: title, daysUntil: daysUntil);
+
+        if (nearest == null || candidate.daysUntil < nearest.daysUntil) {
+          nearest = candidate;
+        }
+      }
+
+      if (mounted) {
+        setState(() => _nextAnniversary = nearest);
+      }
+    } catch (_) {
+      // 查询失败，保持当前状态
     }
   }
 
   Future<void> _onRefresh() async {
     final controller = AppScope.read(context);
     await controller.refreshAllData();
-    await _loadData();
   }
-
-  static CalendarEntryType _mapEventType(String type) => switch (type) {
-    'anniversary' => CalendarEntryType.anniversary,
-    'reminder' => CalendarEntryType.reminder,
-    _ => CalendarEntryType.datePlan,
-  };
 
   @override
   Widget build(BuildContext context) {
     final controller = AppScope.of(context);
-    final isPaired = controller.hasActiveCoupleSpace;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
@@ -152,29 +159,13 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              // 大卡片：情侣名称 + 头像 + 空间状态
-              _HomeCoupleCard(
-                displayName: controller.displayName,
+              _HomeHeroCard(
+                quote: _quote ?? '',
                 memberCount: controller.memberCount,
                 partnerDisplayName: controller.partnerDisplayName,
-                onOpenUs: widget.onOpenUs,
+                relationshipStartDate: controller.relationshipStartDate,
+                nextAnniversary: _nextAnniversary,
               ),
-              // 双人态下显示额外信息
-              if (isPaired) ...[
-                const SizedBox(height: 20),
-                // 恋爱天数卡片
-                if (controller.relationshipStartDate != null) ...[
-                  _RelationshipDaysCard(
-                    startDate: controller.relationshipStartDate!,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                // 下一个重要事件卡片
-                _NextEventCard(
-                  item: _nextDate,
-                  onOpenCalendar: widget.onOpenCalendar,
-                ),
-              ],
             ],
           ),
         ),
@@ -183,20 +174,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ─── 情侣卡片（大卡片）────────────────────────────────────────────────
+// ─── Hero Card ─────────────────────────────────────────────────────────
 
-class _HomeCoupleCard extends StatelessWidget {
-  const _HomeCoupleCard({
-    required this.displayName,
+class _AnniversaryCountdown {
+  const _AnniversaryCountdown({required this.title, required this.daysUntil});
+
+  final String title;
+  final int daysUntil;
+}
+
+class _HomeHeroCard extends StatelessWidget {
+  const _HomeHeroCard({
+    required this.quote,
     required this.memberCount,
     required this.partnerDisplayName,
-    required this.onOpenUs,
+    required this.relationshipStartDate,
+    this.nextAnniversary,
   });
 
-  final String? displayName;
+  final String quote;
   final int memberCount;
   final String? partnerDisplayName;
-  final VoidCallback onOpenUs;
+  final DateTime? relationshipStartDate;
+  final _AnniversaryCountdown? nextAnniversary;
 
   @override
   Widget build(BuildContext context) {
@@ -205,23 +205,22 @@ class _HomeCoupleCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final strings = AppStrings.of(context);
 
-    final primaryName = _normalizeName(displayName) ?? strings.selfFallbackName;
     final partnerName = _normalizeName(partnerDisplayName);
     final isPaired = memberCount >= 2 && partnerName != null;
 
-    final avatarLabelOne = primaryName.characters.first;
-    final avatarLabelTwo = isPaired
-        ? partnerName.characters.first
-        : (strings.isChinese ? '待' : '+');
+    final days = relationshipStartDate != null
+        ? DateTime.now().difference(relationshipStartDate!).inDays + 1
+        : null;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      borderRadius: BorderRadius.circular(AppTheme.radius2xl),
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           gradient: isDark
               ? AppTheme.heroGradientDark
               : AppTheme.heroGradientLight,
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
           border: isDark
               ? Border.all(
                   color: AppTheme.heroGlowPurple.withValues(alpha: 0.2),
@@ -230,61 +229,105 @@ class _HomeCoupleCard extends StatelessWidget {
               : null,
           boxShadow: isDark ? AppTheme.shadowHeroDark : AppTheme.shadowHeroLight,
         ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-            onTap: onOpenUs,
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Row(
+        child: Stack(
+          children: [
+            // 氛围光
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: isDark
+                      ? AppTheme.heroAtmosphereDark
+                      : AppTheme.heroAtmosphereLight,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 头像对
-                  _AvatarPair(
-                    avatarOne: avatarLabelOne,
-                    avatarTwo: avatarLabelTwo,
-                    isPaired: isPaired,
-                    isDark: isDark,
+                  // 第一层：情绪文案
+                  Text(
+                    quote,
+                    key: const ValueKey('home-hero-quote'),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark
+                          ? AppTheme.warmWhite60
+                          : colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                  const SizedBox(width: 18),
-                  // 名称和状态
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 20),
+
+                  // 第二层：在一起天数
+                  if (isPaired && days != null) ...[
+                    Text(
+                      strings.homeHeroDaysTogetherLabel,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          isPaired
-                              ? '$primaryName & $partnerName'
-                              : primaryName,
-                          key: const ValueKey('home-hero-couple-names'),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
+                          '$days',
+                          key: const ValueKey('home-hero-days'),
+                          style: theme.textTheme.displayLarge?.copyWith(
+                            color: isDark
+                                ? AppTheme.warmWhite90
+                                : colorScheme.onSurface,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          isPaired
-                              ? (strings.isChinese ? '双人模式' : 'Paired mode')
-                              : (strings.isChinese ? '等待另一半加入' : 'Waiting for partner'),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark
-                                ? AppTheme.warmWhite60
-                                : colorScheme.onSurfaceVariant,
+                        const SizedBox(width: 6),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            strings.homeHeroDaysUnit,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: isDark
+                                  ? AppTheme.warmWhite60
+                                  : colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  // 箭头
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 24),
+                  ],
+
+                  // 第三层：纪念日提醒
+                  if (isPaired && nextAnniversary != null) ...[
+                    Text(
+                      strings.homeHeroAnniversaryCountdown(
+                        nextAnniversary!.title,
+                        nextAnniversary!.daysUntil,
+                      ),
+                      key: const ValueKey('home-hero-anniversary'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // 第四层：伴侣信息
+                  _PartnerInfo(
+                    isPaired: isPaired,
+                    partnerName: partnerName,
+                    strings: strings,
+                    isDark: isDark,
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -292,99 +335,77 @@ class _HomeCoupleCard extends StatelessWidget {
 
   static String? _normalizeName(String? value) {
     final normalized = value?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return null;
-    }
+    if (normalized == null || normalized.isEmpty) return null;
     return normalized;
   }
 }
 
-// ─── 头像对组件 ──────────────────────────────────────────────────────
+// ─── 伴侣信息 ──────────────────────────────────────────────────────────
 
-class _AvatarPair extends StatelessWidget {
-  const _AvatarPair({
-    required this.avatarOne,
-    required this.avatarTwo,
+class _PartnerInfo extends StatelessWidget {
+  const _PartnerInfo({
     required this.isPaired,
+    required this.partnerName,
+    required this.strings,
     required this.isDark,
   });
 
-  final String avatarOne;
-  final String avatarTwo;
   final bool isPaired;
+  final String? partnerName;
+  final AppStrings strings;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final heartColor = isDark ? AppTheme.heroGlowBlush : colorScheme.primary;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return SizedBox(
-      width: 80,
-      height: 56,
-      child: Stack(
-        alignment: Alignment.center,
+    if (!isPaired) {
+      return Row(
         children: [
-          Positioned(
-            left: 0,
-            child: _SingleAvatar(
-              label: avatarOne,
-              isDark: isDark,
-            ),
-          ),
-          Positioned(
-            right: 0,
-            child: _SingleAvatar(
-              label: avatarTwo,
-              isDark: isDark,
-              isPlaceholder: !isPaired,
-            ),
-          ),
           Container(
-            width: 28,
-            height: 28,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.82),
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white.withValues(alpha: 0.5),
+              border: Border.all(
+                color: isDark
+                    ? AppTheme.warmWhite25
+                    : colorScheme.primary.withValues(alpha: 0.16),
+                width: 1.4,
+              ),
             ),
-            alignment: Alignment.center,
             child: Icon(
-              isPaired ? Icons.favorite_rounded : Icons.favorite_border,
-              color: heartColor,
-              size: 16,
+              Icons.add,
+              size: 20,
+              color: isDark ? AppTheme.warmWhite60 : colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            strings.homeHeroWaitingForPartner,
+            key: const ValueKey('home-hero-waiting'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
+      );
+    }
 
-class _SingleAvatar extends StatelessWidget {
-  const _SingleAvatar({
-    required this.label,
-    required this.isDark,
-    this.isPlaceholder = false,
-  });
+    final label = partnerName!.characters.first;
 
-  final String label;
-  final bool isDark;
-  final bool isPlaceholder;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: isPlaceholder
-            ? null
-            : (isDark
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: isDark
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -400,251 +421,33 @@ class _SingleAvatar extends StatelessWidget {
                       colorScheme.primary.withValues(alpha: 0.15),
                       AppTheme.heroPeachLight.withValues(alpha: 0.5),
                     ],
-                  )),
-        color: isPlaceholder
-            ? (isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.white.withValues(alpha: 0.46))
-            : null,
-        border: Border.all(
-          color: isPlaceholder
-              ? (isDark
-                  ? AppTheme.warmWhite25
-                  : colorScheme.primary.withValues(alpha: 0.16))
-              : (isDark
+                  ),
+            border: Border.all(
+              color: isDark
                   ? Colors.white.withValues(alpha: 0.16)
-                  : Colors.white.withValues(alpha: 0.86)),
-          width: 2,
-        ),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: isPlaceholder
-              ? (isDark ? AppTheme.warmWhite60 : colorScheme.primary)
-              : colorScheme.primary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── 恋爱天数卡片 ─────────────────────────────────────────────────────
-
-class _RelationshipDaysCard extends StatelessWidget {
-  const _RelationshipDaysCard({
-    required this.startDate,
-  });
-
-  final DateTime startDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final colorScheme = theme.colorScheme;
-    final strings = AppStrings.of(context);
-    final days = DateTime.now().difference(startDate).inDays + 1;
-
-    return PageSurfaceCard(
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colorScheme.primary.withValues(alpha: 0.12),
+                  : Colors.white.withValues(alpha: 0.86),
+              width: 1.5,
             ),
-            child: Icon(
-              Icons.favorite_rounded,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: theme.textTheme.titleSmall?.copyWith(
               color: colorScheme.primary,
-              size: 24,
+              fontWeight: FontWeight.w700,
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.relationshipStartDateLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? AppTheme.warmWhite60
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  strings.relationshipStartDaysLabel(days),
-                  key: const ValueKey('home-relationship-days'),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── 下一个事件卡片 ─────────────────────────────────────────────────────
-
-class _NextEventCard extends StatelessWidget {
-  const _NextEventCard({
-    required this.item,
-    required this.onOpenCalendar,
-  });
-
-  final CalendarItemCopy? item;
-  final VoidCallback onOpenCalendar;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final colorScheme = theme.colorScheme;
-    final strings = AppStrings.of(context);
-
-    return PageSurfaceCard(
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radius2xl),
-          onTap: onOpenCalendar,
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: item != null
-                ? Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.gold.withValues(alpha: 0.12),
-                        ),
-                        child: const Icon(
-                          Icons.event_available_outlined,
-                          color: AppTheme.gold,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              strings.nextEventLabel,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? AppTheme.warmWhite60
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item!.title,
-                              key: const ValueKey('home-next-event-title'),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              item!.countdownLabel,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: isDark
-                            ? AppTheme.warmWhite60
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.white.withValues(alpha: 0.55),
-                        ),
-                        child: Icon(
-                          Icons.event_available_outlined,
-                          color: isDark
-                              ? AppTheme.warmWhite60
-                              : colorScheme.onSurfaceVariant,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              strings.nextEventLabel,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? AppTheme.warmWhite60
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              strings.noUpcomingEvent,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: isDark
-                                    ? AppTheme.warmWhite60
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
           ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Text(
+          partnerName!,
+          key: const ValueKey('home-hero-partner-name'),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
-}
-
-// ─── Data models ────────────────────────────────────────────────────────
-
-class CalendarItemCopy {
-  const CalendarItemCopy({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.dateLabel,
-    required this.countdownLabel,
-    required this.typeLabel,
-  });
-
-  final String id;
-  final String title;
-  final String subtitle;
-  final String dateLabel;
-  final String countdownLabel;
-  final String typeLabel;
 }

@@ -468,7 +468,7 @@ void main() {
     );
   });
 
-  testWidgets('single mode: home does not show shared business previews', (
+  testWidgets('single mode: home shows hero card with waiting message', (
     tester,
   ) async {
     await _pumpApp(
@@ -479,14 +479,11 @@ void main() {
       memberCount: 1,
     );
 
-    // Shared business preview section headers should not be rendered
-    expect(find.text('Latest shared update'), findsNothing);
-    expect(find.text('One plan worth moving'), findsNothing);
-    // No shared business data cards should be present
-    expect(
-      find.byKey(const ValueKey('home-featured-calendar-title-home-featured')),
-      findsNothing,
-    );
+    // Hero card should show waiting message in single mode
+    expect(find.byKey(const ValueKey('home-hero-waiting')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-hero-quote')), findsOneWidget);
+    // No days display in single mode
+    expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
   });
 
   testWidgets('single mode: plans page shows empty state, no create button', (
@@ -2251,7 +2248,7 @@ void main() {
   );
 
   testWidgets(
-    'home shows relationship days when date is set',
+    'home hero card shows relationship days when date is set',
     (tester) async {
       final startDate = DateTime(2025, 1, 1);
       await _pumpApp(
@@ -2265,12 +2262,13 @@ void main() {
       );
 
       final days = DateTime.now().difference(startDate).inDays + 1;
-      expect(find.text('在一起 $days 天'), findsOneWidget);
+      expect(find.text('$days'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-hero-days')), findsOneWidget);
     },
   );
 
   testWidgets(
-    'home does not show relationship days in single mode',
+    'home hero card does not show days in single mode',
     (tester) async {
       await _pumpApp(
         tester,
@@ -2280,12 +2278,12 @@ void main() {
         currentSpaceId: 'test-space-id',
       );
 
-      expect(find.textContaining('在一起'), findsNothing);
+      expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
     },
   );
 
   testWidgets(
-    'home shows next event card',
+    'home hero card shows partner name in paired mode',
     (tester) async {
       await _pumpApp(
         tester,
@@ -2296,14 +2294,29 @@ void main() {
         currentSpaceId: 'test-space-id',
       );
 
-      // The home screen loads data from Supabase, which is not available in tests.
-      // So we check for the "no upcoming events" state.
-      expect(find.text('暂无安排'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-hero-partner-name')), findsOneWidget);
+      expect(find.text('Ache'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'home couple card shows couple names',
+    'home hero card shows waiting message in single mode',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        authStatus: AppAuthStatus.authenticated,
+        displayName: 'Xiaoman',
+        memberCount: 1,
+        currentSpaceId: 'test-space-id',
+      );
+
+      expect(find.byKey(const ValueKey('home-hero-waiting')), findsOneWidget);
+      expect(find.text('等待另一半加入'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'home hero card shows quote',
     (tester) async {
       await _pumpApp(
         tester,
@@ -2314,7 +2327,7 @@ void main() {
         currentSpaceId: 'test-space-id',
       );
 
-      expect(find.text('Xiaoman & Ache'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-hero-quote')), findsOneWidget);
     },
   );
 }

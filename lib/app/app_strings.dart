@@ -647,6 +647,79 @@ class AppStrings {
     ko: '나',
   );
 
+  // ── Home hero card ────────────────────────────────────────────────────
+
+  /// 预设情绪文案列表，每次打开 APP 随机选择一条。
+  List<String> get homeHeroQuotes => [
+    _resolve(
+      zhCn: '💕 我们的故事',
+      zhTw: '💕 我們的故事',
+      en: '💕 Our Story',
+      ja: '💕 私たちの物語',
+      ko: '💕 우리의 이야기',
+    ),
+    _resolve(
+      zhCn: '🌤 今天也是想你的一天',
+      zhTw: '🌤 今天也是想你的一天',
+      en: '🌤 Missing you today too',
+      ja: '🌤 今日もあなたが恋しい',
+      ko: '🌤 오늘도 보고픈 하루',
+    ),
+    _resolve(
+      zhCn: '🌙 今晚月色很温柔',
+      zhTw: '🌙 今晚月色很溫柔',
+      en: '🌙 The moon is gentle tonight',
+      ja: '🌙 今夜の月は優しい',
+      ko: '🌙 오늘 밤 달이 부드러워',
+    ),
+    _resolve(
+      zhCn: '💝 每一天都值得纪念',
+      zhTw: '💝 每一天都值得紀念',
+      en: '💝 Every day is worth celebrating',
+      ja: '💝 每日が記念日',
+      ko: '💝 매일매일이 기념일',
+    ),
+    _resolve(
+      zhCn: '🌸 有你真好',
+      zhTw: '🌸 有你真好',
+      en: '🌸 So glad to have you',
+      ja: '🌸 いてくれてよかった',
+      ko: '🌸 있어줘서 고마워',
+    ),
+  ];
+
+  String get homeHeroDaysTogetherLabel => _resolve(
+    zhCn: '我们已经一起走过',
+    zhTw: '我們已經一起走過',
+    en: 'We have been together for',
+    ja: '一緒に過ごした日数',
+    ko: '함께한 날',
+  );
+
+  String get homeHeroDaysUnit => _resolve(
+    zhCn: '天',
+    zhTw: '天',
+    en: 'days',
+    ja: '日',
+    ko: '일',
+  );
+
+  String get homeHeroWaitingForPartner => _resolve(
+    zhCn: '等待另一半加入',
+    zhTw: '等待另一半加入',
+    en: 'Waiting for your partner to join',
+    ja: 'パートナーの参加を待っています',
+    ko: '파트너의 참여를 기다리고 있어요',
+  );
+
+  String homeHeroAnniversaryCountdown(String title, int days) => _resolve(
+    zhCn: '距离$title还有 $days 天',
+    zhTw: '距離$title還有 $days 天',
+    en: '$title in $days days',
+    ja: '$titleまで $days 日',
+    ko: '$title까지 $days 일',
+  );
+
   // ── Network error ─────────────────────────────────────────────────────
 
   String get networkCheckConnectionError => _resolve(
