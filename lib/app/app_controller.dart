@@ -518,8 +518,6 @@ class AppController extends ChangeNotifier {
       _birthday = normalizedBirthday;
       _profileErrorCode = null;
       notifyListeners();
-      // Profile saved — reload preferences to create couple space if needed.
-      await loadPreferences(force: true);
       return true;
     } catch (error) {
       debugPrint('[Profile] Save setup failed: $error');
