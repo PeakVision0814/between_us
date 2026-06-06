@@ -11,6 +11,13 @@ path for Between Us.
   - Sign in: `signInWithOtp(phone: ..., shouldCreateUser: false)`
   - Sign up: `signInWithOtp(phone: ..., shouldCreateUser: true)`
   - Verify: `verifyOTP(phone: ..., token: ..., type: OtpType.sms)`
+- Logged-in credential binding is reserved through Supabase Auth native user
+  update flows:
+  - Bind / change phone: `updateUser(UserAttributes(phone: ...))`
+  - Verify phone change: `verifyOTP(phone: ..., token: ..., type: OtpType.phoneChange)`
+  - Bind / change email: `updateUser(UserAttributes(email: ...))`
+  - Verify email change when the project uses in-app OTP confirmation:
+    `verifyOTP(email: ..., token: ..., type: OtpType.emailChange)`
 - Phone numbers are lightly validated as E.164 strings, for example `+8613812345678`.
 - Local Supabase CLI config now pins the `magic_link` email template to `supabase/templates/magic_link.html`, and that template renders `{{ .Token }}` as the primary content.
 - The checked-in Flutter defaults still point to the local emulator:
@@ -76,6 +83,20 @@ configuration or a Send SMS Hook. For domestic private testing in China, the
 recommended follow-up is Send SMS Hook plus Aliyun SMS, Tencent Cloud SMS, or a
 similar domestic provider.
 
+## Registration, sign-in, and binding boundaries
+
+- Registration creates a new Supabase `auth.users.id`.
+- Sign-in uses an existing email or phone credential already attached to one
+  `auth.users.id`.
+- Binding runs only after the user is signed in and adds another credential to
+  that same current `auth.users.id`.
+- Binding does not merge two existing accounts. If the target email or phone is
+  already owned by another Supabase user, the app must stop and show a conflict
+  message.
+- Login credentials are account security information. They are not shared with
+  the partner profile and should not be exposed through couple-space profile
+  reads.
+
 ## What this repo can and cannot prove today
 
 Confirmed from code/config:
@@ -83,6 +104,8 @@ Confirmed from code/config:
 - The app is wired for Email OTP, not magic-link redirect login.
 - The app has a reserved Phone OTP frontend path using Supabase Auth's phone
   OTP methods.
+- The app has a reserved account security path for binding email and phone to
+  the current Supabase Auth user through native update-user flows.
 - The local Supabase template now renders a 6-digit token as the primary email content.
 
 Not confirmed from this repo alone:
@@ -93,6 +116,8 @@ Not confirmed from this repo alone:
 - Whether the hosted project is still using the default test-email sender
 - Whether the hosted project has Phone Auth enabled
 - Which SMS Provider or Send SMS Hook will deliver real phone codes
+- Whether hosted email-change confirmation is configured for OTP input inside
+  the app, or for email-link confirmation in the mailbox
 
 ## Verification steps for the product manager session
 
@@ -105,3 +130,9 @@ Use the target hosted Supabase project and verify these facts directly:
 5. Complete `signInWithOtp -> verifyOTP(type: email)` end-to-end inside the app.
 6. Before private Beta, enable Phone Auth, configure SMS delivery, then complete
    `signInWithOtp(phone: ...) -> verifyOTP(type: sms)` end-to-end inside the app.
+7. While signed in with an email-only account, bind a phone number and confirm
+   it remains the same `auth.users.id`.
+8. While signed in with a phone-only account, bind an email address and confirm
+   it remains the same `auth.users.id`.
+9. Try binding an email or phone already owned by another account and confirm
+   the app blocks the operation without merging accounts.

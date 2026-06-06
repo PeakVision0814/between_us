@@ -1259,6 +1259,116 @@ class AppStrings {
     ja: 'プライバシーと共有',
     ko: '개인정보 및 공유',
   );
+  String get accountSecurityTitle => _resolve(
+    zhCn: '账号与安全',
+    zhTw: '帳號與安全',
+    en: 'Account & security',
+  );
+  String get accountSecuritySettingsSubtitle => _resolve(
+    zhCn: '登录邮箱、手机号和账号凭证',
+    zhTw: '登入電子郵件、手機號和帳號憑證',
+    en: 'Login email, phone, and account credentials',
+  );
+  String get accountSecuritySubtitle => _resolve(
+    zhCn: '管理可以登录这个账号的邮箱和手机号。',
+    zhTw: '管理可以登入這個帳號的電子郵件和手機號。',
+    en: 'Manage the email and phone number that can sign in to this account.',
+  );
+  String get accountSecurityEmailTitle => _resolve(
+    zhCn: '登录邮箱',
+    zhTw: '登入電子郵件',
+    en: 'Login email',
+  );
+  String get accountSecurityPhoneTitle => _resolve(
+    zhCn: '登录手机号',
+    zhTw: '登入手機號',
+    en: 'Login phone',
+  );
+  String get accountSecurityEmailUnbound => _resolve(
+    zhCn: '未绑定邮箱',
+    zhTw: '未綁定電子郵件',
+    en: 'No email bound',
+  );
+  String get accountSecurityPhoneUnbound => _resolve(
+    zhCn: '未绑定手机号',
+    zhTw: '未綁定手機號',
+    en: 'No phone bound',
+  );
+  String get accountSecurityBindEmailLabel => _resolve(
+    zhCn: '绑定邮箱',
+    zhTw: '綁定電子郵件',
+    en: 'Bind email',
+  );
+  String get accountSecurityBindPhoneLabel => _resolve(
+    zhCn: '绑定手机号',
+    zhTw: '綁定手機號',
+    en: 'Bind phone',
+  );
+  String get accountSecurityPrivacyHint => _resolve(
+    zhCn: '手机号用于登录和账号安全，不会默认展示给 TA。',
+    zhTw: '手機號用於登入和帳號安全，不會預設展示給 TA。',
+    en: 'Your phone number is for sign-in and account security. It is not shown to your partner by default.',
+  );
+  String get accountSecurityBindPhoneTitle => _resolve(
+    zhCn: '绑定手机号',
+    zhTw: '綁定手機號',
+    en: 'Bind phone number',
+  );
+  String get accountSecurityBindEmailTitle => _resolve(
+    zhCn: '绑定邮箱',
+    zhTw: '綁定電子郵件',
+    en: 'Bind email',
+  );
+  String get accountSecurityBindPhoneHint => _resolve(
+    zhCn: '请输入 E.164 格式手机号。绑定后，它会成为当前账号的登录方式。',
+    zhTw: '請輸入 E.164 格式手機號。綁定後，它會成為目前帳號的登入方式。',
+    en: 'Enter a phone number in E.164 format. After binding, it can sign in to this account.',
+  );
+  String get accountSecurityBindEmailHint => _resolve(
+    zhCn: '绑定后，这个邮箱会成为当前账号的登录方式。',
+    zhTw: '綁定後，這個電子郵件會成為目前帳號的登入方式。',
+    en: 'After binding, this email can sign in to this account.',
+  );
+  String get accountSecuritySendBindingCodeLabel => _resolve(
+    zhCn: '发送绑定验证码',
+    zhTw: '發送綁定驗證碼',
+    en: 'Send binding code',
+  );
+  String get accountSecurityVerifyBindingLabel => _resolve(
+    zhCn: '验证并绑定',
+    zhTw: '驗證並綁定',
+    en: 'Verify and bind',
+  );
+  String accountSecurityBindingCodeSentTo(String target) => _resolve(
+    zhCn: '验证码已发送至 $target',
+    zhTw: '驗證碼已發送至 $target',
+    en: 'A code has been sent to $target',
+  );
+  String get accountSecurityNotAuthenticatedMessage => _resolve(
+    zhCn: '请先登录后再管理账号安全。',
+    zhTw: '請先登入後再管理帳號安全。',
+    en: 'Sign in before managing account security.',
+  );
+  String get accountSecurityBindingConflictMessage => _resolve(
+    zhCn: '这个邮箱或手机号已经属于另一个账号，不能直接绑定。',
+    zhTw: '這個電子郵件或手機號已經屬於另一個帳號，不能直接綁定。',
+    en: 'This email or phone number already belongs to another account.',
+  );
+  String get accountSecurityPhoneBindingSendFailedMessage => _resolve(
+    zhCn: '手机号绑定验证码发送失败，请稍后重试。',
+    zhTw: '手機號綁定驗證碼發送失敗，請稍後重試。',
+    en: 'Failed to send the phone binding code. Please try again later.',
+  );
+  String get accountSecurityEmailBindingSendFailedMessage => _resolve(
+    zhCn: '邮箱绑定验证码发送失败，请稍后重试。',
+    zhTw: '電子郵件綁定驗證碼發送失敗，請稍後重試。',
+    en: 'Failed to send the email binding code. Please try again later.',
+  );
+  String get accountSecurityBindingVerifyFailedMessage => _resolve(
+    zhCn: '绑定验证码校验失败，请确认后重试。',
+    zhTw: '綁定驗證碼校驗失敗，請確認後重試。',
+    en: 'Binding verification failed. Check the code and try again.',
+  );
   String get cycleSharingTitle => _resolve(
     zhCn: '经期记录共享',
     zhTw: '經期記錄共享',

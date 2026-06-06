@@ -33,6 +33,10 @@ class AppController extends ChangeNotifier {
   String? _pendingPhone;
   String? _authErrorCode;
   bool _authBusy = false;
+  String? _pendingBindingEmail;
+  String? _pendingBindingPhone;
+  String? _bindingErrorCode;
+  bool _bindingBusy = false;
   String? _loadedPreferencesUserId;
   String? _displayName;
   String? _gender;
@@ -60,6 +64,10 @@ class AppController extends ChangeNotifier {
   String? get pendingPhone => _pendingPhone;
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
+  String? get pendingBindingEmail => _pendingBindingEmail;
+  String? get pendingBindingPhone => _pendingBindingPhone;
+  String? get bindingErrorCode => _bindingErrorCode;
+  bool get bindingBusy => _bindingBusy;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
   bool get signOutInProgress => _authBusy && isAuthenticated;
   String? get displayName => _displayName;
@@ -71,6 +79,14 @@ class AppController extends ChangeNotifier {
   String? get email {
     try {
       return Supabase.instance.client.auth.currentUser?.email;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? get phone {
+    try {
+      return Supabase.instance.client.auth.currentUser?.phone;
     } catch (_) {
       return null;
     }
@@ -108,6 +124,10 @@ class AppController extends ChangeNotifier {
     _authErrorCode = null;
     _pendingEmail = null;
     _pendingPhone = null;
+    _bindingBusy = false;
+    _bindingErrorCode = null;
+    _pendingBindingEmail = null;
+    _pendingBindingPhone = null;
     _authStatus = AppAuthStatus.initializing;
     _supabaseReady = false;
     _supabaseFailureReason = null;
@@ -384,6 +404,174 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> requestPhoneBindingOtp(String phone) async {
+    final normalizedPhone = phone.trim();
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (!_looksLikeE164Phone(normalizedPhone)) {
+      _setBindingError('invalid_phone');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(phone: normalizedPhone),
+      );
+      _pendingBindingPhone = normalizedPhone;
+      _pendingBindingEmail = null;
+      _bindingErrorCode = null;
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Request phone binding failed: $error');
+      _bindingErrorCode = _isCredentialConflictError(error)
+          ? 'binding_target_in_use'
+          : 'binding_phone_send_failed';
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
+  Future<bool> verifyPhoneBindingOtp(String token) async {
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (_pendingBindingPhone == null) {
+      _setBindingError('missing_pending_phone');
+      return false;
+    }
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      _setBindingError('invalid_token_length');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        phone: _pendingBindingPhone,
+        token: normalizedToken,
+        type: OtpType.phoneChange,
+      );
+      _pendingBindingPhone = null;
+      await _syncSession(
+        response.session ?? Supabase.instance.client.auth.currentSession,
+      );
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Verify phone binding failed: $error');
+      _bindingErrorCode = _isCredentialConflictError(error)
+          ? 'binding_target_in_use'
+          : 'binding_verify_failed';
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
+  Future<bool> requestEmailBindingOtp(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (!_looksLikeEmail(normalizedEmail)) {
+      _setBindingError('invalid_email');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(email: normalizedEmail),
+      );
+      _pendingBindingEmail = normalizedEmail;
+      _pendingBindingPhone = null;
+      _bindingErrorCode = null;
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Request email binding failed: $error');
+      _bindingErrorCode = _isCredentialConflictError(error)
+          ? 'binding_target_in_use'
+          : 'binding_email_send_failed';
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
+  Future<bool> verifyEmailBindingOtp(String token) async {
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (_pendingBindingEmail == null) {
+      _setBindingError('missing_pending_email');
+      return false;
+    }
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      _setBindingError('invalid_token_length');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        email: _pendingBindingEmail,
+        token: normalizedToken,
+        type: OtpType.emailChange,
+      );
+      _pendingBindingEmail = null;
+      await _syncSession(
+        response.session ?? Supabase.instance.client.auth.currentSession,
+      );
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Verify email binding failed: $error');
+      _bindingErrorCode = _isCredentialConflictError(error)
+          ? 'binding_target_in_use'
+          : 'binding_verify_failed';
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
   Future<bool> signOut() async {
     if (!_supabaseReady) {
       _setAuthError('initialize_failed');
@@ -454,6 +642,21 @@ class AppController extends ChangeNotifier {
       return;
     }
     _authErrorCode = null;
+    notifyListeners();
+  }
+
+  void clearBindingError() {
+    if (_bindingErrorCode == null) {
+      return;
+    }
+    _bindingErrorCode = null;
+    notifyListeners();
+  }
+
+  void clearPendingBindingState() {
+    _pendingBindingEmail = null;
+    _pendingBindingPhone = null;
+    _bindingErrorCode = null;
     notifyListeners();
   }
 
@@ -898,6 +1101,18 @@ class AppController extends ChangeNotifier {
       _authErrorCode = null;
       shouldNotify = true;
     }
+    if (_pendingBindingEmail != null) {
+      _pendingBindingEmail = null;
+      shouldNotify = true;
+    }
+    if (_pendingBindingPhone != null) {
+      _pendingBindingPhone = null;
+      shouldNotify = true;
+    }
+    if (_bindingErrorCode != null) {
+      _bindingErrorCode = null;
+      shouldNotify = true;
+    }
     if (_profileErrorCode != null) {
       _profileErrorCode = null;
       shouldNotify = true;
@@ -989,6 +1204,10 @@ class AppController extends ChangeNotifier {
     _pendingEmail = null;
     _pendingPhone = null;
     _authErrorCode = null;
+    _pendingBindingEmail = null;
+    _pendingBindingPhone = null;
+    _bindingErrorCode = null;
+    _bindingBusy = false;
     _loadedPreferencesUserId = null;
     _displayName = null;
     _gender = null;
@@ -1028,6 +1247,19 @@ class AppController extends ChangeNotifier {
 
   void _setAuthError(String errorCode) {
     _authErrorCode = errorCode;
+    notifyListeners();
+  }
+
+  void _setBindingBusy(bool busy) {
+    if (_bindingBusy == busy) {
+      return;
+    }
+    _bindingBusy = busy;
+    notifyListeners();
+  }
+
+  void _setBindingError(String errorCode) {
+    _bindingErrorCode = errorCode;
     notifyListeners();
   }
 
@@ -1101,6 +1333,18 @@ class AppController extends ChangeNotifier {
         message.contains('user already exists');
   }
 
+  bool _isCredentialConflictError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('already registered') ||
+        message.contains('already been registered') ||
+        message.contains('already exists') ||
+        message.contains('already taken') ||
+        message.contains('duplicate') ||
+        message.contains('unique') ||
+        message.contains('conflict') ||
+        message.contains('belongs to another');
+  }
+
   bool _isJwtExpired(Object error) {
     final message = error.toString().toLowerCase();
     return message.contains('jwt expired') ||
@@ -1155,6 +1399,10 @@ class AppController extends ChangeNotifier {
     String? pendingEmail,
     String? pendingPhone,
     String? authErrorCode,
+    String? pendingBindingEmail,
+    String? pendingBindingPhone,
+    String? bindingErrorCode,
+    bool bindingBusy = false,
     String? displayName,
     String? gender,
     DateTime? birthday,
@@ -1171,6 +1419,10 @@ class AppController extends ChangeNotifier {
     _pendingEmail = pendingEmail;
     _pendingPhone = pendingPhone;
     _authErrorCode = authErrorCode;
+    _pendingBindingEmail = pendingBindingEmail;
+    _pendingBindingPhone = pendingBindingPhone;
+    _bindingErrorCode = bindingErrorCode;
+    _bindingBusy = bindingBusy;
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;

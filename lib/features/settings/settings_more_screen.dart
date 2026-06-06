@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import 'account_security_screen.dart';
 import 'appearance_settings_screen.dart';
 import 'notification_settings_screen.dart';
 import 'privacy_settings_screen.dart';
@@ -82,6 +83,24 @@ class SettingsMoreScreen extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const AppearanceSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  PageDivider(indent: 56),
+                  PageListItem(
+                    key: const ValueKey('account-security-entry'),
+                    leading: Icon(
+                      Icons.manage_accounts_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: strings.accountSecurityTitle,
+                    subtitle: strings.accountSecuritySettingsSubtitle,
+                    trailing: _chevron(isDark, theme),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AccountSecurityScreen(),
                         ),
                       );
                     },
