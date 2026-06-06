@@ -50,6 +50,17 @@ class BetweenUsApp extends StatelessWidget {
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,
               themeMode: controller.themeMode,
+              builder: (context, child) {
+                final mediaQuery = MediaQuery.of(context);
+                final scale = mediaQuery.textScaler.scale(1.0);
+                final clampedScale = scale.clamp(1.0, 1.1);
+                return MediaQuery(
+                  data: mediaQuery.copyWith(
+                    textScaler: TextScaler.linear(clampedScale),
+                  ),
+                  child: child!,
+                );
+              },
               home: _buildHome(controller),
             ),
           );
