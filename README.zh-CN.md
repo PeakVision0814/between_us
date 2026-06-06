@@ -70,8 +70,8 @@ flutter run
 - 通知、预览和锁屏展示如何避免泄露私密内容。
 
 这些规则现在统一沉淀在
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 和
-[docs/DATABASE.md](docs/DATABASE.md)。
+[docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) 和
+[docs/architecture/DATABASE.md](docs/architecture/DATABASE.md)。
 
 ## 暂缓的模块
 
@@ -87,10 +87,10 @@ flutter run
 
 ## 工作文档
 
-- [docs/ROADMAP.md](docs/ROADMAP.md)：阶段规划与交付检查点
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：产品结构与核心规则
-- [docs/DATABASE.md](docs/DATABASE.md)：共享数据模型与访问边界
-- [docs/WORKFLOW.md](docs/WORKFLOW.md)：本仓库的开发工作流
+- [docs/architecture/ROADMAP.md](docs/architecture/ROADMAP.md)：阶段规划与交付检查点
+- [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)：产品结构与核心规则
+- [docs/architecture/DATABASE.md](docs/architecture/DATABASE.md)：共享数据模型与访问边界
+- [docs/guides/WORKFLOW.md](docs/guides/WORKFLOW.md)：本仓库的开发工作流
 
 ## 许可证
 

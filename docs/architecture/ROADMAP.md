@@ -349,7 +349,7 @@ MVP 明确不做：
 
 ## 相关工作文档
 
-- [docs/SETUP.md](SETUP.md)：本地开发环境说明
-- [docs/ARCHITECTURE.md](ARCHITECTURE.md)：产品边界、页面职责与信息架构
-- [docs/DATABASE.md](DATABASE.md)：共享数据结构与访问规则
-- [docs/WORKFLOW.md](WORKFLOW.md)：本仓库的开发工作流
+- [docs/guides/SETUP.md](../guides/SETUP.md)：本地开发环境说明
+- [docs/architecture/ARCHITECTURE.md](ARCHITECTURE.md)：产品边界、页面职责与信息架构
+- [docs/architecture/DATABASE.md](DATABASE.md)：共享数据结构与访问规则
+- [docs/guides/WORKFLOW.md](../guides/WORKFLOW.md)：本仓库的开发工作流

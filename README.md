@@ -88,8 +88,8 @@ Shared data work must respect:
 - How export, retention, and permanent deletion are handled.
 - How notifications and previews avoid leaking private content.
 
-Those decisions now live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
-[docs/DATABASE.md](docs/DATABASE.md).
+Those decisions now live in [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) and
+[docs/architecture/DATABASE.md](docs/architecture/DATABASE.md).
 
 ## Backlog Modules
 
@@ -105,10 +105,10 @@ These are explicitly outside the focused MVP until the core loop proves useful:
 
 ## Working Docs
 
-- [docs/ROADMAP.md](docs/ROADMAP.md): phase plan and delivery checkpoints
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): product structure and rules
-- [docs/DATABASE.md](docs/DATABASE.md): shared schema and access boundaries
-- [docs/WORKFLOW.md](docs/WORKFLOW.md): development workflow for this repo
+- [docs/architecture/ROADMAP.md](docs/architecture/ROADMAP.md): phase plan and delivery checkpoints
+- [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md): product structure and rules
+- [docs/architecture/DATABASE.md](docs/architecture/DATABASE.md): shared schema and access boundaries
+- [docs/guides/WORKFLOW.md](docs/guides/WORKFLOW.md): development workflow for this repo
 
 ## License
 

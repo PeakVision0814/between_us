@@ -38,7 +38,12 @@ lib/
   shared/widgets/   # Reusable UI components
 test/               # Widget tests, mirroring features
 supabase/migrations/ # Timestamped SQL migrations
-docs/               # Product and architecture decisions (Chinese)
+docs/               # Product and architecture decisions
+  architecture/       — Core design docs (ARCHITECTURE, DATABASE, ROADMAP)
+  guides/             — Setup and workflow guides
+  backend/            — Supabase and auth technical docs
+  changelog/          — Release notes
+  assets/             — Reference images and design assets
 ```
 
 ## Architecture
@@ -114,7 +119,7 @@ The Flutter app is now connected to Supabase for the shared Alpha:
 - **Sensitive data** (cycle records): not yet implemented. Default-not-shared, explicit authorization required when added.
 - **Soft delete** for shared content (`deleted_at` columns), no physical DELETE from client.
 - **Copy tone**: calm, warm, couples-oriented. Avoid task-management language, 打卡 pressure, or PM-style explanations.
-- **Docs are in Chinese**: `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/WORKFLOW.md`, `docs/ROADMAP.md`, `docs/BACKEND_SHARED_FOUNDATION.md` — all written in Chinese.
+- **Docs are in Chinese**: `docs/architecture/ARCHITECTURE.md`, `docs/architecture/DATABASE.md`, `docs/guides/WORKFLOW.md`, `docs/architecture/ROADMAP.md`, `docs/backend/BACKEND_SHARED_FOUNDATION.md` — all written in Chinese.
 
 ## Testing
 
@@ -131,13 +136,13 @@ Follow Conventional Commit style: `feat: ...`, `feat(scope): ...`, `fix: ...`. K
 
 ## Security & Configuration
 
-Do not commit service-role keys, local `.env` files, or machine-specific SDK paths. App code should use only public Supabase client configuration, and every schema change must preserve Row Level Security expectations documented in `docs/DATABASE.md`.
+Do not commit service-role keys, local `.env` files, or machine-specific SDK paths. App code should use only public Supabase client configuration, and every schema change must preserve Row Level Security expectations documented in `docs/architecture/DATABASE.md`.
 
 ## Docs
 
 Before changing product structure or data boundaries, update these:
-- `docs/ROADMAP.md` — phase plan and delivery checkpoints
-- `docs/ARCHITECTURE.md` — page responsibilities, content rules, information architecture (in Chinese)
-- `docs/DATABASE.md` — schema design, RLS direction, data ownership rules
-- `docs/WORKFLOW.md` — development workflow, review checklist, merge criteria
-- `docs/BACKEND_SHARED_FOUNDATION.md` — what's landed in Supabase and what's explicitly deferred
+- `docs/architecture/ROADMAP.md` — phase plan and delivery checkpoints
+- `docs/architecture/ARCHITECTURE.md` — page responsibilities, content rules, information architecture (in Chinese)
+- `docs/architecture/DATABASE.md` — schema design, RLS direction, data ownership rules
+- `docs/guides/WORKFLOW.md` — development workflow, review checklist, merge criteria
+- `docs/backend/BACKEND_SHARED_FOUNDATION.md` — what's landed in Supabase and what's explicitly deferred

@@ -47,9 +47,9 @@
 
 如果任务改变了产品结构、术语、页面职责或数据边界，必须同步改文档：
 
-- `docs/ROADMAP.md`
-- `docs/ARCHITECTURE.md`
-- `docs/DATABASE.md`
+- `docs/architecture/ROADMAP.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/architecture/DATABASE.md`
 
 禁止出现“代码已经变了，但规划还停留在旧版本”的情况。
 

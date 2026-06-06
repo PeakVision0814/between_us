@@ -12,10 +12,10 @@
 
 在修改产品行为前，建议先阅读这些文档：
 
-- `docs/ROADMAP.md`
-- `docs/ARCHITECTURE.md`
-- `docs/DATABASE.md`
-- `docs/WORKFLOW.md`
+- `docs/architecture/ROADMAP.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/architecture/DATABASE.md`
+- `docs/guides/WORKFLOW.md`
 
 ## 验证 Flutter
 
@@ -39,7 +39,7 @@ flutter doctor -v
 ```powershell
 flutter pub get
 flutter run
-flutter run -d 391QYGCJ226AE --dart-define=SUPABASE_URL=http://192.168.5.18:54321 --dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+flutter run -d 391QYGCJ226AE --dart-define=SUPABASE_URL=http://192.168.5.20:54321 --dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 flutter run -d emulator-5554
 ```
 
