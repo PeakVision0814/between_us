@@ -9,7 +9,13 @@ export 'language_config.dart' show AppLanguage;
 
 enum AppThemePreference { system, light, dark }
 
-enum AppAuthStatus { initializing, unauthenticated, otpSent, authenticated }
+enum AppAuthStatus {
+  initializing,
+  unauthenticated,
+  otpSent,
+  phoneOtpSent,
+  authenticated,
+}
 
 class AppController extends ChangeNotifier {
   static const String defaultDisplayNamePlaceholder = '新的用户';
@@ -24,12 +30,14 @@ class AppController extends ChangeNotifier {
   String? _supabaseFailureReason;
   AppAuthStatus _authStatus = AppAuthStatus.initializing;
   String? _pendingEmail;
+  String? _pendingPhone;
   String? _authErrorCode;
   bool _authBusy = false;
   String? _loadedPreferencesUserId;
   String? _displayName;
   String? _gender;
   DateTime? _birthday;
+  bool _cycleSharingEnabled = false;
   String? _selfProfileId;
   String? _currentSpaceId;
   int _memberCount = 0;
@@ -49,6 +57,7 @@ class AppController extends ChangeNotifier {
   String? get supabaseFailureReason => _supabaseFailureReason;
   AppAuthStatus get authStatus => _authStatus;
   String? get pendingEmail => _pendingEmail;
+  String? get pendingPhone => _pendingPhone;
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
@@ -56,6 +65,9 @@ class AppController extends ChangeNotifier {
   String? get displayName => _displayName;
   String? get gender => _gender;
   DateTime? get birthday => _birthday;
+  bool get cycleSharingEnabled => _cycleSharingEnabled;
+  bool get canUseCycleRecords =>
+      gender == genderFemale && hasActiveCoupleSpace;
   String? get email {
     try {
       return Supabase.instance.client.auth.currentUser?.email;
@@ -95,6 +107,7 @@ class AppController extends ChangeNotifier {
     _authBusy = false;
     _authErrorCode = null;
     _pendingEmail = null;
+    _pendingPhone = null;
     _authStatus = AppAuthStatus.initializing;
     _supabaseReady = false;
     _supabaseFailureReason = null;
@@ -189,6 +202,7 @@ class AppController extends ChangeNotifier {
         shouldCreateUser: false,
       );
       _pendingEmail = normalizedEmail;
+      _pendingPhone = null;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
       return true;
@@ -224,6 +238,7 @@ class AppController extends ChangeNotifier {
         shouldCreateUser: true,
       );
       _pendingEmail = normalizedEmail;
+      _pendingPhone = null;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
       return true;
@@ -232,6 +247,59 @@ class AppController extends ChangeNotifier {
       _authErrorCode = _isUserAlreadyRegisteredError(error)
           ? 'user_already_registered'
           : 'signup_send_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<bool> sendPhoneOtpForSignIn(String phone) async {
+    return _sendPhoneOtp(phone: phone, shouldCreateUser: false);
+  }
+
+  Future<bool> sendPhoneOtpForSignUp(String phone) async {
+    return _sendPhoneOtp(phone: phone, shouldCreateUser: true);
+  }
+
+  Future<bool> _sendPhoneOtp({
+    required String phone,
+    required bool shouldCreateUser,
+  }) async {
+    final normalizedPhone = phone.trim();
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (!_looksLikeE164Phone(normalizedPhone)) {
+      _setAuthError('invalid_phone');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.signInWithOtp(
+        phone: normalizedPhone,
+        shouldCreateUser: shouldCreateUser,
+      );
+      _pendingEmail = null;
+      _pendingPhone = normalizedPhone;
+      _authStatus = AppAuthStatus.phoneOtpSent;
+      _authErrorCode = null;
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Send phone OTP failed: $error');
+      if (!shouldCreateUser && _isUserNotRegisteredError(error)) {
+        _authErrorCode = 'phone_user_not_registered';
+      } else if (shouldCreateUser && _isUserAlreadyRegisteredError(error)) {
+        _authErrorCode = 'phone_user_already_registered';
+      } else {
+        _authErrorCode = shouldCreateUser
+            ? 'phone_signup_send_failed'
+            : 'phone_otp_send_failed';
+      }
       return false;
     } finally {
       _setAuthBusy(false);
@@ -277,6 +345,45 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> verifyPhoneOtp(String token) async {
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (_pendingPhone == null) {
+      _setAuthError('missing_pending_phone');
+      return false;
+    }
+
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      _setAuthError('invalid_token_length');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        phone: _pendingPhone,
+        token: normalizedToken,
+        type: OtpType.sms,
+      );
+      await _syncSession(
+        response.session ?? Supabase.instance.client.auth.currentSession,
+      );
+      return isAuthenticated;
+    } catch (error) {
+      debugPrint('[Auth] Verify phone OTP failed: $error');
+      _authErrorCode = 'otp_verify_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
   Future<bool> signOut() async {
     if (!_supabaseReady) {
       _setAuthError('initialize_failed');
@@ -309,6 +416,7 @@ class AppController extends ChangeNotifier {
 
   void returnToEmailEntry() {
     _pendingEmail = null;
+    _pendingPhone = null;
     _authErrorCode = null;
     if (_authStatus != AppAuthStatus.unauthenticated) {
       _authStatus = AppAuthStatus.unauthenticated;
@@ -316,6 +424,29 @@ class AppController extends ChangeNotifier {
     } else {
       notifyListeners();
     }
+  }
+
+  void returnToPhoneEntry() {
+    _pendingEmail = null;
+    _pendingPhone = null;
+    _authErrorCode = null;
+    if (_authStatus != AppAuthStatus.unauthenticated) {
+      _authStatus = AppAuthStatus.unauthenticated;
+      notifyListeners();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void clearPendingAuthState() {
+    _pendingEmail = null;
+    _pendingPhone = null;
+    _authErrorCode = null;
+    if (_authStatus == AppAuthStatus.otpSent ||
+        _authStatus == AppAuthStatus.phoneOtpSent) {
+      _authStatus = AppAuthStatus.unauthenticated;
+    }
+    notifyListeners();
   }
 
   void clearAuthError() {
@@ -420,6 +551,11 @@ class AppController extends ChangeNotifier {
       final birthday = _parseBirthday(profile['birthday']);
       if (_birthday != birthday) {
         _birthday = birthday;
+        changed = true;
+      }
+      final cycleSharing = profile['cycle_sharing_enabled'] as bool?;
+      if (cycleSharing != null && _cycleSharingEnabled != cycleSharing) {
+        _cycleSharingEnabled = cycleSharing;
         changed = true;
       }
       if (_currentSpaceId != currentSpaceId) {
@@ -612,6 +748,17 @@ class AppController extends ChangeNotifier {
           ),
           callback: (_) => _onRealtimeDataChanged(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'cycle_records',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
         .subscribe();
   }
 
@@ -638,6 +785,41 @@ class AppController extends ChangeNotifier {
   Future<void> refreshAllData() async {
     _loadedPreferencesUserId = null;
     await loadPreferences(force: true);
+  }
+
+  Future<bool> setCycleSharingEnabled(bool enabled) async {
+    if (_cycleSharingEnabled == enabled) {
+      return true;
+    }
+    if (!_supabaseReady) {
+      return false;
+    }
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      return false;
+    }
+
+    final previousValue = _cycleSharingEnabled;
+    _cycleSharingEnabled = enabled;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'cycle_sharing_enabled': enabled})
+          .eq('id', userId);
+      await Supabase.instance.client
+          .from('cycle_records')
+          .update({'shared_with_partner': enabled})
+          .eq('owner_profile_id', userId)
+          .filter('deleted_at', 'is', null);
+      return true;
+    } catch (error) {
+      debugPrint('[Profile] Save cycle sharing failed: $error');
+      _cycleSharingEnabled = previousValue;
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearProfileError() {
@@ -708,6 +890,10 @@ class AppController extends ChangeNotifier {
       _pendingEmail = null;
       shouldNotify = true;
     }
+    if (_pendingPhone != null) {
+      _pendingPhone = null;
+      shouldNotify = true;
+    }
     if (_authErrorCode != null) {
       _authErrorCode = null;
       shouldNotify = true;
@@ -753,6 +939,7 @@ class AppController extends ChangeNotifier {
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool cycleSharingEnabled = false,
     String? currentSpaceId,
     int memberCount = 0,
     String? partnerDisplayName,
@@ -762,6 +949,7 @@ class AppController extends ChangeNotifier {
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _cycleSharingEnabled = cycleSharingEnabled;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
@@ -799,11 +987,13 @@ class AppController extends ChangeNotifier {
     _unsubscribeFromRealtime();
     _authStatus = AppAuthStatus.unauthenticated;
     _pendingEmail = null;
+    _pendingPhone = null;
     _authErrorCode = null;
     _loadedPreferencesUserId = null;
     _displayName = null;
     _gender = null;
     _birthday = null;
+    _cycleSharingEnabled = false;
     _selfProfileId = null;
     _currentSpaceId = null;
     _memberCount = 0;
@@ -849,6 +1039,10 @@ class AppController extends ChangeNotifier {
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  bool _looksLikeE164Phone(String value) {
+    return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(value);
   }
 
   Future<String?> _loadOrCreateCurrentSpaceId(
@@ -959,10 +1153,12 @@ class AppController extends ChangeNotifier {
     required AppAuthStatus status,
     bool supabaseReady = false,
     String? pendingEmail,
+    String? pendingPhone,
     String? authErrorCode,
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool cycleSharingEnabled = false,
     String? selfProfileId,
     String? currentSpaceId,
     int memberCount = 0,
@@ -973,10 +1169,12 @@ class AppController extends ChangeNotifier {
     _authStatus = status;
     _supabaseReady = supabaseReady;
     _pendingEmail = pendingEmail;
+    _pendingPhone = pendingPhone;
     _authErrorCode = authErrorCode;
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _cycleSharingEnabled = cycleSharingEnabled;
     _selfProfileId = selfProfileId;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;

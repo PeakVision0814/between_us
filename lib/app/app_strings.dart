@@ -94,6 +94,26 @@ class AppStrings {
     ja: '認証コードを受け取るメールアドレスを入力',
     ko: '인증 코드를 받을 이메일을 입력하세요',
   );
+  String get authEmailMethodLabel => _resolve(
+    zhCn: '邮箱',
+    zhTw: '電子郵件',
+    en: 'Email',
+  );
+  String get authPhoneMethodLabel => _resolve(
+    zhCn: '手机号',
+    zhTw: '手機號',
+    en: 'Phone',
+  );
+  String get authPhoneLabel => _resolve(
+    zhCn: '手机号',
+    zhTw: '手機號',
+    en: 'Phone number',
+  );
+  String get authPhoneHint => _resolve(
+    zhCn: '请输入 E.164 格式，例如 +8613812345678',
+    zhTw: '請輸入 E.164 格式，例如 +8613812345678',
+    en: 'Use E.164 format, for example +8613812345678',
+  );
   String get authOtpLabel => _resolve(
     zhCn: '验证码',
     zhTw: '驗證碼',
@@ -115,6 +135,11 @@ class AppStrings {
     ja: 'メールアドレス変更',
     ko: '이메일 변경',
   );
+  String get authChangePhoneLabel => _resolve(
+    zhCn: '更换手机号',
+    zhTw: '更換手機號',
+    en: 'Change phone',
+  );
   String get authSendSignInCodeLabel => _resolve(
     zhCn: '发送登录验证码',
     zhTw: '發送登入驗證碼',
@@ -128,6 +153,16 @@ class AppStrings {
     en: 'Send sign-up code',
     ja: '登録コードを送信',
     ko: '가입 코드 전송',
+  );
+  String get authSendPhoneSignInCodeLabel => _resolve(
+    zhCn: '发送手机号登录验证码',
+    zhTw: '發送手機號登入驗證碼',
+    en: 'Send phone sign-in code',
+  );
+  String get authSendPhoneRegisterCodeLabel => _resolve(
+    zhCn: '发送手机号注册验证码',
+    zhTw: '發送手機號註冊驗證碼',
+    en: 'Send phone sign-up code',
   );
   String get authVerifyAndSignInLabel => _resolve(
     zhCn: '验证并登录',
@@ -171,6 +206,11 @@ class AppStrings {
     ja: 'コードが$emailに送信されました',
     ko: '코드가 $email로 전송되었습니다',
   );
+  String authPhoneCodeSentTo(String phone) => _resolve(
+    zhCn: '验证码已发送至 $phone',
+    zhTw: '驗證碼已發送至 $phone',
+    en: 'A code has been sent to $phone',
+  );
   String get authOtpSentToast => _resolve(
     zhCn: '验证码已发送，请在 App 内输入 6 位验证码',
     zhTw: '驗證碼已發送，請在 App 內輸入 6 位驗證碼',
@@ -184,6 +224,16 @@ class AppStrings {
     en: 'Registration code sent. Enter the 6-digit code in the app.',
     ja: '登録コードを送信しました。App内で6桁のコードを入力してください。',
     ko: '가입 코드가 전송되었습니다. 앱에서 6자리 코드를 입력하세요.',
+  );
+  String get authPhoneOtpSentToast => _resolve(
+    zhCn: '手机号验证码已发送，请在 App 内输入 6 位验证码',
+    zhTw: '手機號驗證碼已發送，請在 App 內輸入 6 位驗證碼',
+    en: 'Phone code sent. Enter the 6-digit code in the app.',
+  );
+  String get authPhoneRegisterOtpSentToast => _resolve(
+    zhCn: '手机号注册验证码已发送，请在 App 内输入 6 位验证码',
+    zhTw: '手機號註冊驗證碼已發送，請在 App 內輸入 6 位驗證碼',
+    en: 'Phone registration code sent. Enter the 6-digit code in the app.',
   );
   String get authInitializeFailedMessage => _resolve(
     zhCn: '登录服务初始化失败，请检查 Supabase 配置后重试。',
@@ -199,6 +249,11 @@ class AppStrings {
     ja: '有効なメールアドレスを入力してください。',
     ko: '유효한 이메일 주소를 입력하세요.',
   );
+  String get authInvalidPhoneMessage => _resolve(
+    zhCn: '请输入 E.164 格式的手机号，例如 +8613812345678。',
+    zhTw: '請輸入 E.164 格式的手機號，例如 +8613812345678。',
+    en: 'Enter a phone number in E.164 format, for example +8613812345678.',
+  );
   String get authOtpSendFailedMessage => _resolve(
     zhCn: '验证码发送失败，请稍后重试。',
     zhTw: '驗證碼發送失敗，請稍後重試。',
@@ -212,6 +267,16 @@ class AppStrings {
     en: 'Failed to create the account. Please try again later.',
     ja: 'アカウントの作成に失敗しました。後でもう一度お試しください。',
     ko: '계정 생성에 실패했습니다. 나중에 다시 시도하세요.',
+  );
+  String get authPhoneOtpSendFailedMessage => _resolve(
+    zhCn: '手机号验证码发送失败，请稍后重试。',
+    zhTw: '手機號驗證碼發送失敗，請稍後重試。',
+    en: 'Failed to send the phone verification code. Please try again later.',
+  );
+  String get authPhoneSignUpSendFailedMessage => _resolve(
+    zhCn: '手机号创建账号失败，请稍后重试。',
+    zhTw: '手機號建立帳號失敗，請稍後重試。',
+    en: 'Failed to create the phone account. Please try again later.',
   );
   String get authUserNotRegisteredMessage => _resolve(
     zhCn: '该邮箱尚未注册，请先创建账号。',
@@ -227,12 +292,28 @@ class AppStrings {
     ja: 'このメールアドレスは既に登録されています。ログインしてください。',
     ko: '이 이메일은 이미 등록되어 있습니다. 로그인하세요.',
   );
+  String get authPhoneUserNotRegisteredMessage => _resolve(
+    zhCn: '该手机号尚未注册，请先创建账号。',
+    zhTw: '該手機號尚未註冊，請先建立帳號。',
+    en:
+        'This phone number is not registered yet. Please create an account first.',
+  );
+  String get authPhoneUserAlreadyRegisteredMessage => _resolve(
+    zhCn: '该手机号已经注册，请直接登录。',
+    zhTw: '該手機號已經註冊，請直接登入。',
+    en: 'This phone number is already registered. Please sign in instead.',
+  );
   String get authMissingPendingEmailMessage => _resolve(
     zhCn: '请先输入邮箱并发送验证码。',
     zhTw: '請先輸入電子郵件並發送驗證碼。',
     en: 'Enter your email and request a code first.',
     ja: 'メールアドレスを入力してコードをリクエストしてください。',
     ko: '이메일을 입력하고 코드를 요청하세요.',
+  );
+  String get authMissingPendingPhoneMessage => _resolve(
+    zhCn: '请先输入手机号并发送验证码。',
+    zhTw: '請先輸入手機號並發送驗證碼。',
+    en: 'Enter your phone number and request a code first.',
   );
   String get authInvalidTokenLengthMessage => _resolve(
     zhCn: '请输入 6 位验证码。',
@@ -1171,6 +1252,48 @@ class AppStrings {
     ja: '通知設定',
     ko: '알림 설정',
   );
+  String get privacySettingsTitle => _resolve(
+    zhCn: '隐私与共享',
+    zhTw: '隱私與共享',
+    en: 'Privacy & sharing',
+    ja: 'プライバシーと共有',
+    ko: '개인정보 및 공유',
+  );
+  String get cycleSharingTitle => _resolve(
+    zhCn: '经期记录共享',
+    zhTw: '經期記錄共享',
+    en: 'Share cycle records',
+    ja: '生理期間の記録を共有',
+    ko: '생리 기간 기록 공유',
+  );
+  String get cycleSharingSubtitle => _resolve(
+    zhCn: '开启后，伴侣可以在日历中看到你的经期记录',
+    zhTw: '開啟後，伴侶可以在日曆中看到你的經期記錄',
+    en: 'When enabled, your partner can see your cycle records on the calendar',
+    ja: 'オンにすると、パートナーがカレンダーであなたの生理期間の記録を確認できます',
+    ko: '켜면 파트너가 캘린더에서 내 생리 기간 기록을 볼 수 있습니다',
+  );
+  String get cycleSharingEnabledLabel => _resolve(
+    zhCn: '已共享',
+    zhTw: '已共享',
+    en: 'Shared',
+    ja: '共有中',
+    ko: '공유됨',
+  );
+  String get cycleSharingDisabledLabel => _resolve(
+    zhCn: '未共享',
+    zhTw: '未共享',
+    en: 'Not shared',
+    ja: '未共有',
+    ko: '공유 안 함',
+  );
+  String get privacySettingsHiddenForMale => _resolve(
+    zhCn: '当前没有需要设置的隐私共享项。',
+    zhTw: '目前沒有需要設定的隱私共享項。',
+    en: 'There are no privacy sharing options for this profile.',
+    ja: 'このプロフィールで設定できる共有項目はありません。',
+    ko: '이 프로필에서 설정할 개인정보 공유 항목이 없습니다.',
+  );
   String get viewProfileTitle => _resolve(
     zhCn: '个人资料',
     zhTw: '個人資料',
@@ -1561,6 +1684,13 @@ class AppStrings {
       ja: 'リマインダー',
       ko: '알림',
     ),
+    CalendarEntryType.cycle => _resolve(
+      zhCn: '经期',
+      zhTw: '經期',
+      en: 'Cycle',
+      ja: '生理期間',
+      ko: '생리 기간',
+    ),
   };
 
   String calendarRepeatLabel(CalendarRepeatRule repeatRule) =>
@@ -1619,6 +1749,111 @@ class AppStrings {
     en: 'Failed to create. Please try again.',
     ja: '作成に失敗しました。もう一度お試しください。',
     ko: '생성에 실패했습니다. 다시 시도하세요.',
+  );
+  String get cycleCreateDialogTitle => _resolve(
+    zhCn: '记录经期',
+    zhTw: '記錄經期',
+    en: 'Record cycle',
+    ja: '生理期間を記録',
+    ko: '생리 기간 기록',
+  );
+  String get cycleEditDialogTitle => _resolve(
+    zhCn: '编辑经期记录',
+    zhTw: '編輯經期記錄',
+    en: 'Edit cycle record',
+    ja: '生理期間の記録を編集',
+    ko: '생리 기간 기록 편집',
+  );
+  String get cycleStartDateLabel => _resolve(
+    zhCn: '开始日期',
+    zhTw: '開始日期',
+    en: 'Start date',
+    ja: '開始日',
+    ko: '시작일',
+  );
+  String get cycleEndDateLabel => _resolve(
+    zhCn: '结束日期',
+    zhTw: '結束日期',
+    en: 'End date',
+    ja: '終了日',
+    ko: '종료일',
+  );
+  String get cycleEndDateUnsetLabel => _resolve(
+    zhCn: '未填写',
+    zhTw: '未填寫',
+    en: 'Not set',
+    ja: '未設定',
+    ko: '미설정',
+  );
+  String get cycleNoteHint => _resolve(
+    zhCn: '备注（可选）',
+    zhTw: '備註（可選）',
+    en: 'Note (optional)',
+    ja: 'メモ（任意）',
+    ko: '메모 (선택)',
+  );
+  String get cycleSaveButton => _resolve(
+    zhCn: '保存',
+    zhTw: '儲存',
+    en: 'Save',
+    ja: '保存',
+    ko: '저장',
+  );
+  String get cycleCreateFailedError => _resolve(
+    zhCn: '经期记录保存失败，请重试',
+    zhTw: '經期記錄儲存失敗，請重試',
+    en: 'Failed to save cycle record. Please try again.',
+    ja: '生理期間の記録を保存できませんでした。もう一度お試しください。',
+    ko: '생리 기간 기록을 저장하지 못했습니다. 다시 시도하세요.',
+  );
+  String get cycleDeleteConfirmTitle => _resolve(
+    zhCn: '删除这条经期记录？',
+    zhTw: '刪除這條經期記錄？',
+    en: 'Delete this cycle record?',
+    ja: 'この生理期間の記録を削除しますか？',
+    ko: '이 생리 기간 기록을 삭제하시겠습니까?',
+  );
+  String get cycleDeleteConfirmBody => _resolve(
+    zhCn: '删除后，这条经期记录将不再显示在日历中。',
+    zhTw: '刪除後，這條經期記錄將不再顯示在日曆中。',
+    en: 'Once deleted, this cycle record will no longer appear in the calendar.',
+    ja: '削除すると、この記録はカレンダーに表示されなくなります。',
+    ko: '삭제하면 이 기록은 캘린더에 더 이상 표시되지 않습니다.',
+  );
+  String get cycleDeleteFailedError => _resolve(
+    zhCn: '经期记录删除失败，请重试',
+    zhTw: '經期記錄刪除失敗，請重試',
+    en: 'Failed to delete cycle record. Please try again.',
+    ja: '生理期間の記録を削除できませんでした。もう一度お試しください。',
+    ko: '생리 기간 기록을 삭제하지 못했습니다. 다시 시도하세요.',
+  );
+  String get cycleSharedLabel => _resolve(
+    zhCn: '已共享给伴侣',
+    zhTw: '已共享給伴侶',
+    en: 'Shared with partner',
+    ja: 'パートナーと共有中',
+    ko: '파트너와 공유됨',
+  );
+  String get cyclePrivateLabel => _resolve(
+    zhCn: '仅自己可见',
+    zhTw: '僅自己可見',
+    en: 'Only visible to you',
+    ja: '自分だけに表示',
+    ko: '나에게만 표시',
+  );
+  String get cyclePartnerRecordLabel => _resolve(
+    zhCn: '伴侣的经期记录',
+    zhTw: '伴侶的經期記錄',
+    en: "Partner's cycle record",
+    ja: 'パートナーの生理期間記録',
+    ko: '파트너의 생리 기간 기록',
+  );
+  String get cycleDateRangeSeparator => _resolve(
+    zhCn: '至',
+    zhTw: '至',
+    en: 'to',
+    ja: '〜',
+    ko: '~',
   );
   String get calendarNoEventsYet => _resolve(
     zhCn: '还没有日历事件',
@@ -1860,7 +2095,7 @@ class NoteItemCopy {
   final String text;
 }
 
-enum CalendarEntryType { anniversary, datePlan, reminder }
+enum CalendarEntryType { anniversary, datePlan, reminder, cycle }
 
 enum CalendarRepeatRule { none, yearly }
 

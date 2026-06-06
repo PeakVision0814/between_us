@@ -86,6 +86,14 @@
 - 删除策略走软删除：更新 `deleted_at`
 - 不开放直接 `DELETE` 给客户端
 
+`cycle_records`
+
+- 经期记录等敏感生活数据单独建表，不并入普通 `calendar_events`
+- 只有记录者本人可创建、编辑、软删除
+- 默认 `shared_with_partner = false`
+- 伴侣只有在 `shared_with_partner = true` 且同属 active 双人空间时可读取
+- 客户端删除策略走软删除：更新 `deleted_at`
+
 ## RLS 方向已经怎样落地
 
 `profiles`
@@ -131,6 +139,14 @@
 - 只有 `active` 双人空间的活跃成员才能新建 note，`author_profile_id` 只表示作者，不表示业务数据归属
 - 只有作者本人可更新或软删除自己的 note
 - 已通过 `is_active_couple_member()` 和 migration `20260603100000` + `20260603120000` 实施
+
+`cycle_records`
+
+- 记录者本人可读取自己的未删除记录
+- 记录者本人可在 active 双人空间内创建和更新自己的记录
+- 记录者本人可通过软删除隐藏自己的记录
+- 伴侣仅在 `shared_with_partner = true` 时可读取，不可编辑或删除
+- 读取和写入均复用 `is_active_couple_member()`，保证 closed / pending 空间不可访问
 
 ## 前端接线约定
 
@@ -200,17 +216,26 @@
 - 已在其他活跃空间中的用户不可接受新邀请
 - 已满 2 个活跃成员的空间不可再接受邀请
 
-## 经期记录预留策略
+## 经期记录 V1
 
-这轮没有创建 `cycle_records` 表。
+对应 migration：`20260606110847_add_cycle_records.sql`
 
-保留策略是：
+已落地：
 
-- 先保留 `profiles.cycle_sharing_enabled`
-- 未来敏感数据单独建表
-- 未来敏感表不并入普通 `calendar_events`
-- 如果未来要在日历展示，应走“敏感表 + 投影视图/受控查询”路线
-- 默认不共享，且只允许本人写
+- 新增 `cycle_records` 表
+- 保留并使用 `profiles.cycle_sharing_enabled`
+- 日历读取 `cycle_records` 的可见记录并做独立视觉标记
+- 女性用户且处于 active 双人空间时可手动创建经期记录
+- 记录者可编辑、软删除自己的记录
+- 共享开关开启时批量把本人未删除记录设为 `shared_with_partner = true`
+- 共享开关关闭时批量把本人未删除记录设为 `shared_with_partner = false`
+
+边界：
+
+- 默认不共享
+- 敏感表不并入 `calendar_events`
+- 伴侣只读，不可编辑或删除
+- 首版不做预测、统计或医疗建议
 
 ## 本轮明确没做
 
@@ -219,7 +244,6 @@
 - 不做通知
 - 不做复杂云函数编排
 - 不做经期预测
-- 不做经期真实表接入
 - 不做解绑、导出、永久删除完整流程
 - 不做超出当前产品文档的新功能扩展
 

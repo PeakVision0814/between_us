@@ -27,6 +27,29 @@ void main() {
     },
   );
 
+  testWidgets('sign-in screen shows phone login entry', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    expect(
+      find.byKey(const ValueKey('auth-login-method-segment')),
+      findsOneWidget,
+    );
+    expect(find.text('手机号'), findsOneWidget);
+
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-phone-field')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-send-phone-code-button')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('sign-in screen can navigate to register screen', (tester) async {
     await _pumpApp(
       tester,
@@ -39,6 +62,27 @@ void main() {
 
     expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-register-method-segment')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('register screen shows phone registration entry', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-phone-field')), findsOneWidget);
+    expect(find.text('发送手机号注册验证码'), findsOneWidget);
   });
 
   testWidgets('register screen can navigate back to sign-in screen', (
@@ -82,6 +126,108 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('new@example.com'), findsOneWidget);
+  });
+
+  testWidgets('invalid phone format shows an error before sending', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-phone-field')),
+      '13812345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
+  });
+
+  testWidgets('successful phone sign-in code send shows otp step', (
+    tester,
+  ) async {
+    final controller = _SuccessfulPhoneSignInController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-phone-field')),
+      '+8613812345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(controller.signInPhones, ['+8613812345678']);
+    expect(controller.signUpPhones, isEmpty);
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
+    expect(find.textContaining('+8613812345678'), findsOneWidget);
+    expect(find.text('更换手机号'), findsOneWidget);
+  });
+
+  testWidgets('invalid phone otp length shows an error', (tester) async {
+    final controller = _SuccessfulPhoneSignInController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.phoneOtpSent,
+      supabaseReady: true,
+      pendingPhone: '+8613812345678',
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-otp-field')),
+      '12345',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-verify-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请输入 6 位验证码。'), findsOneWidget);
+    expect(controller.verifyPhoneCalls, 0);
+  });
+
+  testWidgets('phone sign-in and sign-up remain separated', (tester) async {
+    final controller = _SuccessfulPhoneRegisterController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-phone-field')),
+      '+8613912345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(controller.signUpPhones, ['+8613912345678']);
+    expect(controller.signInPhones, isEmpty);
+    expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
   });
 
   testWidgets('register verification success returns to app root', (
@@ -2398,6 +2544,52 @@ class _SuccessfulRegisterController extends AppController {
     return true;
   }
 }
+
+class _SuccessfulPhoneSignInController extends AppController {
+  final List<String> signInPhones = [];
+  final List<String> signUpPhones = [];
+  int verifyPhoneCalls = 0;
+
+  @override
+  Future<bool> sendPhoneOtpForSignIn(String phone) async {
+    signInPhones.add(phone.trim());
+    debugSetAuthState(
+      status: AppAuthStatus.phoneOtpSent,
+      supabaseReady: true,
+      pendingPhone: phone.trim(),
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> sendPhoneOtpForSignUp(String phone) async {
+    signUpPhones.add(phone.trim());
+    debugSetAuthState(
+      status: AppAuthStatus.phoneOtpSent,
+      supabaseReady: true,
+      pendingPhone: phone.trim(),
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> verifyPhoneOtp(String token) async {
+    if (token.trim().length != 6) {
+      debugSetAuthState(
+        status: AppAuthStatus.phoneOtpSent,
+        supabaseReady: true,
+        pendingPhone: pendingPhone,
+        authErrorCode: 'invalid_token_length',
+      );
+      return false;
+    }
+    verifyPhoneCalls += 1;
+    return true;
+  }
+}
+
+class _SuccessfulPhoneRegisterController
+    extends _SuccessfulPhoneSignInController {}
 
 class _FakeSaveProfileController extends AppController {
   int saveCalls = 0;

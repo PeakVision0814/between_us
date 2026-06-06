@@ -13,11 +13,13 @@ class EmailRegisterScreen extends StatefulWidget {
 
 class _EmailRegisterScreenState extends State<EmailRegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
+    _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
   }
@@ -39,9 +41,38 @@ class _EmailRegisterScreenState extends State<EmailRegisterScreen> {
     }
   }
 
+  Future<void> _signUpWithPhone() async {
+    final controller = AppScope.read(context);
+    final success = await controller.sendPhoneOtpForSignUp(
+      _phoneController.text,
+    );
+    if (!mounted || !success) {
+      return;
+    }
+
+    if (controller.authStatus == AppAuthStatus.phoneOtpSent) {
+      _codeController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.of(context).authPhoneRegisterOtpSentToast),
+        ),
+      );
+    }
+  }
+
   Future<void> _verifyCode() async {
     final controller = AppScope.read(context);
     final success = await controller.verifyEmailOtp(_codeController.text);
+    if (!mounted || !success || !controller.isAuthenticated) {
+      return;
+    }
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _verifyPhoneCode() async {
+    final controller = AppScope.read(context);
+    final success = await controller.verifyPhoneOtp(_codeController.text);
     if (!mounted || !success || !controller.isAuthenticated) {
       return;
     }
@@ -61,9 +92,12 @@ class _EmailRegisterScreenState extends State<EmailRegisterScreen> {
     return AuthEmailFlowScaffold(
       mode: AuthEmailFlowMode.register,
       emailController: _emailController,
+      phoneController: _phoneController,
       codeController: _codeController,
       onPrimarySubmit: _signUp,
+      onPhoneSubmit: _signUpWithPhone,
       onVerifyCode: _verifyCode,
+      onVerifyPhoneCode: _verifyPhoneCode,
       onSwitchMode: _backToSignIn,
     );
   }
