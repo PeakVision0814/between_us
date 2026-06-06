@@ -454,6 +454,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             children: [
               // ── Month grid ──
               PageSurfaceCard(
+                padding: const EdgeInsets.all(14),
                 child: _MonthView(
                   displayMonth: _displayMonth,
                   visibleDays: visibleDays,
@@ -643,9 +644,7 @@ class _MonthView extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
+    return Column(
         children: [
           Row(
             children: [
@@ -731,8 +730,7 @@ class _MonthView extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
+      );
   }
 
   static bool _sameDate(DateTime left, DateTime right) =>
