@@ -643,7 +643,7 @@ class _MonthView extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(context);
 
-    return PageInsetPanel(
+    return Padding(
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
