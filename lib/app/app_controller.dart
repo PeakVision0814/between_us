@@ -730,10 +730,6 @@ class AppController extends ChangeNotifier {
 
     if (!_profileCheckInProgress) {
       _profileCheckInProgress = true;
-      shouldNotify = true;
-    }
-    if (shouldNotify) {
-      notifyListeners();
     }
 
     try {
