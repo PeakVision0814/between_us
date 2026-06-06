@@ -570,6 +570,10 @@ void main() {
       findsOneWidget,
     );
 
+    // Navigate to Appearance sub-page.
+    await tester.tap(find.byKey(const ValueKey('appearance-entry')));
+    await tester.pumpAndSettle();
+
     expect(find.text('English'), findsOneWidget);
 
     await tester.tap(find.text('English'));
@@ -577,7 +581,7 @@ void main() {
 
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('en'));
-    expect(find.text('Settings & more'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Dark'),
@@ -1861,6 +1865,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
+    // Navigate to Appearance sub-page.
+    await tester.tap(find.byKey(const ValueKey('appearance-entry')));
+    await tester.pumpAndSettle();
+
     // Verify all 5 language options are present.
     expect(find.text('简体中文'), findsOneWidget);
     expect(find.text('繁體中文'), findsOneWidget);
@@ -1891,6 +1899,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
+    // Navigate to Appearance sub-page.
+    await tester.tap(find.byKey(const ValueKey('appearance-entry')));
+    await tester.pumpAndSettle();
+
     // Select Japanese.
     await tester.tap(find.text('日本語'));
     await tester.pumpAndSettle();
@@ -1899,8 +1911,8 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ja'));
 
-    // Verify core settings strings switched to Japanese.
-    expect(find.text('設定とその他'), findsOneWidget);
+    // Verify appearance page title switched to Japanese.
+    expect(find.text('外観と言語'), findsOneWidget);
   });
 
   testWidgets('selecting Korean updates locale and core strings', (
@@ -1925,6 +1937,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
+    // Navigate to Appearance sub-page.
+    await tester.tap(find.byKey(const ValueKey('appearance-entry')));
+    await tester.pumpAndSettle();
+
     // Select Korean.
     await tester.tap(find.text('한국어'));
     await tester.pumpAndSettle();
@@ -1933,8 +1949,8 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ko'));
 
-    // Verify core settings strings switched to Korean.
-    expect(find.text('설정 및 기타'), findsOneWidget);
+    // Verify appearance page title switched to Korean.
+    expect(find.text('외관 및 언어'), findsOneWidget);
   });
 
   testWidgets('selecting Traditional Chinese updates locale', (tester) async {
@@ -1957,6 +1973,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
     await tester.pumpAndSettle();
 
+    // Navigate to Appearance sub-page.
+    await tester.tap(find.byKey(const ValueKey('appearance-entry')));
+    await tester.pumpAndSettle();
+
     // Select Traditional Chinese.
     await tester.tap(find.text('繁體中文'));
     await tester.pumpAndSettle();
@@ -1965,8 +1985,8 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('zh', 'TW'));
 
-    // Verify settings title is in Traditional Chinese.
-    expect(find.text('設定與更多'), findsOneWidget);
+    // Verify appearance page title is in Traditional Chinese.
+    expect(find.text('外觀與語言'), findsOneWidget);
   });
 
   testWidgets('Japanese: profile setup screen shows Japanese title and labels', (

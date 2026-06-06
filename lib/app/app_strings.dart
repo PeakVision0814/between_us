@@ -1173,6 +1173,48 @@ class AppStrings {
     ja: '通知内にメモとリマインダーの内容を直接表示します。',
     ko: '알림에 메모와 알림 내용을 직접 표시합니다.',
   );
+  String get appearanceSettingsTitle => _resolve(
+    zhCn: '外观与语言',
+    zhTw: '外觀與語言',
+    en: 'Appearance',
+    ja: '外観と言語',
+    ko: '외관 및 언어',
+  );
+  String get notificationSettingsTitle => _resolve(
+    zhCn: '通知设置',
+    zhTw: '通知設定',
+    en: 'Notifications',
+    ja: '通知設定',
+    ko: '알림 설정',
+  );
+  String get viewProfileTitle => _resolve(
+    zhCn: '个人资料',
+    zhTw: '個人資料',
+    en: 'Profile',
+    ja: 'プロフィール',
+    ko: '프로필',
+  );
+  String get signOutTitle => _resolve(
+    zhCn: '退出登录',
+    zhTw: '登出',
+    en: 'Sign out',
+    ja: 'ログアウト',
+    ko: '로그아웃',
+  );
+  String get notificationPreviewEnabledLabel => _resolve(
+    zhCn: '预览已开启',
+    zhTw: '預覽已開啟',
+    en: 'Preview on',
+    ja: 'プレビュー有効',
+    ko: '미리보기 켜짐',
+  );
+  String get notificationPreviewDisabledLabel => _resolve(
+    zhCn: '预览已关闭',
+    zhTw: '預覽已關閉',
+    en: 'Preview off',
+    ja: 'プレビュー無効',
+    ko: '미리보기 꺼짐',
+  );
   String get spaceNameTitle => _resolve(
     zhCn: '空间名称',
     zhTw: '空間名稱',

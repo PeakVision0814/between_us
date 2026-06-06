@@ -4,6 +4,8 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import 'appearance_settings_screen.dart';
+import 'notification_settings_screen.dart';
 import 'profile_screen.dart';
 
 class SettingsMoreScreen extends StatelessWidget {
@@ -41,212 +43,120 @@ class SettingsMoreScreen extends StatelessWidget {
       body: PageAtmosphere(
         padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageSectionHeader(
-              title: strings.isChinese ? '个人资料' : 'Profile',
-              subtitle: strings.isChinese
-                  ? '昵称 · 邮箱 · 性别 · 生日'
-                  : 'Name · email · gender · birthday',
-            ),
-            const SizedBox(height: 10),
-            Card(
-              key: const ValueKey('profile-entry-section'),
-              child: ListTile(
-                leading: Icon(
-                  Icons.person_outline,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(strings.isChinese ? '查看个人资料' : 'View profile'),
-                subtitle: Text(
-                  strings.isChinese
-                      ? '昵称、邮箱、性别、生日'
-                      : 'Display name, email, gender, birthday',
-                ),
-                trailing: Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: isDark
-                      ? AppTheme.warmWhite25
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProfileScreen(controller: controller),
+            PageSurfaceCard(
+              key: const ValueKey('us-preferences-section'),
+              child: Column(
+                children: [
+                  PageListItem(
+                    key: const ValueKey('profile-entry-section'),
+                    leading: Icon(
+                      Icons.person_outline,
+                      color: theme.colorScheme.primary,
                     ),
-                  );
-                },
+                    title: strings.viewProfileTitle,
+                    subtitle: controller.displayName ??
+                        (strings.isChinese ? '未设置' : 'Not set'),
+                    trailing: _chevron(isDark, theme),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              ProfileScreen(controller: controller),
+                        ),
+                      );
+                    },
+                  ),
+                  PageDivider(indent: 56),
+                  PageListItem(
+                    key: const ValueKey('appearance-entry'),
+                    leading: Icon(
+                      Icons.palette_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: strings.appearanceSettingsTitle,
+                    subtitle: _appearanceSummary(controller, strings),
+                    trailing: _chevron(isDark, theme),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AppearanceSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  PageDivider(indent: 56),
+                  PageListItem(
+                    key: const ValueKey('notification-entry'),
+                    leading: Icon(
+                      Icons.notifications_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: strings.notificationSettingsTitle,
+                    subtitle: controller.notificationPreviewEnabled
+                        ? strings.notificationPreviewEnabledLabel
+                        : strings.notificationPreviewDisabledLabel,
+                    trailing: _chevron(isDark, theme),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NotificationSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
-            PageSectionHeader(
-              title: strings.isChinese ? '偏好设置' : 'Preferences',
-              subtitle: strings.isChinese
-                  ? '语言 · 主题 · 时区'
-                  : 'Language · theme · timezone',
+            PageSurfaceCard(
+              key: const ValueKey('us-signout-section'),
+              child: PageListItem(
+                key: const ValueKey('sign-out-tile'),
+                leading: Icon(
+                  Icons.logout_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: strings.signOutTitle,
+                titleColor: theme.colorScheme.error,
+                trailing: controller.signOutInProgress
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : _chevron(isDark, theme),
+                enabled: !controller.signOutInProgress,
+                onTap: () => _confirmSignOut(context, controller, strings),
+              ),
             ),
-            const SizedBox(height: 10),
-            _buildPreferencesSection(
-              context,
-              strings,
-              controller,
-              isDark: isDark,
-            ),
-            const SizedBox(height: 24),
-            PageSectionHeader(
-              title: strings.isChinese ? '账户操作' : 'Account',
-              subtitle: strings.isChinese ? '安全退出' : 'Sign-out action',
-            ),
-            const SizedBox(height: 10),
-            _buildSignOutSection(context, strings, controller, isDark: isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPreferencesSection(
-    BuildContext context,
-    AppStrings strings,
-    AppController controller, {
-    required bool isDark,
-  }) {
-    return Card(
-      key: const ValueKey('us-preferences-section'),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.languageTitle,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: isDark ? AppTheme.warmWhite90 : null,
-                  ),
-                ),
-                RadioGroup<AppLanguage>(
-                  groupValue: controller.language,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.setLanguage(value);
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      for (final lang in AppLanguage.values)
-                        RadioListTile<AppLanguage>(
-                          title: Text(lang.displayName),
-                          value: lang,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(indent: 20, endIndent: 20),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.themeTitle,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: isDark ? AppTheme.warmWhite90 : null,
-                  ),
-                ),
-                RadioGroup<AppThemePreference>(
-                  groupValue: controller.themePreference,
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.setThemePreference(value);
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeSystemLabel),
-                        value: AppThemePreference.system,
-                      ),
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeLightLabel),
-                        value: AppThemePreference.light,
-                      ),
-                      RadioListTile<AppThemePreference>(
-                        title: Text(strings.themeDarkLabel),
-                        value: AppThemePreference.dark,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(indent: 20, endIndent: 20),
-          ListTile(
-            leading: Icon(
-              Icons.schedule_outlined,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            title: Text(strings.timeZoneTitle),
-            subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
-          ),
-          const Divider(indent: 20, endIndent: 20),
-          SwitchListTile.adaptive(
-            value: controller.notificationPreviewEnabled,
-            onChanged: controller.setNotificationPreviewEnabled,
-            title: Text(strings.notificationPreviewTitle),
-            subtitle: Text(strings.notificationPreviewSubtitle),
-          ),
-        ],
-      ),
+  static Widget _chevron(bool isDark, ThemeData theme) {
+    return Icon(
+      Icons.chevron_right,
+      size: 20,
+      color: isDark
+          ? AppTheme.warmWhite25
+          : theme.colorScheme.onSurfaceVariant,
     );
   }
 
-  Widget _buildSignOutSection(
-    BuildContext context,
+  static String _appearanceSummary(
+    AppController controller,
     AppStrings strings,
-    AppController controller, {
-    required bool isDark,
-  }) {
-    return Card(
-      key: const ValueKey('us-signout-section'),
-      child: ListTile(
-        key: const ValueKey('sign-out-tile'),
-        leading: Icon(
-          Icons.logout_rounded,
-          color: Theme.of(context).colorScheme.error,
-        ),
-        title: Text(
-          strings.isChinese ? '退出登录' : 'Sign out',
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-        subtitle: Text(
-          strings.isChinese
-              ? '安全退出当前账号，并回到邮箱验证码登录页。'
-              : 'Sign out of this account and return to the email OTP login screen.',
-        ),
-        trailing: controller.signOutInProgress
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: isDark
-                    ? AppTheme.warmWhite25
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        enabled: !controller.signOutInProgress,
-        onTap: () => _confirmSignOut(context, controller, strings),
-      ),
-    );
+  ) {
+    final lang = controller.language.displayName;
+    final theme = switch (controller.themePreference) {
+      AppThemePreference.system => strings.themeSystemLabel,
+      AppThemePreference.light => strings.themeLightLabel,
+      AppThemePreference.dark => strings.themeDarkLabel,
+    };
+    return '$lang · $theme';
   }
 
   Future<void> _confirmSignOut(
@@ -295,15 +205,5 @@ class SettingsMoreScreen extends StatelessWidget {
         );
       }
     }
-  }
-
-  String _timeZoneLabel() {
-    final offset = DateTime.now().timeZoneOffset;
-    final sign = offset.isNegative ? '-' : '+';
-    final totalMinutes = offset.inMinutes.abs();
-    final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
-    final minutes = (totalMinutes % 60).toString().padLeft(2, '0');
-    final name = DateTime.now().timeZoneName;
-    return '$name (UTC$sign$hours:$minutes)';
   }
 }
