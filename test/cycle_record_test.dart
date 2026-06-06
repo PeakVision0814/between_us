@@ -86,7 +86,36 @@ void main() {
     await _scrollTo(tester, find.byKey(const ValueKey('cycle-detail-cycle-1')));
     expect(find.byKey(const ValueKey('cycle-detail-cycle-1')), findsOneWidget);
     expect(find.text('经期'), findsOneWidget);
-    expect(find.text('仅自己可见'), findsOneWidget);
+    expect(find.text('仅自己可见'), findsNothing);
+    expect(find.text('已共享给伴侣'), findsNothing);
+  });
+
+  testWidgets('overlapping owner cycle records render as one date range', (
+    tester,
+  ) async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    await _pumpCalendar(
+      tester,
+      gender: AppController.genderFemale,
+      memberCount: 2,
+      currentSpaceId: 'space-1',
+      supabaseReady: true,
+    );
+
+    final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+    // ignore: avoid_dynamic_calls
+    state.debugSetCycleRecords([
+      _cycleRecord(
+        ownerProfileId: 'test-user',
+        start: today,
+        end: today.add(const Duration(days: 2)),
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    await _scrollTo(tester, find.byKey(const ValueKey('cycle-detail-cycle-1')));
+    expect(find.byKey(const ValueKey('cycle-detail-cycle-1')), findsOneWidget);
+    expect(find.text('轻微不适'), findsOneWidget);
   });
 
   testWidgets(

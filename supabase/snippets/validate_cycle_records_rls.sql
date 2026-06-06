@@ -41,4 +41,19 @@ select public.can_read_partner_cycle_record(
   '00000000-0000-0000-0000-000000000003'::uuid
 ) as partner_can_read_when_profile_switch_off;
 
+-- Expected: the trigger public.prevent_overlapping_cycle_records() rejects
+-- overlapping non-deleted records for the same owner. Validate this with real
+-- authenticated client insert/update calls or a transaction that sets request
+-- JWT claims for female_user_id.
+select
+  'overlap validation lives in trigger prevent_overlapping_cycle_records'
+  as cycle_overlap_validation;
+
+-- Expected: owner soft delete uses UPDATE deleted_at, not physical DELETE.
+-- Update RLS allows the owner to set deleted_at while WITH CHECK keeps
+-- owner_profile_id/couple_space_id unchanged and female/active-space guarded.
+select
+  'soft delete uses cycle_records_owner_update and immutable field trigger'
+  as cycle_soft_delete_validation;
+
 rollback;

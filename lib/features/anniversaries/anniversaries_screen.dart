@@ -194,6 +194,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }) async {
     final controller = AppScope.read(context);
     if (!controller.canUseCycleRecords) return false;
+    if (_hasOverlappingCycleRecord(
+      ownerProfileId: controller.selfProfileId,
+      recordId: id,
+      startDate: periodStartDate,
+      endDate: periodEndDate,
+    )) {
+      return false;
+    }
 
     setState(() => _submitting = true);
 
@@ -245,14 +253,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (coupleSpaceId == null) return;
 
     try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
       await Supabase.instance.client
           .from('calendar_events')
           .update({'deleted_at': DateTime.now().toIso8601String()})
           .eq('id', eventId)
           .eq('couple_space_id', coupleSpaceId)
+          .eq('created_by', userId)
           .filter('deleted_at', 'is', null);
 
-      await _loadEvents();
+      if (mounted) {
+        setState(() {
+          _events = _events.where((event) => event.id != eventId).toList();
+          _eventCreators.remove(eventId);
+        });
+      }
+      await _loadEvents(force: true);
     } catch (e) {
       debugPrint('[Calendar] deleteEvent failed: $e');
       if (mounted) {
@@ -268,10 +285,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final controller = AppScope.read(context);
     if (!controller.canUseCycleRecords) return;
     final coupleSpaceId = controller.currentSpaceId;
-    final userId = controller.selfProfileId;
-    if (coupleSpaceId == null || userId == null) return;
+    if (coupleSpaceId == null) return;
 
     try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
       await Supabase.instance.client
           .from('cycle_records')
           .update({'deleted_at': DateTime.now().toIso8601String()})
@@ -280,6 +298,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
           .eq('owner_profile_id', userId)
           .filter('deleted_at', 'is', null);
 
+      if (mounted) {
+        setState(() {
+          _cycleRecords = _cycleRecords
+              .where((record) => record.id != recordId)
+              .toList();
+        });
+      }
       await _loadEvents(force: true);
     } catch (e) {
       debugPrint('[Calendar] deleteCycleRecord failed: $e');
@@ -797,8 +822,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             entry: entry,
                             occurrence: _occurrenceOnDay(entry, _selectedDate!),
                             isDark: isDark,
-                            onDelete: () =>
-                                _confirmDeleteEvent(entry.id, entry.title),
+                            onDelete: _eventCreators[entry.id] ==
+                                    AppScope.of(context).selfProfileId
+                                ? () =>
+                                      _confirmDeleteEvent(entry.id, entry.title)
+                                : null,
                             createdBy: _eventCreators[entry.id],
                           ),
                         ),
@@ -824,8 +852,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       entry: item.entry,
                       occurrence: item.occurrence,
                       isDark: isDark,
-                      onDelete: () =>
-                          _confirmDeleteEvent(item.entry.id, item.entry.title),
+                      onDelete: _eventCreators[item.entry.id] ==
+                              AppScope.of(context).selfProfileId
+                          ? () => _confirmDeleteEvent(
+                              item.entry.id,
+                              item.entry.title,
+                            )
+                          : null,
                       createdBy: _eventCreators[item.entry.id],
                     ),
                   ),
@@ -907,6 +940,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     return grouped;
+  }
+
+  bool _hasOverlappingCycleRecord({
+    required String? ownerProfileId,
+    required String? recordId,
+    required DateTime startDate,
+    required DateTime? endDate,
+  }) {
+    if (ownerProfileId == null) {
+      return true;
+    }
+    final newStart = _dateOnly(startDate);
+    final newEnd = _dateOnly(endDate ?? startDate);
+    return _cycleRecords.any((record) {
+      if (record.deletedAt != null ||
+          record.ownerProfileId != ownerProfileId ||
+          record.id == recordId) {
+        return false;
+      }
+      final existingStart = _dateOnly(record.periodStartDate);
+      final existingEnd = _dateOnly(
+        record.periodEndDate ?? record.periodStartDate,
+      );
+      return !newStart.isAfter(existingEnd) && !newEnd.isBefore(existingStart);
+    });
   }
 
   List<CycleRecord> _visibleCycleRecords(AppController controller) {
@@ -1391,15 +1449,10 @@ class _SelectedCycleRecordCard extends StatelessWidget {
                   size: 28,
                 ),
                 const Spacer(),
-                Flexible(
-                  child: _MetaChip(
-                    label: isOwner
-                        ? (record.sharedWithPartner
-                              ? strings.cycleSharedLabel
-                              : strings.cyclePrivateLabel)
-                        : strings.cyclePartnerRecordLabel,
+                if (!isOwner)
+                  Flexible(
+                    child: _MetaChip(label: strings.cyclePartnerRecordLabel),
                   ),
-                ),
                 if (onEdit != null) ...[
                   const SizedBox(width: 4),
                   IconButton(
