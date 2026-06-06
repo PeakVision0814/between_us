@@ -7,6 +7,7 @@ class CycleRecord {
     this.periodEndDate,
     this.note,
     this.sharedWithPartner = false,
+    this.ownerCycleSharingEnabled = true,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -19,6 +20,7 @@ class CycleRecord {
   final DateTime? periodEndDate;
   final String? note;
   final bool sharedWithPartner;
+  final bool ownerCycleSharingEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -34,6 +36,8 @@ class CycleRecord {
           : null,
       note: json['note'] as String?,
       sharedWithPartner: json['shared_with_partner'] as bool? ?? false,
+      ownerCycleSharingEnabled:
+          json['owner_cycle_sharing_enabled'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       deletedAt: json['deleted_at'] != null
@@ -53,6 +57,7 @@ class CycleRecord {
           : _formatDate(periodEndDate!),
       'note': note,
       'shared_with_partner': sharedWithPartner,
+      'owner_cycle_sharing_enabled': ownerCycleSharingEnabled,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),

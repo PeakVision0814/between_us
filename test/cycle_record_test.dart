@@ -147,6 +147,35 @@ void main() {
       expect(find.text('经期'), findsNothing);
     },
   );
+
+  testWidgets(
+    'profile sharing off hides shared cycle record in partner view',
+    (tester) async {
+      final today = DateUtils.dateOnly(DateTime.now());
+      await _pumpCalendar(
+        tester,
+        gender: AppController.genderMale,
+        memberCount: 2,
+        currentSpaceId: 'space-1',
+        supabaseReady: true,
+      );
+
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      // ignore: avoid_dynamic_calls
+      state.debugSetCycleRecords([
+        _cycleRecord(
+          ownerProfileId: 'partner-user',
+          start: today,
+          sharedWithPartner: true,
+          ownerCycleSharingEnabled: false,
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('cycle-detail-cycle-1')), findsNothing);
+      expect(find.text('经期'), findsNothing);
+    },
+  );
 }
 
 CycleRecord _cycleRecord({
@@ -154,6 +183,7 @@ CycleRecord _cycleRecord({
   required DateTime start,
   DateTime? end,
   bool sharedWithPartner = false,
+  bool ownerCycleSharingEnabled = true,
 }) {
   final now = DateTime.now();
   return CycleRecord(
@@ -164,6 +194,7 @@ CycleRecord _cycleRecord({
     periodEndDate: end,
     note: '轻微不适',
     sharedWithPartner: sharedWithPartner,
+    ownerCycleSharingEnabled: ownerCycleSharingEnabled,
     createdAt: now,
     updatedAt: now,
   );

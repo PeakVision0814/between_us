@@ -920,6 +920,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               record.deletedAt == null &&
               (record.ownerProfileId == selfId || record.sharedWithPartner),
         )
+        .where(
+          (record) =>
+              record.ownerProfileId == selfId ||
+              record.ownerCycleSharingEnabled,
+        )
         .toList();
   }
 
@@ -1116,7 +1121,9 @@ class _DayCell extends StatelessWidget {
     final background = selected
         ? colorScheme.primary
         : (hasCycleRecord
-              ? AppTheme.blush.withValues(alpha: isDark ? 0.16 : 0.13)
+              ? _cycleMarkerColor(isDark).withValues(
+                  alpha: isDark ? 0.22 : 0.12,
+                )
               : hasEntries
               ? (isDark
                     ? Colors.white.withValues(alpha: 0.06)
@@ -1125,7 +1132,7 @@ class _DayCell extends StatelessWidget {
     final borderColor = selected
         ? colorScheme.primary
         : hasCycleRecord
-        ? AppTheme.blush.withValues(alpha: isDark ? 0.38 : 0.42)
+        ? _cycleMarkerColor(isDark).withValues(alpha: isDark ? 0.5 : 0.4)
         : hasEntries
         ? (isDark
               ? Colors.white.withValues(alpha: 0.1)
@@ -1184,7 +1191,9 @@ class _DayCell extends StatelessWidget {
                       const SizedBox(width: 3),
                     _DayMarkerDot(
                       visible: hasCycleRecord,
-                      color: selected ? AppTheme.blushLight : AppTheme.blush,
+                      color: selected
+                          ? AppTheme.fogLight
+                          : _cycleMarkerColor(isDark),
                     ),
                   ],
                 ),
@@ -1378,7 +1387,7 @@ class _SelectedCycleRecordCard extends StatelessWidget {
               children: [
                 PageIconBadge(
                   icon: Icons.water_drop_outlined,
-                  color: AppTheme.blush,
+                  color: _cycleMarkerColor(isDark),
                   size: 28,
                 ),
                 const Spacer(),
@@ -1755,9 +1764,12 @@ Color _colorForType(CalendarEntryType type) {
     CalendarEntryType.anniversary => AppTheme.blush,
     CalendarEntryType.datePlan => AppTheme.gold,
     CalendarEntryType.reminder => AppTheme.sage,
-    CalendarEntryType.cycle => AppTheme.blush,
+    CalendarEntryType.cycle => AppTheme.berry,
   };
 }
+
+Color _cycleMarkerColor(bool isDark) =>
+    isDark ? AppTheme.darkFog : AppTheme.berry;
 
 String _dateKey(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-'
