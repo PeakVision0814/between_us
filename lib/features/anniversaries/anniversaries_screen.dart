@@ -24,6 +24,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _submitting = false;
   bool _eventsLoaded = false;
   bool _loadingEvents = false;
+  bool _reloadAfterCurrentLoad = false;
   DateTime? _lastLoadTime;
 
   @visibleForTesting
@@ -106,14 +107,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
         DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
       return;
     }
-    if (_loadingEvents) return;
+    if (_loadingEvents) {
+      if (force) _reloadAfterCurrentLoad = true;
+      return;
+    }
     _loadingEvents = true;
 
     try {
+      final controller = AppScope.read(context);
+      final coupleSpaceId = controller.currentSpaceId;
+      if (!controller.hasActiveCoupleSpace || coupleSpaceId == null) {
+        if (mounted) {
+          setState(() {
+            _events = [];
+            _cycleRecords = [];
+            _eventCreators = {};
+          });
+        }
+        _lastLoadTime = DateTime.now();
+        return;
+      }
+
       final response = await Supabase.instance.client
           .from('calendar_events')
           .select()
-          .filter('deleted_at', 'is', null)
+          .eq('couple_space_id', coupleSpaceId)
+          .isFilter('deleted_at', null)
           .order('starts_at', ascending: true);
       final records = (response as List)
           .map(
@@ -124,7 +143,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final cycleResponse = await Supabase.instance.client
           .from('cycle_records')
           .select()
-          .filter('deleted_at', 'is', null)
+          .eq('couple_space_id', coupleSpaceId)
+          .isFilter('deleted_at', null)
           .order('period_start_date', ascending: true);
       final cycleRecords = (cycleResponse as List)
           .map((json) => CycleRecord.fromJson(json as Map<String, dynamic>))
@@ -141,6 +161,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       debugPrint('[Calendar] loadEvents failed: $e');
     } finally {
       _loadingEvents = false;
+      if (_reloadAfterCurrentLoad) {
+        _reloadAfterCurrentLoad = false;
+        await _loadEvents(force: true);
+      }
     }
   }
 
@@ -163,18 +187,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final coupleSpaceId = AppScope.read(context).currentSpaceId;
       if (coupleSpaceId == null) return false;
 
-      await Supabase.instance.client.from('calendar_events').insert({
-        'couple_space_id': coupleSpaceId,
-        'created_by': user.id,
-        'event_type': eventType,
-        'title': title.trim(),
-        'description': description?.trim(),
-        'starts_at': startsAt.toIso8601String(),
-        'all_day': allDay,
-        'recurrence': recurrence,
-      });
+      final inserted = await Supabase.instance.client
+          .from('calendar_events')
+          .insert({
+            'couple_space_id': coupleSpaceId,
+            'created_by': user.id,
+            'event_type': eventType,
+            'title': title.trim(),
+            'description': description?.trim(),
+            'starts_at': startsAt.toIso8601String(),
+            'all_day': allDay,
+            'recurrence': recurrence,
+          })
+          .select()
+          .single();
 
-      await _loadEvents();
+      if (mounted) {
+        _upsertEventLocally(
+          CalendarEventRecord.fromJson(inserted),
+        );
+      }
+      await _loadEvents(force: true);
       return true;
     } catch (e) {
       debugPrint('[Calendar] submitEvent failed: $e');
@@ -255,19 +288,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      await Supabase.instance.client
+      final event = _eventById(eventId);
+      final targetSpaceId = event?.coupleSpaceId ?? coupleSpaceId;
+      final deletedRows = await Supabase.instance.client
           .from('calendar_events')
           .update({'deleted_at': DateTime.now().toIso8601String()})
           .eq('id', eventId)
-          .eq('couple_space_id', coupleSpaceId)
+          .eq('couple_space_id', targetSpaceId)
           .eq('created_by', userId)
-          .filter('deleted_at', 'is', null);
+          .isFilter('deleted_at', null)
+          .select('id');
+      if ((deletedRows as List).isEmpty) {
+        throw StateError(
+          'calendar_events soft delete matched 0 rows: '
+          'eventId=$eventId, coupleSpaceId=$targetSpaceId, userId=$userId',
+        );
+      }
 
       if (mounted) {
-        setState(() {
-          _events = _events.where((event) => event.id != eventId).toList();
-          _eventCreators.remove(eventId);
-        });
+        _removeEventLocally(eventId);
       }
       await _loadEvents(force: true);
     } catch (e) {
@@ -290,13 +329,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      await Supabase.instance.client
+      final deletedRows = await Supabase.instance.client
           .from('cycle_records')
           .update({'deleted_at': DateTime.now().toIso8601String()})
           .eq('id', recordId)
           .eq('couple_space_id', coupleSpaceId)
           .eq('owner_profile_id', userId)
-          .filter('deleted_at', 'is', null);
+          .isFilter('deleted_at', null)
+          .select('id');
+      if ((deletedRows as List).isEmpty) {
+        throw StateError(
+          'cycle_records soft delete matched 0 rows: '
+          'recordId=$recordId, coupleSpaceId=$coupleSpaceId, userId=$userId',
+        );
+      }
 
       if (mounted) {
         setState(() {
@@ -315,6 +361,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
         );
       }
     }
+  }
+
+  CalendarEventRecord? _eventById(String eventId) {
+    for (final event in _events) {
+      if (event.id == eventId) return event;
+    }
+    return null;
+  }
+
+  void _upsertEventLocally(CalendarEventRecord record) {
+    setState(() {
+      _events = [
+        ..._events.where((event) => event.id != record.id),
+        record,
+      ]..sort((left, right) => left.startsAt.compareTo(right.startsAt));
+      _eventCreators = {for (final event in _events) event.id: event.createdBy};
+    });
+  }
+
+  void _removeEventLocally(String eventId) {
+    setState(() {
+      _events = _events.where((event) => event.id != eventId).toList();
+      _eventCreators.remove(eventId);
+    });
   }
 
   void _confirmDeleteEvent(String eventId, String title) {
