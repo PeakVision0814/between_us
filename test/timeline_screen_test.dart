@@ -47,29 +47,6 @@ void main() {
     expect(find.text('随记'), findsOneWidget); // toggle
   });
 
-  testWidgets(
-    'single mode: mode lead card shows plan mode title',
-    (tester) async {
-      await _pumpTimeline(tester);
-
-      // Default mode is plan, so lead card shows plan title.
-      expect(find.text('想做的事，先记在这里'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'single mode: switching to notes mode shows note lead title',
-    (tester) async {
-      await _pumpTimeline(tester);
-
-      // Switch to notes mode.
-      await tester.tap(find.text('随记'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('随手留一点，给彼此看看'), findsOneWidget);
-    },
-  );
-
   // ─── Paired mode tests ───────────────────────────────────────────────
 
   testWidgets(

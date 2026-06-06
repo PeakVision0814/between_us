@@ -969,22 +969,6 @@ class AppStrings {
     ko: '메모 작성',
   );
 
-  String get planModeLeadTitle => _resolve(
-    zhCn: '想做的事，先记在这里',
-    en: 'Jot down what you want to do',
-  );
-  String get planModeLeadSubtitle => _resolve(
-    zhCn: '不用马上定日期，想到了就先放着，等准备好了再挪去日历。',
-    en: 'No need to set a date right away. Park it here and move it to calendar when ready.',
-  );
-  String get noteModeLeadTitle => _resolve(
-    zhCn: '随手留一点，给彼此看看',
-    en: 'Leave a little something for each other',
-  );
-  String get noteModeLeadSubtitle => _resolve(
-    zhCn: '不用写很多，一句话、一个念头、一点日常碎片都好。',
-    en: 'A sentence, a thought, a small daily moment — anything counts.',
-  );
   String get switchToNotesHint => _resolve(
     zhCn: '看看随记',
     zhTw: '看看隨記',

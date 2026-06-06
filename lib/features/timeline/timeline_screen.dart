@@ -384,10 +384,6 @@ class PlansNotesScreenState extends State<PlansNotesScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ── Mode lead card ──
-          _ModeLeadCard(isPlanMode: isPlanMode),
-          const SizedBox(height: 24),
-
           if (!isPaired) ...[
             // ── Single mode: lightweight empty state ──
             PageSectionHeader(
@@ -630,55 +626,10 @@ class _ToggleChip extends StatelessWidget {
                   ? (isDark ? AppTheme.warmWhite90 : colorScheme.onSurface)
                   : (isDark
                         ? AppTheme.warmWhite60
-                        : colorScheme.onSurface.withValues(alpha: 0.5)),
+                        : colorScheme.onSurface.withValues(alpha: 0.35)),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ─── Mode Lead Card ─────────────────────────────────────────────────────
-
-class _ModeLeadCard extends StatelessWidget {
-  const _ModeLeadCard({required this.isPlanMode});
-
-  final bool isPlanMode;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return PageSurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PageIconBadge(
-            icon: isPlanMode
-                ? Icons.lightbulb_outline
-                : Icons.note_alt_outlined,
-            color: isPlanMode ? AppTheme.mint : AppTheme.blush,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isPlanMode ? strings.planModeLeadTitle : strings.noteModeLeadTitle,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isPlanMode
-                ? strings.planModeLeadSubtitle
-                : strings.noteModeLeadSubtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
       ),
     );
   }
