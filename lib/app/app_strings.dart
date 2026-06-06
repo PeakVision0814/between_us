@@ -94,6 +94,26 @@ class AppStrings {
     ja: '認証コードを受け取るメールアドレスを入力',
     ko: '인증 코드를 받을 이메일을 입력하세요',
   );
+  String get authEmailMethodLabel => _resolve(
+    zhCn: '邮箱',
+    zhTw: '電子郵件',
+    en: 'Email',
+  );
+  String get authPhoneMethodLabel => _resolve(
+    zhCn: '手机号',
+    zhTw: '手機號',
+    en: 'Phone',
+  );
+  String get authPhoneLabel => _resolve(
+    zhCn: '手机号',
+    zhTw: '手機號',
+    en: 'Phone number',
+  );
+  String get authPhoneHint => _resolve(
+    zhCn: '请输入 E.164 格式，例如 +8613812345678',
+    zhTw: '請輸入 E.164 格式，例如 +8613812345678',
+    en: 'Use E.164 format, for example +8613812345678',
+  );
   String get authOtpLabel => _resolve(
     zhCn: '验证码',
     zhTw: '驗證碼',
@@ -115,6 +135,11 @@ class AppStrings {
     ja: 'メールアドレス変更',
     ko: '이메일 변경',
   );
+  String get authChangePhoneLabel => _resolve(
+    zhCn: '更换手机号',
+    zhTw: '更換手機號',
+    en: 'Change phone',
+  );
   String get authSendSignInCodeLabel => _resolve(
     zhCn: '发送登录验证码',
     zhTw: '發送登入驗證碼',
@@ -128,6 +153,16 @@ class AppStrings {
     en: 'Send sign-up code',
     ja: '登録コードを送信',
     ko: '가입 코드 전송',
+  );
+  String get authSendPhoneSignInCodeLabel => _resolve(
+    zhCn: '发送手机号登录验证码',
+    zhTw: '發送手機號登入驗證碼',
+    en: 'Send phone sign-in code',
+  );
+  String get authSendPhoneRegisterCodeLabel => _resolve(
+    zhCn: '发送手机号注册验证码',
+    zhTw: '發送手機號註冊驗證碼',
+    en: 'Send phone sign-up code',
   );
   String get authVerifyAndSignInLabel => _resolve(
     zhCn: '验证并登录',
@@ -171,6 +206,11 @@ class AppStrings {
     ja: 'コードが$emailに送信されました',
     ko: '코드가 $email로 전송되었습니다',
   );
+  String authPhoneCodeSentTo(String phone) => _resolve(
+    zhCn: '验证码已发送至 $phone',
+    zhTw: '驗證碼已發送至 $phone',
+    en: 'A code has been sent to $phone',
+  );
   String get authOtpSentToast => _resolve(
     zhCn: '验证码已发送，请在 App 内输入 6 位验证码',
     zhTw: '驗證碼已發送，請在 App 內輸入 6 位驗證碼',
@@ -184,6 +224,16 @@ class AppStrings {
     en: 'Registration code sent. Enter the 6-digit code in the app.',
     ja: '登録コードを送信しました。App内で6桁のコードを入力してください。',
     ko: '가입 코드가 전송되었습니다. 앱에서 6자리 코드를 입력하세요.',
+  );
+  String get authPhoneOtpSentToast => _resolve(
+    zhCn: '手机号验证码已发送，请在 App 内输入 6 位验证码',
+    zhTw: '手機號驗證碼已發送，請在 App 內輸入 6 位驗證碼',
+    en: 'Phone code sent. Enter the 6-digit code in the app.',
+  );
+  String get authPhoneRegisterOtpSentToast => _resolve(
+    zhCn: '手机号注册验证码已发送，请在 App 内输入 6 位验证码',
+    zhTw: '手機號註冊驗證碼已發送，請在 App 內輸入 6 位驗證碼',
+    en: 'Phone registration code sent. Enter the 6-digit code in the app.',
   );
   String get authInitializeFailedMessage => _resolve(
     zhCn: '登录服务初始化失败，请检查 Supabase 配置后重试。',
@@ -199,6 +249,11 @@ class AppStrings {
     ja: '有効なメールアドレスを入力してください。',
     ko: '유효한 이메일 주소를 입력하세요.',
   );
+  String get authInvalidPhoneMessage => _resolve(
+    zhCn: '请输入 E.164 格式的手机号，例如 +8613812345678。',
+    zhTw: '請輸入 E.164 格式的手機號，例如 +8613812345678。',
+    en: 'Enter a phone number in E.164 format, for example +8613812345678.',
+  );
   String get authOtpSendFailedMessage => _resolve(
     zhCn: '验证码发送失败，请稍后重试。',
     zhTw: '驗證碼發送失敗，請稍後重試。',
@@ -212,6 +267,16 @@ class AppStrings {
     en: 'Failed to create the account. Please try again later.',
     ja: 'アカウントの作成に失敗しました。後でもう一度お試しください。',
     ko: '계정 생성에 실패했습니다. 나중에 다시 시도하세요.',
+  );
+  String get authPhoneOtpSendFailedMessage => _resolve(
+    zhCn: '手机号验证码发送失败，请稍后重试。',
+    zhTw: '手機號驗證碼發送失敗，請稍後重試。',
+    en: 'Failed to send the phone verification code. Please try again later.',
+  );
+  String get authPhoneSignUpSendFailedMessage => _resolve(
+    zhCn: '手机号创建账号失败，请稍后重试。',
+    zhTw: '手機號建立帳號失敗，請稍後重試。',
+    en: 'Failed to create the phone account. Please try again later.',
   );
   String get authUserNotRegisteredMessage => _resolve(
     zhCn: '该邮箱尚未注册，请先创建账号。',
@@ -227,12 +292,28 @@ class AppStrings {
     ja: 'このメールアドレスは既に登録されています。ログインしてください。',
     ko: '이 이메일은 이미 등록되어 있습니다. 로그인하세요.',
   );
+  String get authPhoneUserNotRegisteredMessage => _resolve(
+    zhCn: '该手机号尚未注册，请先创建账号。',
+    zhTw: '該手機號尚未註冊，請先建立帳號。',
+    en:
+        'This phone number is not registered yet. Please create an account first.',
+  );
+  String get authPhoneUserAlreadyRegisteredMessage => _resolve(
+    zhCn: '该手机号已经注册，请直接登录。',
+    zhTw: '該手機號已經註冊，請直接登入。',
+    en: 'This phone number is already registered. Please sign in instead.',
+  );
   String get authMissingPendingEmailMessage => _resolve(
     zhCn: '请先输入邮箱并发送验证码。',
     zhTw: '請先輸入電子郵件並發送驗證碼。',
     en: 'Enter your email and request a code first.',
     ja: 'メールアドレスを入力してコードをリクエストしてください。',
     ko: '이메일을 입력하고 코드를 요청하세요.',
+  );
+  String get authMissingPendingPhoneMessage => _resolve(
+    zhCn: '请先输入手机号并发送验证码。',
+    zhTw: '請先輸入手機號並發送驗證碼。',
+    en: 'Enter your phone number and request a code first.',
   );
   String get authInvalidTokenLengthMessage => _resolve(
     zhCn: '请输入 6 位验证码。',

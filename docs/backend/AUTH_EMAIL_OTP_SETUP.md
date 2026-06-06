@@ -1,11 +1,17 @@
-# Supabase Email OTP Setup
+# Supabase OTP Auth Setup
 
-This note covers only the current Email OTP login path for Between Us.
+This note covers the current Email OTP path and the reserved Phone OTP code
+path for Between Us.
 
 ## Repo state
 
 - Flutter sends email OTP with `Supabase.instance.client.auth.signInWithOtp(email: ...)`.
 - Flutter verifies the 6-digit code with `verifyOTP(email: ..., token: ..., type: OtpType.email)`.
+- Flutter now also reserves Phone OTP calls:
+  - Sign in: `signInWithOtp(phone: ..., shouldCreateUser: false)`
+  - Sign up: `signInWithOtp(phone: ..., shouldCreateUser: true)`
+  - Verify: `verifyOTP(phone: ..., token: ..., type: OtpType.sms)`
+- Phone numbers are lightly validated as E.164 strings, for example `+8613812345678`.
 - Local Supabase CLI config now pins the `magic_link` email template to `supabase/templates/magic_link.html`, and that template renders `{{ .Token }}` as the primary content.
 - The checked-in Flutter defaults still point to the local emulator:
   - `SUPABASE_URL` default: `http://10.0.2.2:54321`
@@ -28,6 +34,11 @@ Required hosted settings:
    - Custom SMTP enabled
    - Valid SMTP host, port, username, password or API key, sender email, and sender name configured
    - A sender domain/provider that can deliver to real inboxes is configured
+4. Auth -> Providers -> Phone
+   - Phone provider enabled before private Beta phone testing
+   - A Supabase SMS Provider configured, or a Send SMS Hook configured
+   - For mainland China private testing, prefer Send SMS Hook connected to a
+     domestic SMS provider such as Aliyun SMS or Tencent Cloud SMS
 
 ## Default test-email limitation
 
@@ -51,11 +62,27 @@ Notes:
 - The variable name is `SUPABASE_ANON_KEY`, but the current checked-in default value is a publishable-style key. For hosted testing, pass the project's client-safe key through that same define.
 - If these defines are omitted, the app talks to the local Supabase emulator and cannot verify hosted SMTP delivery.
 
+## Phone OTP delivery boundary
+
+This development stage only implements the Flutter product entry, pending state,
+Supabase Auth API calls, and widget tests for Phone OTP. It does not add an SMS
+provider SDK, does not commit provider credentials, does not implement a custom
+verification-code backend, and does not generate verification codes in the
+Flutter client.
+
+Real SMS delivery depends on configuring Supabase Phone Auth for the target
+hosted project before private Beta. Use either Supabase's supported SMS Provider
+configuration or a Send SMS Hook. For domestic private testing in China, the
+recommended follow-up is Send SMS Hook plus Aliyun SMS, Tencent Cloud SMS, or a
+similar domestic provider.
+
 ## What this repo can and cannot prove today
 
 Confirmed from code/config:
 
 - The app is wired for Email OTP, not magic-link redirect login.
+- The app has a reserved Phone OTP frontend path using Supabase Auth's phone
+  OTP methods.
 - The local Supabase template now renders a 6-digit token as the primary email content.
 
 Not confirmed from this repo alone:
@@ -64,6 +91,8 @@ Not confirmed from this repo alone:
 - Whether the hosted project has custom SMTP enabled
 - Whether the hosted template has already been changed to `{{ .Token }}`
 - Whether the hosted project is still using the default test-email sender
+- Whether the hosted project has Phone Auth enabled
+- Which SMS Provider or Send SMS Hook will deliver real phone codes
 
 ## Verification steps for the product manager session
 
@@ -74,3 +103,5 @@ Use the target hosted Supabase project and verify these facts directly:
 3. Confirm the email is delivered by the configured SMTP provider, not the default test sender.
 4. Launch Flutter with the hosted `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 5. Complete `signInWithOtp -> verifyOTP(type: email)` end-to-end inside the app.
+6. Before private Beta, enable Phone Auth, configure SMS delivery, then complete
+   `signInWithOtp(phone: ...) -> verifyOTP(type: sms)` end-to-end inside the app.

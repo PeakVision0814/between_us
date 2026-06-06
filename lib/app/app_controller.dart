@@ -9,7 +9,13 @@ export 'language_config.dart' show AppLanguage;
 
 enum AppThemePreference { system, light, dark }
 
-enum AppAuthStatus { initializing, unauthenticated, otpSent, authenticated }
+enum AppAuthStatus {
+  initializing,
+  unauthenticated,
+  otpSent,
+  phoneOtpSent,
+  authenticated,
+}
 
 class AppController extends ChangeNotifier {
   static const String defaultDisplayNamePlaceholder = '新的用户';
@@ -24,6 +30,7 @@ class AppController extends ChangeNotifier {
   String? _supabaseFailureReason;
   AppAuthStatus _authStatus = AppAuthStatus.initializing;
   String? _pendingEmail;
+  String? _pendingPhone;
   String? _authErrorCode;
   bool _authBusy = false;
   String? _loadedPreferencesUserId;
@@ -50,6 +57,7 @@ class AppController extends ChangeNotifier {
   String? get supabaseFailureReason => _supabaseFailureReason;
   AppAuthStatus get authStatus => _authStatus;
   String? get pendingEmail => _pendingEmail;
+  String? get pendingPhone => _pendingPhone;
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
@@ -99,6 +107,7 @@ class AppController extends ChangeNotifier {
     _authBusy = false;
     _authErrorCode = null;
     _pendingEmail = null;
+    _pendingPhone = null;
     _authStatus = AppAuthStatus.initializing;
     _supabaseReady = false;
     _supabaseFailureReason = null;
@@ -193,6 +202,7 @@ class AppController extends ChangeNotifier {
         shouldCreateUser: false,
       );
       _pendingEmail = normalizedEmail;
+      _pendingPhone = null;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
       return true;
@@ -228,6 +238,7 @@ class AppController extends ChangeNotifier {
         shouldCreateUser: true,
       );
       _pendingEmail = normalizedEmail;
+      _pendingPhone = null;
       _authStatus = AppAuthStatus.otpSent;
       _authErrorCode = null;
       return true;
@@ -236,6 +247,59 @@ class AppController extends ChangeNotifier {
       _authErrorCode = _isUserAlreadyRegisteredError(error)
           ? 'user_already_registered'
           : 'signup_send_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<bool> sendPhoneOtpForSignIn(String phone) async {
+    return _sendPhoneOtp(phone: phone, shouldCreateUser: false);
+  }
+
+  Future<bool> sendPhoneOtpForSignUp(String phone) async {
+    return _sendPhoneOtp(phone: phone, shouldCreateUser: true);
+  }
+
+  Future<bool> _sendPhoneOtp({
+    required String phone,
+    required bool shouldCreateUser,
+  }) async {
+    final normalizedPhone = phone.trim();
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (!_looksLikeE164Phone(normalizedPhone)) {
+      _setAuthError('invalid_phone');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.signInWithOtp(
+        phone: normalizedPhone,
+        shouldCreateUser: shouldCreateUser,
+      );
+      _pendingEmail = null;
+      _pendingPhone = normalizedPhone;
+      _authStatus = AppAuthStatus.phoneOtpSent;
+      _authErrorCode = null;
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Send phone OTP failed: $error');
+      if (!shouldCreateUser && _isUserNotRegisteredError(error)) {
+        _authErrorCode = 'phone_user_not_registered';
+      } else if (shouldCreateUser && _isUserAlreadyRegisteredError(error)) {
+        _authErrorCode = 'phone_user_already_registered';
+      } else {
+        _authErrorCode = shouldCreateUser
+            ? 'phone_signup_send_failed'
+            : 'phone_otp_send_failed';
+      }
       return false;
     } finally {
       _setAuthBusy(false);
@@ -281,6 +345,45 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> verifyPhoneOtp(String token) async {
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (_pendingPhone == null) {
+      _setAuthError('missing_pending_phone');
+      return false;
+    }
+
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      _setAuthError('invalid_token_length');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        phone: _pendingPhone,
+        token: normalizedToken,
+        type: OtpType.sms,
+      );
+      await _syncSession(
+        response.session ?? Supabase.instance.client.auth.currentSession,
+      );
+      return isAuthenticated;
+    } catch (error) {
+      debugPrint('[Auth] Verify phone OTP failed: $error');
+      _authErrorCode = 'otp_verify_failed';
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
   Future<bool> signOut() async {
     if (!_supabaseReady) {
       _setAuthError('initialize_failed');
@@ -313,6 +416,7 @@ class AppController extends ChangeNotifier {
 
   void returnToEmailEntry() {
     _pendingEmail = null;
+    _pendingPhone = null;
     _authErrorCode = null;
     if (_authStatus != AppAuthStatus.unauthenticated) {
       _authStatus = AppAuthStatus.unauthenticated;
@@ -320,6 +424,29 @@ class AppController extends ChangeNotifier {
     } else {
       notifyListeners();
     }
+  }
+
+  void returnToPhoneEntry() {
+    _pendingEmail = null;
+    _pendingPhone = null;
+    _authErrorCode = null;
+    if (_authStatus != AppAuthStatus.unauthenticated) {
+      _authStatus = AppAuthStatus.unauthenticated;
+      notifyListeners();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void clearPendingAuthState() {
+    _pendingEmail = null;
+    _pendingPhone = null;
+    _authErrorCode = null;
+    if (_authStatus == AppAuthStatus.otpSent ||
+        _authStatus == AppAuthStatus.phoneOtpSent) {
+      _authStatus = AppAuthStatus.unauthenticated;
+    }
+    notifyListeners();
   }
 
   void clearAuthError() {
@@ -763,6 +890,10 @@ class AppController extends ChangeNotifier {
       _pendingEmail = null;
       shouldNotify = true;
     }
+    if (_pendingPhone != null) {
+      _pendingPhone = null;
+      shouldNotify = true;
+    }
     if (_authErrorCode != null) {
       _authErrorCode = null;
       shouldNotify = true;
@@ -856,6 +987,7 @@ class AppController extends ChangeNotifier {
     _unsubscribeFromRealtime();
     _authStatus = AppAuthStatus.unauthenticated;
     _pendingEmail = null;
+    _pendingPhone = null;
     _authErrorCode = null;
     _loadedPreferencesUserId = null;
     _displayName = null;
@@ -907,6 +1039,10 @@ class AppController extends ChangeNotifier {
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  bool _looksLikeE164Phone(String value) {
+    return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(value);
   }
 
   Future<String?> _loadOrCreateCurrentSpaceId(
@@ -1017,6 +1153,7 @@ class AppController extends ChangeNotifier {
     required AppAuthStatus status,
     bool supabaseReady = false,
     String? pendingEmail,
+    String? pendingPhone,
     String? authErrorCode,
     String? displayName,
     String? gender,
@@ -1032,6 +1169,7 @@ class AppController extends ChangeNotifier {
     _authStatus = status;
     _supabaseReady = supabaseReady;
     _pendingEmail = pendingEmail;
+    _pendingPhone = pendingPhone;
     _authErrorCode = authErrorCode;
     _displayName = displayName;
     _gender = gender;

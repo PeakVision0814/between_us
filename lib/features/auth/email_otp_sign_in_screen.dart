@@ -14,11 +14,13 @@ class EmailOtpSignInScreen extends StatefulWidget {
 
 class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
+    _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
   }
@@ -36,9 +38,29 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
     );
   }
 
+  Future<void> _sendPhoneCode() async {
+    final controller = AppScope.read(context);
+    final success = await controller.sendPhoneOtpForSignIn(
+      _phoneController.text,
+    );
+    if (!mounted || !success) {
+      return;
+    }
+
+    _codeController.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppStrings.of(context).authPhoneOtpSentToast)),
+    );
+  }
+
   Future<void> _verifyCode() async {
     final controller = AppScope.read(context);
     await controller.verifyEmailOtp(_codeController.text);
+  }
+
+  Future<void> _verifyPhoneCode() async {
+    final controller = AppScope.read(context);
+    await controller.verifyPhoneOtp(_codeController.text);
   }
 
   void _openRegister() {
@@ -55,9 +77,12 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
     return AuthEmailFlowScaffold(
       mode: AuthEmailFlowMode.signIn,
       emailController: _emailController,
+      phoneController: _phoneController,
       codeController: _codeController,
       onPrimarySubmit: _sendCode,
+      onPhoneSubmit: _sendPhoneCode,
       onVerifyCode: _verifyCode,
+      onVerifyPhoneCode: _verifyPhoneCode,
       onSwitchMode: _openRegister,
     );
   }
