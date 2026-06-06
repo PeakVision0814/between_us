@@ -5,6 +5,7 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../data/models/calendar_event_record.dart';
+import '../../data/models/cycle_record.dart';
 import '../../shared/widgets/page_visual_language.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDate;
   late DateTime _displayMonth;
   List<CalendarEventRecord> _events = [];
+  List<CycleRecord> _cycleRecords = [];
   Map<String, String> _eventCreators = {};
   bool _submitting = false;
   bool _eventsLoaded = false;
@@ -29,6 +31,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     setState(() {
       _events = events;
       _eventCreators = {for (final e in events) e.id: e.createdBy};
+      _eventsLoaded = true;
+    });
+  }
+
+  @visibleForTesting
+  void debugSetCycleRecords(List<CycleRecord> records) {
+    setState(() {
+      _cycleRecords = records;
       _eventsLoaded = true;
     });
   }
@@ -111,9 +121,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 CalendarEventRecord.fromJson(json as Map<String, dynamic>),
           )
           .toList();
+      final cycleResponse = await Supabase.instance.client
+          .from('cycle_records')
+          .select()
+          .filter('deleted_at', 'is', null)
+          .order('period_start_date', ascending: true);
+      final cycleRecords = (cycleResponse as List)
+          .map((json) => CycleRecord.fromJson(json as Map<String, dynamic>))
+          .toList();
       if (mounted) {
         setState(() {
           _events = records;
+          _cycleRecords = cycleRecords;
           _eventCreators = {for (final e in records) e.id: e.createdBy};
         });
       }
@@ -167,6 +186,59 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  Future<bool> _submitCycleRecord({
+    String? id,
+    required DateTime periodStartDate,
+    DateTime? periodEndDate,
+    String? note,
+  }) async {
+    final controller = AppScope.read(context);
+    if (!controller.canUseCycleRecords) return false;
+
+    setState(() => _submitting = true);
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return false;
+      final coupleSpaceId = controller.currentSpaceId;
+      if (coupleSpaceId == null) return false;
+
+      final payload = {
+        'period_start_date': _formatDateForStorage(periodStartDate),
+        'period_end_date': periodEndDate == null
+            ? null
+            : _formatDateForStorage(periodEndDate),
+        'note': note?.trim().isEmpty == true ? null : note?.trim(),
+      };
+
+      if (id == null) {
+        await Supabase.instance.client.from('cycle_records').insert({
+          ...payload,
+          'couple_space_id': coupleSpaceId,
+          'owner_profile_id': user.id,
+          'shared_with_partner': controller.cycleSharingEnabled,
+        });
+      } else {
+        await Supabase.instance.client
+            .from('cycle_records')
+            .update(payload)
+            .eq('id', id)
+            .eq('couple_space_id', coupleSpaceId)
+            .eq('owner_profile_id', user.id);
+      }
+
+      await _loadEvents(force: true);
+      return true;
+    } catch (e) {
+      debugPrint('[Calendar] submitCycleRecord failed: $e');
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
   Future<void> _deleteEvent(String eventId) async {
     if (!AppScope.read(context).hasActiveCoupleSpace) return;
     final coupleSpaceId = AppScope.read(context).currentSpaceId;
@@ -187,6 +259,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final strings = AppStrings.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(strings.calendarDeleteFailedError)),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteCycleRecord(String recordId) async {
+    final controller = AppScope.read(context);
+    if (!controller.canUseCycleRecords) return;
+    final coupleSpaceId = controller.currentSpaceId;
+    final userId = controller.selfProfileId;
+    if (coupleSpaceId == null || userId == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('cycle_records')
+          .update({'deleted_at': DateTime.now().toIso8601String()})
+          .eq('id', recordId)
+          .eq('couple_space_id', coupleSpaceId)
+          .eq('owner_profile_id', userId)
+          .filter('deleted_at', 'is', null);
+
+      await _loadEvents(force: true);
+    } catch (e) {
+      debugPrint('[Calendar] deleteCycleRecord failed: $e');
+      if (mounted) {
+        final strings = AppStrings.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.cycleDeleteFailedError)),
         );
       }
     }
@@ -217,8 +317,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  void _confirmDeleteCycleRecord(CycleRecord record) {
+    final strings = AppStrings.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.cycleDeleteConfirmTitle),
+        content: Text(strings.cycleDeleteConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(strings.profileCancelLabel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _deleteCycleRecord(record.id);
+            },
+            child: Text(strings.calendarDeleteButton),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateDialog() {
     final strings = AppStrings.of(context);
+    final canUseCycleRecords = AppScope.read(context).canUseCycleRecords;
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     DateTime selectedDate = _selectedDate ?? DateTime.now();
@@ -267,6 +393,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         }
                       },
                     ),
+                    if (canUseCycleRecords)
+                      ChoiceChip(
+                        label: Text(
+                          strings.calendarTypeLabel(CalendarEntryType.cycle),
+                        ),
+                        selected: selectedType == 'cycle',
+                        onSelected: (selected) {
+                          if (selected) {
+                            Navigator.pop(context);
+                            _showCycleDialog();
+                          }
+                        },
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -384,6 +523,128 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  void _showCycleDialog({CycleRecord? record}) {
+    final strings = AppStrings.of(context);
+    final noteController = TextEditingController(text: record?.note ?? '');
+    DateTime startDate = record?.periodStartDate ??
+        _selectedDate ??
+        DateTime.now();
+    DateTime? endDate = record?.periodEndDate;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            record == null
+                ? strings.cycleCreateDialogTitle
+                : strings.cycleEditDialogTitle,
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(strings.cycleStartDateLabel),
+                  subtitle: Text(_formatDateLabel(context, startDate)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: startDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        startDate = _dateOnly(picked);
+                        if (endDate != null && endDate!.isBefore(startDate)) {
+                          endDate = startDate;
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_available_outlined),
+                  title: Text(strings.cycleEndDateLabel),
+                  subtitle: Text(
+                    endDate == null
+                        ? strings.cycleEndDateUnsetLabel
+                        : _formatDateLabel(context, endDate!),
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: endDate ?? startDate,
+                      firstDate: startDate,
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => endDate = _dateOnly(picked));
+                    }
+                  },
+                  trailing: endDate == null
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            setDialogState(() => endDate = null);
+                          },
+                          icon: const Icon(Icons.close, size: 18),
+                          tooltip: strings.cycleEndDateUnsetLabel,
+                        ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  decoration: InputDecoration(hintText: strings.cycleNoteHint),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.profileCancelLabel),
+            ),
+            FilledButton(
+              onPressed: _submitting
+                  ? null
+                  : () async {
+                      final success = await _submitCycleRecord(
+                        id: record?.id,
+                        periodStartDate: startDate,
+                        periodEndDate: endDate,
+                        note: noteController.text,
+                      );
+
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(strings.cycleCreateFailedError),
+                          ),
+                        );
+                      }
+                    },
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.cycleSaveButton),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -408,9 +669,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final now = DateTime.now();
 
     final entries = _events.map(_recordToEntry).toList();
+    final visibleCycleRecords = _visibleCycleRecords(AppScope.of(context));
 
     final entriesByDay = _groupEntriesByDay(
       entries: entries,
+      visibleDays: visibleDays,
+    );
+    final cycleRecordsByDay = _groupCycleRecordsByDay(
+      records: visibleCycleRecords,
       visibleDays: visibleDays,
     );
     final selectedEntries =
@@ -422,6 +688,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
             left,
             _selectedDate!,
           ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
+        );
+    final selectedCycleRecords =
+        [
+          ...(cycleRecordsByDay[_dateKey(_selectedDate!)] ??
+              const <CycleRecord>[]),
+        ]..sort(
+          (left, right) =>
+              left.periodStartDate.compareTo(right.periodStartDate),
         );
     final upcomingEntries = _getUpcomingEntries(entries, now);
 
@@ -460,6 +734,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   visibleDays: visibleDays,
                   selectedDate: _selectedDate!,
                   entriesByDay: entriesByDay,
+                  cycleRecordsByDay: cycleRecordsByDay,
                   onSelectDate: (day) {
                     setState(() {
                       _selectedDate = _dateOnly(day);
@@ -491,9 +766,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 14),
-                    if (selectedEntries.isEmpty)
+                    if (selectedEntries.isEmpty && selectedCycleRecords.isEmpty)
                       _SelectedDayEmptyState(strings: strings, isDark: isDark)
-                    else
+                    else ...[
+                      ...selectedCycleRecords.map(
+                        (record) {
+                          final isOwner =
+                              record.ownerProfileId ==
+                              AppScope.of(context).selfProfileId;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SelectedCycleRecordCard(
+                              record: record,
+                              isDark: isDark,
+                              isOwner: isOwner,
+                              onEdit: isOwner
+                                  ? () => _showCycleDialog(record: record)
+                                  : null,
+                              onDelete: isOwner
+                                  ? () => _confirmDeleteCycleRecord(record)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
                       ...selectedEntries.map(
                         (entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -507,6 +803,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -596,6 +893,43 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return grouped;
   }
 
+  Map<String, List<CycleRecord>> _groupCycleRecordsByDay({
+    required List<CycleRecord> records,
+    required List<DateTime> visibleDays,
+  }) {
+    final grouped = <String, List<CycleRecord>>{};
+
+    for (final day in visibleDays) {
+      final items = records.where((record) => _cycleOccursOn(record, day));
+      for (final item in items) {
+        (grouped[_dateKey(day)] ??= []).add(item);
+      }
+    }
+
+    return grouped;
+  }
+
+  List<CycleRecord> _visibleCycleRecords(AppController controller) {
+    final selfId = controller.selfProfileId;
+    if (selfId == null) {
+      return const [];
+    }
+    return _cycleRecords
+        .where(
+          (record) =>
+              record.deletedAt == null &&
+              (record.ownerProfileId == selfId || record.sharedWithPartner),
+        )
+        .toList();
+  }
+
+  static bool _cycleOccursOn(CycleRecord record, DateTime day) {
+    final date = _dateOnly(day);
+    final start = _dateOnly(record.periodStartDate);
+    final end = _dateOnly(record.periodEndDate ?? record.periodStartDate);
+    return !date.isBefore(start) && !date.isAfter(end);
+  }
+
   static DateTime _occurrenceOnDay(CalendarEntryData entry, DateTime day) {
     if (entry.repeatRule == CalendarRepeatRule.yearly) {
       return DateTime(
@@ -612,6 +946,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   static DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
+
+  static String _formatDateForStorage(DateTime value) {
+    final normalized = _dateOnly(value);
+    final month = normalized.month.toString().padLeft(2, '0');
+    final day = normalized.day.toString().padLeft(2, '0');
+    return '${normalized.year}-$month-$day';
+  }
+
+  String _formatDateLabel(BuildContext context, DateTime date) {
+    return AppStrings.of(context).formatCalendarDate(_dateOnly(date));
+  }
 }
 
 // ─── Month View ─────────────────────────────────────────────────────────
@@ -622,6 +967,7 @@ class _MonthView extends StatelessWidget {
     required this.visibleDays,
     required this.selectedDate,
     required this.entriesByDay,
+    required this.cycleRecordsByDay,
     required this.onSelectDate,
     required this.isDark,
     this.onAddEvent,
@@ -633,6 +979,7 @@ class _MonthView extends StatelessWidget {
   final List<DateTime> visibleDays;
   final DateTime selectedDate;
   final Map<String, List<CalendarEntryData>> entriesByDay;
+  final Map<String, List<CycleRecord>> cycleRecordsByDay;
   final ValueChanged<DateTime> onSelectDate;
   final bool isDark;
   final VoidCallback? onAddEvent;
@@ -722,6 +1069,8 @@ class _MonthView extends StatelessWidget {
                         inMonth: day.month == displayMonth.month,
                         selected: _sameDate(day, selectedDate),
                         hasEntries: entriesByDay.containsKey(_dateKey(day)),
+                        hasCycleRecord:
+                            cycleRecordsByDay.containsKey(_dateKey(day)),
                         onTap: () => onSelectDate(day),
                         isDark: isDark,
                       ),
@@ -747,6 +1096,7 @@ class _DayCell extends StatelessWidget {
     required this.inMonth,
     required this.selected,
     required this.hasEntries,
+    required this.hasCycleRecord,
     required this.onTap,
     required this.isDark,
   });
@@ -755,6 +1105,7 @@ class _DayCell extends StatelessWidget {
   final bool inMonth;
   final bool selected;
   final bool hasEntries;
+  final bool hasCycleRecord;
   final VoidCallback onTap;
   final bool isDark;
 
@@ -764,13 +1115,17 @@ class _DayCell extends StatelessWidget {
 
     final background = selected
         ? colorScheme.primary
-        : (hasEntries
+        : (hasCycleRecord
+              ? AppTheme.blush.withValues(alpha: isDark ? 0.16 : 0.13)
+              : hasEntries
               ? (isDark
                     ? Colors.white.withValues(alpha: 0.06)
                     : colorScheme.primary.withValues(alpha: 0.1))
               : Colors.transparent);
     final borderColor = selected
         ? colorScheme.primary
+        : hasCycleRecord
+        ? AppTheme.blush.withValues(alpha: isDark ? 0.38 : 0.42)
         : hasEntries
         ? (isDark
               ? Colors.white.withValues(alpha: 0.1)
@@ -808,31 +1163,55 @@ class _DayCell extends StatelessWidget {
                   '${date.day}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: textColor,
-                    fontWeight: selected || hasEntries
+                    fontWeight: selected || hasEntries || hasCycleRecord
                         ? FontWeight.w700
                         : FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 3),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: hasEntries
-                        ? (selected
-                              ? colorScheme.onPrimary
-                              : (isDark
-                                    ? AppTheme.heroGlowBlush
-                                    : colorScheme.primary))
-                        : Colors.transparent,
-                    shape: BoxShape.circle,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _DayMarkerDot(
+                      visible: hasEntries,
+                      color: selected
+                          ? colorScheme.onPrimary
+                          : (isDark
+                                ? AppTheme.heroGlowBlush
+                                : colorScheme.primary),
+                    ),
+                    if (hasEntries && hasCycleRecord)
+                      const SizedBox(width: 3),
+                    _DayMarkerDot(
+                      visible: hasCycleRecord,
+                      color: selected ? AppTheme.blushLight : AppTheme.blush,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DayMarkerDot extends StatelessWidget {
+  const _DayMarkerDot({required this.visible, required this.color});
+
+  final bool visible;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: visible ? color : Colors.transparent,
+        shape: BoxShape.circle,
       ),
     );
   }
@@ -953,6 +1332,116 @@ class _SelectedEntryCard extends StatelessWidget {
       strings.createdByLabel(name),
       style: theme.textTheme.bodySmall?.copyWith(
         color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+class _SelectedCycleRecordCard extends StatelessWidget {
+  const _SelectedCycleRecordCard({
+    required this.record,
+    required this.isDark,
+    required this.isOwner,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  final CycleRecord record;
+  final bool isDark;
+  final bool isOwner;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final start = strings.formatCalendarDate(record.periodStartDate);
+    final end = record.periodEndDate == null
+        ? null
+        : strings.formatCalendarDate(record.periodEndDate!);
+    final range = end == null
+        ? start
+        : '$start ${strings.cycleDateRangeSeparator} $end';
+
+    return PageSurfaceCard(
+      variant: PageSurfaceVariant.secondary,
+      padding: EdgeInsets.zero,
+      child: Padding(
+        key: ValueKey('cycle-detail-${record.id}'),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                PageIconBadge(
+                  icon: Icons.water_drop_outlined,
+                  color: AppTheme.blush,
+                  size: 28,
+                ),
+                const Spacer(),
+                Flexible(
+                  child: _MetaChip(
+                    label: isOwner
+                        ? (record.sharedWithPartner
+                              ? strings.cycleSharedLabel
+                              : strings.cyclePrivateLabel)
+                        : strings.cyclePartnerRecordLabel,
+                  ),
+                ),
+                if (onEdit != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    tooltip: strings.profileEditLabel,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                ],
+                if (onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: strings.calendarDeleteButton,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              strings.calendarTypeLabel(CalendarEntryType.cycle),
+              key: ValueKey('cycle-detail-title-${record.id}'),
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
+            Text(range, style: theme.textTheme.bodyMedium),
+            if (record.note != null && record.note!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                record.note!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1257,6 +1746,7 @@ IconData _iconForType(CalendarEntryType type) {
     CalendarEntryType.anniversary => Icons.favorite_rounded,
     CalendarEntryType.datePlan => Icons.event_available_outlined,
     CalendarEntryType.reminder => Icons.notifications_outlined,
+    CalendarEntryType.cycle => Icons.water_drop_outlined,
   };
 }
 
@@ -1265,6 +1755,7 @@ Color _colorForType(CalendarEntryType type) {
     CalendarEntryType.anniversary => AppTheme.blush,
     CalendarEntryType.datePlan => AppTheme.gold,
     CalendarEntryType.reminder => AppTheme.sage,
+    CalendarEntryType.cycle => AppTheme.blush,
   };
 }
 

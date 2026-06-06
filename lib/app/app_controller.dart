@@ -30,6 +30,7 @@ class AppController extends ChangeNotifier {
   String? _displayName;
   String? _gender;
   DateTime? _birthday;
+  bool _cycleSharingEnabled = false;
   String? _selfProfileId;
   String? _currentSpaceId;
   int _memberCount = 0;
@@ -56,6 +57,9 @@ class AppController extends ChangeNotifier {
   String? get displayName => _displayName;
   String? get gender => _gender;
   DateTime? get birthday => _birthday;
+  bool get cycleSharingEnabled => _cycleSharingEnabled;
+  bool get canUseCycleRecords =>
+      gender == genderFemale && hasActiveCoupleSpace;
   String? get email {
     try {
       return Supabase.instance.client.auth.currentUser?.email;
@@ -422,6 +426,11 @@ class AppController extends ChangeNotifier {
         _birthday = birthday;
         changed = true;
       }
+      final cycleSharing = profile['cycle_sharing_enabled'] as bool?;
+      if (cycleSharing != null && _cycleSharingEnabled != cycleSharing) {
+        _cycleSharingEnabled = cycleSharing;
+        changed = true;
+      }
       if (_currentSpaceId != currentSpaceId) {
         _currentSpaceId = currentSpaceId;
         changed = true;
@@ -612,6 +621,17 @@ class AppController extends ChangeNotifier {
           ),
           callback: (_) => _onRealtimeDataChanged(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'cycle_records',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
         .subscribe();
   }
 
@@ -638,6 +658,41 @@ class AppController extends ChangeNotifier {
   Future<void> refreshAllData() async {
     _loadedPreferencesUserId = null;
     await loadPreferences(force: true);
+  }
+
+  Future<bool> setCycleSharingEnabled(bool enabled) async {
+    if (_cycleSharingEnabled == enabled) {
+      return true;
+    }
+    if (!_supabaseReady) {
+      return false;
+    }
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      return false;
+    }
+
+    final previousValue = _cycleSharingEnabled;
+    _cycleSharingEnabled = enabled;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'cycle_sharing_enabled': enabled})
+          .eq('id', userId);
+      await Supabase.instance.client
+          .from('cycle_records')
+          .update({'shared_with_partner': enabled})
+          .eq('owner_profile_id', userId)
+          .filter('deleted_at', 'is', null);
+      return true;
+    } catch (error) {
+      debugPrint('[Profile] Save cycle sharing failed: $error');
+      _cycleSharingEnabled = previousValue;
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearProfileError() {
@@ -753,6 +808,7 @@ class AppController extends ChangeNotifier {
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool cycleSharingEnabled = false,
     String? currentSpaceId,
     int memberCount = 0,
     String? partnerDisplayName,
@@ -762,6 +818,7 @@ class AppController extends ChangeNotifier {
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _cycleSharingEnabled = cycleSharingEnabled;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
@@ -804,6 +861,7 @@ class AppController extends ChangeNotifier {
     _displayName = null;
     _gender = null;
     _birthday = null;
+    _cycleSharingEnabled = false;
     _selfProfileId = null;
     _currentSpaceId = null;
     _memberCount = 0;
@@ -963,6 +1021,7 @@ class AppController extends ChangeNotifier {
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool cycleSharingEnabled = false,
     String? selfProfileId,
     String? currentSpaceId,
     int memberCount = 0,
@@ -977,6 +1036,7 @@ class AppController extends ChangeNotifier {
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _cycleSharingEnabled = cycleSharingEnabled;
     _selfProfileId = selfProfileId;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
