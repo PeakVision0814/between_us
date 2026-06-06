@@ -6,6 +6,7 @@ import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
 import 'appearance_settings_screen.dart';
 import 'notification_settings_screen.dart';
+import 'privacy_settings_screen.dart';
 import 'profile_screen.dart';
 
 class SettingsMoreScreen extends StatelessWidget {
@@ -101,6 +102,26 @@ class SettingsMoreScreen extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const NotificationSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  PageDivider(indent: 56),
+                  PageListItem(
+                    key: const ValueKey('privacy-sharing-entry'),
+                    leading: Icon(
+                      Icons.shield_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: strings.privacySettingsTitle,
+                    subtitle: controller.cycleSharingEnabled
+                        ? strings.cycleSharingEnabledLabel
+                        : strings.cycleSharingDisabledLabel,
+                    trailing: _chevron(isDark, theme),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const PrivacySettingsScreen(),
                         ),
                       );
                     },
