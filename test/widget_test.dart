@@ -7,6 +7,8 @@ import 'package:between_us/features/anniversaries/anniversaries_screen.dart'
     show CalendarScreen;
 import 'package:between_us/features/settings/settings_screen.dart'
     show SpaceStatusScreen, ExitRequestSnapshot;
+import 'package:between_us/features/settings/account_security_screen.dart';
+import 'package:between_us/features/settings/profile_screen.dart';
 import 'package:between_us/features/timeline/timeline_screen.dart'
     show resolveNoteAuthorName;
 import 'package:flutter/material.dart';
@@ -299,7 +301,7 @@ void main() {
     expect(find.text('没有账号？去注册'), findsWidgets);
   });
 
-  testWidgets('settings page can open account security screen', (
+  testWidgets('settings page no longer shows account security entry', (
     tester,
   ) async {
     await _pumpApp(
@@ -309,6 +311,22 @@ void main() {
     );
 
     await _openSettingsMore(tester);
+    expect(find.byKey(const ValueKey('settings-more-screen')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account-security-entry')), findsNothing);
+  });
+
+  testWidgets('profile page can open account security screen', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await _openProfile(tester);
+    expect(find.text('展示给 TA 的资料'), findsOneWidget);
     expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('account-security-entry')));
@@ -334,9 +352,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
 
     expect(find.text('me@example.com'), findsOneWidget);
     expect(find.text('+8613812345678'), findsOneWidget);
@@ -357,9 +373,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
 
     expect(find.text('未绑定手机号'), findsOneWidget);
     await tester.tap(find.text('绑定手机号'));
@@ -382,9 +396,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
     await tester.tap(find.text('绑定手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('bind-phone-field')), '138');
@@ -413,9 +425,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
     await tester.tap(find.text('绑定手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -448,9 +458,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
 
     expect(find.text('未绑定邮箱'), findsOneWidget);
     await tester.tap(find.text('绑定邮箱'));
@@ -473,9 +481,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
     await tester.tap(find.text('绑定邮箱'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -505,9 +511,7 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await _openSettingsMore(tester);
-    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
-    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
     await tester.tap(find.text('绑定手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -521,6 +525,118 @@ void main() {
       find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('account security shows dangerous delete entry', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    expect(
+      find.byKey(const ValueKey('account-security-danger-section')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('account-delete-entry')), findsOneWidget);
+    expect(find.text('注销账号'), findsOneWidget);
+  });
+
+  testWidgets('paired account deletion is blocked and opens space status', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      currentSpaceId: 'space-1',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
+
+    await tester.pumpWidget(
+      _accountSecurityHarness(
+        controller: controller,
+        spaceStatusRouteBuilder: (_, _) => const _FakeSpaceStatusScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂时不能注销账号'), findsOneWidget);
+    expect(find.textContaining('请先解除当前双人空间'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-delete-first-confirm-button')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-open-space-status-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('fake-space-status-screen')), findsOneWidget);
+    expect(find.text('空间状态'), findsOneWidget);
+  });
+
+  testWidgets('single account deletion confirms twice without deleting', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认要注销账号吗？'), findsOneWidget);
+    expect(find.textContaining('历史共享数据不会由客户端批量删除'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-first-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('再次确认注销'), findsOneWidget);
+    expect(find.textContaining('当前客户端不会删除 Auth 用户'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-second-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('还不能完成注销'), findsOneWidget);
+    expect(find.textContaining('当前账号不会被删除'), findsOneWidget);
+    expect(controller.isAuthenticated, isTrue);
   });
 
   testWidgets('authenticated users without display name see the profile gate', (
@@ -1525,7 +1641,7 @@ void main() {
   });
 
   testWidgets(
-    'profile screen from hero icon shows display name, email, gender, birthday',
+    'profile screen separates shared profile from account security',
     (tester) async {
       await _pumpApp(
         tester,
@@ -1551,18 +1667,19 @@ void main() {
       await tester.tap(find.byIcon(Icons.person_outline));
       await tester.pumpAndSettle();
 
-      // Verify profile screen fields
+      // Verify shared profile fields
+      expect(find.text('展示给 TA 的资料'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('profile-display-name')),
         findsOneWidget,
       );
       expect(find.text('小满'), findsOneWidget);
-      expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
-      expect(find.text('未获取'), findsOneWidget); // No Supabase in tests
+      expect(find.byKey(const ValueKey('profile-email')), findsNothing);
       expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
       expect(find.text('女生'), findsOneWidget);
       expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
       expect(find.text('1998 年 06 月 01 日'), findsOneWidget);
+      expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
     },
   );
 
@@ -1606,8 +1723,9 @@ void main() {
     // Verify profile screen fields in English
     expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
     expect(find.text('Xiaoman'), findsWidgets);
-    expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
-    expect(find.text('Unavailable'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-email')), findsNothing);
+    expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
+    expect(find.text('Account & security'), findsWidgets);
     expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
     expect(find.text('Female'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
@@ -1774,7 +1892,7 @@ void main() {
   );
 
   testWidgets(
-    'profile edit: email remains read-only, no editable email field',
+    'profile edit keeps login credentials out of profile fields',
     (tester) async {
       await _pumpApp(
         tester,
@@ -1801,21 +1919,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
       await tester.pumpAndSettle();
 
-      // Verify email is a read-only display, not a TextFormField
       expect(
         find.byKey(const ValueKey('profile-edit-email-field')),
-        findsOneWidget,
-      );
-      // The email field should be a _ReadOnlyField, not a TextFormField
-      final emailFinder = find.byKey(
-        const ValueKey('profile-edit-email-field'),
-      );
-      expect(
-        find.descendant(of: emailFinder, matching: find.byType(TextFormField)),
         findsNothing,
       );
-
-      // There should be exactly one TextFormField (name), not two
       final textFormFields = find.byType(TextFormField);
       expect(textFormFields, findsOneWidget);
     },
@@ -2763,6 +2870,56 @@ Future<void> _openSettingsMore(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('us-settings-icon')));
   await tester.pumpAndSettle();
+}
+
+Future<void> _openProfile(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.byIcon(Icons.favorite_border),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byIcon(Icons.person_outline));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openAccountSecurityFromProfile(WidgetTester tester) async {
+  await _openProfile(tester);
+  await tester.tap(find.byKey(const ValueKey('account-security-entry')));
+  await tester.pumpAndSettle();
+}
+
+Widget _accountSecurityHarness({
+  required AppController controller,
+  SpaceStatusRouteBuilder? spaceStatusRouteBuilder,
+}) {
+  return AppScope(
+    controller: controller,
+    child: MaterialApp(
+      home: ProfileScreen(
+        controller: controller,
+        spaceStatusRouteBuilder: spaceStatusRouteBuilder ??
+            (_, _) => const _FakeSpaceStatusScreen(),
+        accountSecurityBuilder: (_) => AccountSecurityScreen(
+          spaceStatusRouteBuilder: spaceStatusRouteBuilder ??
+              (_, _) => const _FakeSpaceStatusScreen(),
+        ),
+      ),
+    ),
+  );
+}
+
+class _FakeSpaceStatusScreen extends StatelessWidget {
+  const _FakeSpaceStatusScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      key: ValueKey('fake-space-status-screen'),
+      body: Center(child: Text('空间状态')),
+    );
+  }
 }
 
 class _SuccessfulRegisterController extends AppController {

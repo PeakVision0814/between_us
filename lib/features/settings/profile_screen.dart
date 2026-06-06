@@ -4,11 +4,19 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import 'account_security_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.controller});
+  const ProfileScreen({
+    super.key,
+    required this.controller,
+    required this.spaceStatusRouteBuilder,
+    this.accountSecurityBuilder,
+  });
 
   final AppController controller;
+  final SpaceStatusRouteBuilder spaceStatusRouteBuilder;
+  final WidgetBuilder? accountSecurityBuilder;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -209,14 +217,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: PageAtmosphere(
         padding: const EdgeInsets.fromLTRB(16, 92, 16, 32),
-        child: PageSurfaceCard(
-          variant: PageSurfaceVariant.secondary,
-          radius: AppTheme.radius2xl,
-          padding: EdgeInsets.zero,
-          child: _isEditing
-              ? _buildEditMode(strings, theme, isDark)
-              : _buildReadMode(strings, theme, isDark),
-        ),
+        child: _isEditing
+            ? PageSurfaceCard(
+                variant: PageSurfaceVariant.secondary,
+                radius: AppTheme.radius2xl,
+                padding: EdgeInsets.zero,
+                child: _buildEditMode(strings, theme, isDark),
+              )
+            : _buildReadMode(strings, theme, isDark),
       ),
     );
   }
@@ -225,36 +233,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildReadMode(AppStrings strings, ThemeData theme, bool isDark) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ProfileRow(
-          label: strings.profileDisplayNameLabel,
-          value: _resolvedSelfName(widget.controller, strings),
-          valueKey: const ValueKey('profile-display-name'),
-          isDark: isDark,
+        PageSectionHeader(
+          title: strings.profileSharedInfoSectionTitle,
+          subtitle: strings.profileSharedInfoSectionSubtitle,
         ),
-        const PageDivider(indent: 20),
-        _ProfileRow(
-          label: strings.profileEmailLabel,
-          value: _emailLabel(strings, widget.controller.email),
-          valueKey: const ValueKey('profile-email'),
-          isPlaceholder: widget.controller.email == null,
-          isDark: isDark,
+        const SizedBox(height: 10),
+        PageSurfaceCard(
+          variant: PageSurfaceVariant.secondary,
+          radius: AppTheme.radius2xl,
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              _ProfileRow(
+                label: strings.profileDisplayNameLabel,
+                value: _resolvedSelfName(widget.controller, strings),
+                valueKey: const ValueKey('profile-display-name'),
+                isDark: isDark,
+              ),
+              const PageDivider(indent: 20),
+              _ProfileRow(
+                label: strings.profileGenderLabel,
+                value: _genderLabel(strings, widget.controller.gender),
+                valueKey: const ValueKey('profile-gender'),
+                isDark: isDark,
+              ),
+              const PageDivider(indent: 20),
+              _ProfileRow(
+                label: strings.profileBirthdayLabel,
+                value: _birthdayLabel(strings, widget.controller.birthday),
+                valueKey: const ValueKey('profile-birthday'),
+                isPlaceholder: widget.controller.birthday == null,
+                isDark: isDark,
+                isLast: true,
+              ),
+            ],
+          ),
         ),
-        const PageDivider(indent: 20),
-        _ProfileRow(
-          label: strings.profileGenderLabel,
-          value: _genderLabel(strings, widget.controller.gender),
-          valueKey: const ValueKey('profile-gender'),
-          isDark: isDark,
+        const SizedBox(height: 24),
+        PageSectionHeader(
+          title: strings.profileAccountSecuritySectionTitle,
+          subtitle: strings.profileAccountSecuritySectionSubtitle,
         ),
-        const PageDivider(indent: 20),
-        _ProfileRow(
-          label: strings.profileBirthdayLabel,
-          value: _birthdayLabel(strings, widget.controller.birthday),
-          valueKey: const ValueKey('profile-birthday'),
-          isPlaceholder: widget.controller.birthday == null,
-          isDark: isDark,
-          isLast: true,
+        const SizedBox(height: 10),
+        PageSurfaceCard(
+          variant: PageSurfaceVariant.secondary,
+          radius: AppTheme.radius2xl,
+          child: PageListItem(
+            key: const ValueKey('account-security-entry'),
+            leading: Icon(
+              Icons.manage_accounts_outlined,
+              color: theme.colorScheme.primary,
+            ),
+            title: strings.accountSecurityTitle,
+            subtitle: _accountSecuritySummary(strings, widget.controller),
+            trailing: _chevron(isDark, theme),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: widget.accountSecurityBuilder ??
+                      (_) => AccountSecurityScreen(
+                        spaceStatusRouteBuilder: widget.spaceStatusRouteBuilder,
+                      ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -301,17 +346,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _hasNameInteracted = true;
               }
             },
-          ),
-          const SizedBox(height: 18),
-
-          // Email (read-only)
-          _EditLabel(text: strings.profileEmailLabel, color: labelColor),
-          const SizedBox(height: 6),
-          _ReadOnlyField(
-            key: const ValueKey('profile-edit-email-field'),
-            value: _emailLabel(strings, widget.controller.email),
-            isPlaceholder: widget.controller.email == null,
-            isDark: isDark,
           ),
           const SizedBox(height: 18),
 
@@ -370,11 +404,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return normalized;
   }
 
-  String _emailLabel(AppStrings strings, String? email) {
-    if (email == null || email.isEmpty) {
-      return strings.isChinese ? '未获取' : 'Unavailable';
-    }
-    return email;
+  String _accountSecuritySummary(
+    AppStrings strings,
+    AppController controller,
+  ) {
+    final hasEmail = controller.email?.trim().isNotEmpty ?? false;
+    final hasPhone = controller.phone?.trim().isNotEmpty ?? false;
+    return switch ((hasEmail, hasPhone)) {
+      (true, true) => strings.profileAccountSecurityBothBound,
+      (true, false) => strings.profileAccountSecurityEmailOnly,
+      (false, true) => strings.profileAccountSecurityPhoneOnly,
+      _ => strings.profileAccountSecurityUnbound,
+    };
+  }
+
+  static Widget _chevron(bool isDark, ThemeData theme) {
+    return Icon(
+      Icons.chevron_right,
+      size: 20,
+      color: isDark
+          ? AppTheme.warmWhite25
+          : theme.colorScheme.onSurfaceVariant,
+    );
   }
 
   String _genderLabel(AppStrings strings, String? gender) {
@@ -464,44 +515,6 @@ class _EditLabel extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
-    );
-  }
-}
-
-/// Read-only field shown for email in edit mode.
-class _ReadOnlyField extends StatelessWidget {
-  const _ReadOnlyField({
-    super.key,
-    required this.value,
-    this.isPlaceholder = false,
-    this.isDark = false,
-  });
-
-  final String value;
-  final bool isPlaceholder;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.04)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        value,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: isPlaceholder
-              ? (isDark ? AppTheme.warmWhite25 : colorScheme.onSurfaceVariant)
-              : (isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant),
-        ),
-      ),
     );
   }
 }

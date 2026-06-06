@@ -442,6 +442,47 @@ class AppStrings {
     ja: 'メールアドレス',
     ko: '이메일',
   );
+  String get profileSharedInfoSectionTitle => _resolve(
+    zhCn: '展示给 TA 的资料',
+    zhTw: '展示給 TA 的資料',
+    en: 'Shared profile',
+  );
+  String get profileSharedInfoSectionSubtitle => _resolve(
+    zhCn: '昵称、性别和生日会用于你们的空间展示。',
+    zhTw: '暱稱、性別和生日會用於你們的空間展示。',
+    en: 'Name, gender, and birthday are used in your shared space.',
+  );
+  String get profileAccountSecuritySectionTitle => _resolve(
+    zhCn: '账号与安全',
+    zhTw: '帳號與安全',
+    en: 'Account & security',
+  );
+  String get profileAccountSecuritySectionSubtitle => _resolve(
+    zhCn: '登录邮箱和手机号只用于当前账号，不会默认展示给 TA。',
+    zhTw: '登入電子郵件和手機號只用於目前帳號，不會預設展示給 TA。',
+    en:
+        'Login email and phone are for this account only and are not shown by default.',
+  );
+  String get profileAccountSecurityBothBound => _resolve(
+    zhCn: '已绑定邮箱和手机号',
+    zhTw: '已綁定電子郵件和手機號',
+    en: 'Email and phone bound',
+  );
+  String get profileAccountSecurityEmailOnly => _resolve(
+    zhCn: '已绑定邮箱，可继续绑定手机号',
+    zhTw: '已綁定電子郵件，可繼續綁定手機號',
+    en: 'Email bound. Phone can be added.',
+  );
+  String get profileAccountSecurityPhoneOnly => _resolve(
+    zhCn: '已绑定手机号，可继续绑定邮箱',
+    zhTw: '已綁定手機號，可繼續綁定電子郵件',
+    en: 'Phone bound. Email can be added.',
+  );
+  String get profileAccountSecurityUnbound => _resolve(
+    zhCn: '可管理登录邮箱、手机号和账号操作',
+    zhTw: '可管理登入電子郵件、手機號和帳號操作',
+    en: 'Manage login email, phone, and account actions.',
+  );
   String get profileSaveFailedMessage => _resolve(
     zhCn: '保存失败，请稍后重试',
     zhTw: '儲存失敗，請稍後重試',
@@ -1368,6 +1409,96 @@ class AppStrings {
     zhCn: '绑定验证码校验失败，请确认后重试。',
     zhTw: '綁定驗證碼校驗失敗，請確認後重試。',
     en: 'Binding verification failed. Check the code and try again.',
+  );
+  String get accountSecurityDangerSectionTitle => _resolve(
+    zhCn: '危险操作',
+    zhTw: '危險操作',
+    en: 'Dangerous actions',
+  );
+  String get accountSecurityDangerSectionSubtitle => _resolve(
+    zhCn: '这些操作会影响当前账号，请慢慢确认。',
+    zhTw: '這些操作會影響目前帳號，請慢慢確認。',
+    en: 'These actions affect this account. Review them carefully.',
+  );
+  String get accountSecurityDeleteAccountTitle => _resolve(
+    zhCn: '注销账号',
+    zhTw: '註銷帳號',
+    en: 'Delete account',
+  );
+  String get accountSecurityDeleteAccountSubtitle => _resolve(
+    zhCn: '当前阶段只提供规则确认，不会真正删除账号。',
+    zhTw: '目前階段只提供規則確認，不會真正刪除帳號。',
+    en: 'For now, this only checks the rules and does not delete the account.',
+  );
+  String get accountSecurityDeleteBlockedTitle => _resolve(
+    zhCn: '暂时不能注销账号',
+    zhTw: '暫時不能註銷帳號',
+    en: 'Account deletion is paused',
+  );
+  String get accountSecurityDeleteBlockedBody => _resolve(
+    zhCn:
+        '你们仍在一个双人空间中。为了避免影响 TA 的空间状态，请先解除当前双人空间，再注销账号。',
+    zhTw:
+        '你們仍在一個雙人空間中。為了避免影響 TA 的空間狀態，請先解除目前雙人空間，再註銷帳號。',
+    en:
+        'You are still in a couple space. To avoid affecting your partner’s space state, leave the current couple space before deleting the account.',
+  );
+  String get accountSecurityOpenSpaceStatusLabel => _resolve(
+    zhCn: '去空间状态',
+    zhTw: '去空間狀態',
+    en: 'Open space status',
+  );
+  String get accountSecurityDeleteFirstConfirmTitle => _resolve(
+    zhCn: '确认要注销账号吗？',
+    zhTw: '確認要註銷帳號嗎？',
+    en: 'Delete this account?',
+  );
+  String get accountSecurityDeleteFirstConfirmBody => _resolve(
+    zhCn:
+        '注销后将无法继续用当前账号登录，个人资料和账号凭证会停止使用。历史共享数据不会由客户端批量删除。',
+    zhTw:
+        '註銷後將無法繼續用目前帳號登入，個人資料和帳號憑證會停止使用。歷史共享資料不會由客戶端批量刪除。',
+    en:
+        'After deletion, this account can no longer sign in. Profile and login credentials stop being used. Historical shared data is not batch-deleted by the client.',
+  );
+  String get accountSecurityDeleteFirstConfirmLabel => _resolve(
+    zhCn: '继续确认',
+    zhTw: '繼續確認',
+    en: 'Continue',
+  );
+  String get accountSecurityDeleteSecondConfirmTitle => _resolve(
+    zhCn: '再次确认注销',
+    zhTw: '再次確認註銷',
+    en: 'Confirm deletion again',
+  );
+  String get accountSecurityDeleteSecondConfirmBody => _resolve(
+    zhCn:
+        '真正注销需要服务端安全能力处理。当前客户端不会删除 Auth 用户，也不会批量删除共享数据。',
+    zhTw:
+        '真正註銷需要服務端安全能力處理。目前客戶端不會刪除 Auth 使用者，也不會批量刪除共享資料。',
+    en:
+        'Real deletion requires server-side security handling. This client will not delete the Auth user or batch-delete shared data.',
+  );
+  String get accountSecurityDeleteSecondConfirmLabel => _resolve(
+    zhCn: '确认注销',
+    zhTw: '確認註銷',
+    en: 'Confirm deletion',
+  );
+  String get accountSecurityDeleteUnavailableTitle => _resolve(
+    zhCn: '还不能完成注销',
+    zhTw: '還不能完成註銷',
+    en: 'Deletion is not available yet',
+  );
+  String get accountSecurityDeleteUnavailableBody => _resolve(
+    zhCn: '注销账号功能将在服务端注销能力接入后完成。当前账号不会被删除。',
+    zhTw: '註銷帳號功能將在服務端註銷能力接入後完成。目前帳號不會被刪除。',
+    en:
+        'Account deletion will be completed after the server-side deletion capability is added. This account was not deleted.',
+  );
+  String get accountSecurityDeleteDialogOkLabel => _resolve(
+    zhCn: '知道了',
+    zhTw: '知道了',
+    en: 'OK',
   );
   String get cycleSharingTitle => _resolve(
     zhCn: '经期记录共享',

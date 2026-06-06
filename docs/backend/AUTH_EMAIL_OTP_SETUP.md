@@ -97,6 +97,24 @@ similar domestic provider.
   the partner profile and should not be exposed through couple-space profile
   reads.
 
+## Account deletion boundary
+
+The current Flutter client only exposes the account-deletion product entry and
+state rules inside Account & security. It does not delete Supabase Auth users.
+
+- If the current user still has an active couple space, the app blocks deletion
+  and guides them to the existing Space status / exit couple space flow.
+- If the current user is in single mode, the app shows two confirmations and
+  then explains that deletion will be completed after server-side deletion
+  capability is added.
+- The Flutter client must not hold a service role key or secret key.
+- The Flutter client must not call Auth Admin `deleteUser`.
+- Historical shared data is not batch-deleted by the client.
+
+Real account deletion must be implemented server-side with an explicit Auth
+Admin capability, session handling, audit/confirmation rules, and a clear shared
+data retention policy.
+
 ## What this repo can and cannot prove today
 
 Confirmed from code/config:
@@ -106,6 +124,8 @@ Confirmed from code/config:
   OTP methods.
 - The app has a reserved account security path for binding email and phone to
   the current Supabase Auth user through native update-user flows.
+- The app has a deletion entry and confirmation rules, but does not perform
+  real Supabase Auth user deletion.
 - The local Supabase template now renders a 6-digit token as the primary email content.
 
 Not confirmed from this repo alone:

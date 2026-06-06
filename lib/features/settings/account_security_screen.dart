@@ -7,8 +7,16 @@ import '../../shared/widgets/page_visual_language.dart';
 
 enum _BindingKind { phone, email }
 
+typedef SpaceStatusRouteBuilder =
+    Widget Function(AppController controller, String? partnerName);
+
 class AccountSecurityScreen extends StatefulWidget {
-  const AccountSecurityScreen({super.key});
+  const AccountSecurityScreen({
+    super.key,
+    required this.spaceStatusRouteBuilder,
+  });
+
+  final SpaceStatusRouteBuilder spaceStatusRouteBuilder;
 
   @override
   State<AccountSecurityScreen> createState() => _AccountSecurityScreenState();
@@ -83,6 +91,116 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
       _emailController.clear();
       _codeController.clear();
     });
+  }
+
+  Future<void> _handleDeleteAccountTap(
+    AppController controller,
+    AppStrings strings,
+  ) async {
+    if (controller.hasActiveCoupleSpace) {
+      await _showCoupleSpaceBlockDialog(controller, strings);
+      return;
+    }
+
+    final firstConfirmed = await _showDeleteConfirmDialog(
+      title: strings.accountSecurityDeleteFirstConfirmTitle,
+      body: strings.accountSecurityDeleteFirstConfirmBody,
+      confirmLabel: strings.accountSecurityDeleteFirstConfirmLabel,
+      confirmKey: const ValueKey('account-delete-first-confirm-button'),
+    );
+    if (firstConfirmed != true || !mounted) return;
+
+    final secondConfirmed = await _showDeleteConfirmDialog(
+      title: strings.accountSecurityDeleteSecondConfirmTitle,
+      body: strings.accountSecurityDeleteSecondConfirmBody,
+      confirmLabel: strings.accountSecurityDeleteSecondConfirmLabel,
+      confirmKey: const ValueKey('account-delete-second-confirm-button'),
+      destructive: true,
+    );
+    if (secondConfirmed != true || !mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.accountSecurityDeleteUnavailableTitle),
+        content: Text(strings.accountSecurityDeleteUnavailableBody),
+        actions: [
+          FilledButton(
+            key: const ValueKey('account-delete-unavailable-ok-button'),
+            onPressed: () => Navigator.pop(context),
+            child: Text(strings.accountSecurityDeleteDialogOkLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCoupleSpaceBlockDialog(
+    AppController controller,
+    AppStrings strings,
+  ) async {
+    final openSpaceStatus = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.accountSecurityDeleteBlockedTitle),
+        content: Text(strings.accountSecurityDeleteBlockedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.profileCancelLabel),
+          ),
+          FilledButton(
+            key: const ValueKey('account-delete-open-space-status-button'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(strings.accountSecurityOpenSpaceStatusLabel),
+          ),
+        ],
+      ),
+    );
+
+    if (openSpaceStatus == true && mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => widget.spaceStatusRouteBuilder(
+            controller,
+            controller.partnerDisplayName,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<bool?> _showDeleteConfirmDialog({
+    required String title,
+    required String body,
+    required String confirmLabel,
+    required Key confirmKey,
+    bool destructive = false,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppStrings.of(context).profileCancelLabel),
+          ),
+          FilledButton(
+            key: confirmKey,
+            style: destructive
+                ? FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                  )
+                : null,
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -181,6 +299,33 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                 onCancel: () => _cancelBinding(controller),
               ),
             ],
+            const SizedBox(height: 28),
+            PageSectionHeader(
+              title: strings.accountSecurityDangerSectionTitle,
+              subtitle: strings.accountSecurityDangerSectionSubtitle,
+            ),
+            const SizedBox(height: 10),
+            PageSurfaceCard(
+              key: const ValueKey('account-security-danger-section'),
+              child: PageListItem(
+                key: const ValueKey('account-delete-entry'),
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: theme.colorScheme.error,
+                ),
+                title: strings.accountSecurityDeleteAccountTitle,
+                titleColor: theme.colorScheme.error,
+                subtitle: strings.accountSecurityDeleteAccountSubtitle,
+                trailing: Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: isDark
+                      ? AppTheme.warmWhite25
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                onTap: () => _handleDeleteAccountTap(controller, strings),
+              ),
+            ),
           ],
         ),
       ),

@@ -98,5 +98,11 @@ This is intentionally a minimal cleanup strategy:
 - no delayed-profile-creation redesign
 - no custom OTP service
 - no full account lifecycle system
+- no user-initiated account deletion from the Flutter client
+
+The in-app "delete account" entry is a separate account-lifecycle feature. Real
+Supabase Auth user deletion must be performed by server-side code with a service
+role/admin capability; the Flutter client must not store service role secrets or
+call Auth Admin `deleteUser` directly.
 
 If the team later wants automatic cleanup, the same function can be called by a service-role maintenance job or a scheduled backend task without changing the app login flow.

@@ -9,6 +9,7 @@ import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
+import 'account_security_routes.dart';
 import 'profile_screen.dart';
 
 class UsScreen extends StatefulWidget {
@@ -196,7 +197,10 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   void _openProfileScreen(AppController controller, AppStrings strings) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ProfileScreen(controller: controller),
+        builder: (_) => ProfileScreen(
+          controller: controller,
+          spaceStatusRouteBuilder: buildAccountSecuritySpaceStatusRoute,
+        ),
       ),
     );
   }
