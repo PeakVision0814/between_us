@@ -147,8 +147,7 @@ class AuthEmailFlowScaffold extends StatelessWidget {
                                   controller.authBusy ||
                                   !controller.supabaseReady,
                               strings: strings,
-                              onChanged: (_) =>
-                                  controller.clearAuthError(),
+                              onChanged: (_) => controller.clearAuthError(),
                               onEmailSubmit: onPrimarySubmit,
                               onPhoneSubmit: onPhoneSubmit,
                             ),
@@ -191,8 +190,7 @@ class AuthEmailFlowScaffold extends StatelessWidget {
       'otp_send_failed' => strings.authOtpSendFailedMessage,
       'signup_send_failed' => strings.authSignUpSendFailedMessage,
       'phone_otp_send_failed' => strings.authPhoneOtpSendFailedMessage,
-      'phone_signup_send_failed' =>
-        strings.authPhoneSignUpSendFailedMessage,
+      'phone_signup_send_failed' => strings.authPhoneSignUpSendFailedMessage,
       'user_not_registered' => strings.authUserNotRegisteredMessage,
       'user_already_registered' => strings.authUserAlreadyRegisteredMessage,
       'phone_user_not_registered' => strings.authPhoneUserNotRegisteredMessage,
@@ -359,9 +357,7 @@ class _AuthEntryStepState extends State<_AuthEntryStep> {
         const SizedBox(height: 16),
         TextField(
           key: ValueKey(isEmail ? 'auth-email-field' : 'auth-phone-field'),
-          controller: isEmail
-              ? widget.emailController
-              : widget.phoneController,
+          controller: isEmail ? widget.emailController : widget.phoneController,
           enabled: !widget.busy,
           keyboardType: isEmail
               ? TextInputType.emailAddress

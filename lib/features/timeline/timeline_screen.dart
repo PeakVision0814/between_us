@@ -707,7 +707,8 @@ class _PlanCard extends StatelessWidget {
 
     final name = creatorId == controller.selfProfileId
         ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
-        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+        : (controller.partnerDisplayName ??
+              (strings.isChinese ? 'TA' : 'Partner'));
 
     return Text(
       strings.createdByLabel(name),

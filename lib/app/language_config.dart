@@ -47,8 +47,9 @@ enum AppLanguage {
   }
 
   /// All locales that [MaterialApp.supportedLocales] should advertise.
-  static List<Locale> get supportedLocales =>
-      [for (final lang in values) lang.locale];
+  static List<Locale> get supportedLocales => [
+    for (final lang in values) lang.locale,
+  ];
 
   /// Whether the language is a Chinese variant (zh-CN or zh-TW).
   bool get isChinese => this == zhCn || this == zhTw;

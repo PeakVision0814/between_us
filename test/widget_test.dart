@@ -148,10 +148,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'),
-      findsOneWidget,
-    );
+    expect(find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
@@ -315,9 +312,7 @@ void main() {
     expect(find.byKey(const ValueKey('account-security-entry')), findsNothing);
   });
 
-  testWidgets('profile page can open account security screen', (
-    tester,
-  ) async {
+  testWidgets('profile page can open account security screen', (tester) async {
     await _pumpApp(
       tester,
       authStatus: AppAuthStatus.authenticated,
@@ -327,12 +322,18 @@ void main() {
 
     await _openProfile(tester);
     expect(find.text('展示给 TA 的资料'), findsOneWidget);
-    expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-security-entry')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('account-security-entry')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('account-security-screen')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-security-screen')),
+      findsOneWidget,
+    );
     expect(find.text('账号与安全'), findsWidgets);
   });
 
@@ -399,14 +400,14 @@ void main() {
     await _openAccountSecurityFromProfile(tester);
     await tester.tap(find.text('绑定手机号'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('bind-phone-field')), '138');
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-phone-field')),
+      '138',
+    );
     await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'),
-      findsOneWidget,
-    );
+    expect(find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'), findsOneWidget);
     expect(controller.requestedPhones, isEmpty);
   });
 
@@ -521,10 +522,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'),
-      findsOneWidget,
-    );
+    expect(find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'), findsOneWidget);
   });
 
   testWidgets('account security shows dangerous delete entry', (tester) async {
@@ -593,7 +591,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('fake-space-status-screen')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('fake-space-status-screen')),
+      findsOneWidget,
+    );
     expect(find.text('空间状态'), findsOneWidget);
   });
 
@@ -1640,48 +1641,47 @@ void main() {
     expect(controller.requiresProfileSetup, isFalse);
   });
 
-  testWidgets(
-    'profile screen separates shared profile from account security',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        language: AppLanguage.zhCn,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        birthday: DateTime(1998, 6, 1),
-        memberCount: 2,
-        partnerDisplayName: '阿澈',
-      );
+  testWidgets('profile screen separates shared profile from account security', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.zhCn,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: '阿澈',
+    );
 
-      // Navigate to Us tab
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.byIcon(Icons.favorite_border),
-        ),
-      );
-      await tester.pumpAndSettle();
+    // Navigate to Us tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Tap person icon in hero to open profile screen
-      await tester.tap(find.byIcon(Icons.person_outline));
-      await tester.pumpAndSettle();
+    // Tap person icon in hero to open profile screen
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
 
-      // Verify shared profile fields
-      expect(find.text('展示给 TA 的资料'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('profile-display-name')),
-        findsOneWidget,
-      );
-      expect(find.text('小满'), findsOneWidget);
-      expect(find.byKey(const ValueKey('profile-email')), findsNothing);
-      expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
-      expect(find.text('女生'), findsOneWidget);
-      expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
-      expect(find.text('1998 年 06 月 01 日'), findsOneWidget);
-      expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
-    },
-  );
+    // Verify shared profile fields
+    expect(find.text('展示给 TA 的资料'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
+    expect(find.text('小满'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-email')), findsNothing);
+    expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
+    expect(find.text('女生'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-birthday')), findsOneWidget);
+    expect(find.text('1998 年 06 月 01 日'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-security-entry')),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('profile screen from settings more screen shows same fields', (
     tester,
@@ -1724,7 +1724,10 @@ void main() {
     expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
     expect(find.text('Xiaoman'), findsWidgets);
     expect(find.byKey(const ValueKey('profile-email')), findsNothing);
-    expect(find.byKey(const ValueKey('account-security-entry')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-security-entry')),
+      findsOneWidget,
+    );
     expect(find.text('Account & security'), findsWidgets);
     expect(find.byKey(const ValueKey('profile-gender')), findsOneWidget);
     expect(find.text('Female'), findsOneWidget);
@@ -1891,42 +1894,41 @@ void main() {
     },
   );
 
-  testWidgets(
-    'profile edit keeps login credentials out of profile fields',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        gender: AppController.genderFemale,
-        birthday: DateTime(1998, 6, 1),
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-      );
+  testWidgets('profile edit keeps login credentials out of profile fields', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      birthday: DateTime(1998, 6, 1),
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+    );
 
-      // Navigate to Us tab and open profile
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.byIcon(Icons.favorite_border),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.person_outline));
-      await tester.pumpAndSettle();
+    // Navigate to Us tab and open profile
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
 
-      // Enter edit mode
-      await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
-      await tester.pumpAndSettle();
+    // Enter edit mode
+    await tester.tap(find.byKey(const ValueKey('profile-edit-button')));
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('profile-edit-email-field')),
-        findsNothing,
-      );
-      final textFormFields = find.byType(TextFormField);
-      expect(textFormFields, findsOneWidget);
-    },
-  );
+    expect(
+      find.byKey(const ValueKey('profile-edit-email-field')),
+      findsNothing,
+    );
+    final textFormFields = find.byType(TextFormField);
+    expect(textFormFields, findsOneWidget);
+  });
 
   testWidgets(
     'single mode: invite page shows generate and enter invite code buttons',
@@ -2466,30 +2468,31 @@ void main() {
     expect(find.text('外觀與語言'), findsOneWidget);
   });
 
-  testWidgets('Japanese: profile setup screen shows Japanese title and labels', (
-    tester,
-  ) async {
-    final controller = AppController();
-    controller.setLanguage(AppLanguage.ja);
-    controller.debugSetAuthState(
-      status: AppAuthStatus.authenticated,
-      supabaseReady: true,
-    );
+  testWidgets(
+    'Japanese: profile setup screen shows Japanese title and labels',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.ja);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
 
-    await tester.pumpWidget(BetweenUsApp(controller: controller));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
 
-    // Profile setup screen should show Japanese text.
-    expect(find.text('プロフィールを完成させてください'), findsOneWidget);
-    expect(find.text('プロフィールを完成させてください'), findsOneWidget);
-    // Gender labels in Japanese.
-    expect(find.text('男性'), findsOneWidget);
-    expect(find.text('女性'), findsOneWidget);
-    // Birthday label in Japanese.
-    expect(find.text('誕生日（任意）'), findsOneWidget);
-    // Save button in Japanese.
-    expect(find.text('保存して続ける'), findsOneWidget);
-  });
+      // Profile setup screen should show Japanese text.
+      expect(find.text('プロフィールを完成させてください'), findsOneWidget);
+      expect(find.text('プロフィールを完成させてください'), findsOneWidget);
+      // Gender labels in Japanese.
+      expect(find.text('男性'), findsOneWidget);
+      expect(find.text('女性'), findsOneWidget);
+      // Birthday label in Japanese.
+      expect(find.text('誕生日（任意）'), findsOneWidget);
+      // Save button in Japanese.
+      expect(find.text('保存して続ける'), findsOneWidget);
+    },
+  );
 
   testWidgets('Korean: profile setup screen shows Korean title and labels', (
     tester,
@@ -2515,28 +2518,27 @@ void main() {
     expect(find.text('저장 후 계속'), findsOneWidget);
   });
 
-  testWidgets(
-    'Traditional Chinese: profile setup shows zh-TW, not zh-CN',
-    (tester) async {
-      final controller = AppController();
-      controller.setLanguage(AppLanguage.zhTw);
-      controller.debugSetAuthState(
-        status: AppAuthStatus.authenticated,
-        supabaseReady: true,
-      );
+  testWidgets('Traditional Chinese: profile setup shows zh-TW, not zh-CN', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.setLanguage(AppLanguage.zhTw);
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+    );
 
-      await tester.pumpWidget(BetweenUsApp(controller: controller));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
 
-      // Profile setup title should be Traditional Chinese.
-      expect(find.text('完善你的資料'), findsOneWidget);
-      // Should NOT show the Simplified Chinese version.
-      expect(find.text('完善你的资料'), findsNothing);
-      // Gender labels (same in both zh-CN and zh-TW).
-      expect(find.text('男生'), findsOneWidget);
-      expect(find.text('女生'), findsOneWidget);
-    },
-  );
+    // Profile setup title should be Traditional Chinese.
+    expect(find.text('完善你的資料'), findsOneWidget);
+    // Should NOT show the Simplified Chinese version.
+    expect(find.text('完善你的资料'), findsNothing);
+    // Gender labels (same in both zh-CN and zh-TW).
+    expect(find.text('男生'), findsOneWidget);
+    expect(find.text('女生'), findsOneWidget);
+  });
 
   testWidgets('Japanese: invite page shows Japanese text', (tester) async {
     await _pumpApp(
@@ -2599,41 +2601,40 @@ void main() {
     expect(find.text('초대 코드를 입력하여 참여'), findsOneWidget);
   });
 
-  testWidgets(
-    'Traditional Chinese: invite page shows zh-TW, not zh-CN',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        language: AppLanguage.zhTw,
-        displayName: 'Xiaoman',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('Traditional Chinese: invite page shows zh-TW, not zh-CN', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      language: AppLanguage.zhTw,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.byIcon(Icons.favorite_border),
-        ),
-      );
-      await tester.pumpAndSettle();
+    // Navigate to Us tab.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Tap the add avatar to navigate to invite page.
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Tap the add avatar to navigate to invite page.
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Verify invite page shows Traditional Chinese.
-      expect(find.text('邀請 TA'), findsWidgets);
-      expect(find.text('先給 TA 留一個位置'), findsWidgets);
-      expect(find.text('生成邀請碼'), findsOneWidget);
-      expect(find.text('輸入邀請碼加入'), findsOneWidget);
-      // Should NOT show Simplified Chinese versions.
-      expect(find.text('邀请 TA'), findsNothing);
-      expect(find.text('先给 TA 留一个位置'), findsNothing);
-    },
-  );
+    // Verify invite page shows Traditional Chinese.
+    expect(find.text('邀請 TA'), findsWidgets);
+    expect(find.text('先給 TA 留一個位置'), findsWidgets);
+    expect(find.text('生成邀請碼'), findsOneWidget);
+    expect(find.text('輸入邀請碼加入'), findsOneWidget);
+    // Should NOT show Simplified Chinese versions.
+    expect(find.text('邀请 TA'), findsNothing);
+    expect(find.text('先给 TA 留一个位置'), findsNothing);
+  });
 
   testWidgets(
     'Japanese: space status page shows Japanese, not English fallback',
@@ -2672,159 +2673,147 @@ void main() {
       expect(find.text('Ache と共有中'), findsOneWidget);
       expect(find.text('Sharing with Ache'), findsNothing);
       // Should show Japanese exit hint, not English.
-      expect(
-        find.text('退出後、ふたりともシングルモードに戻ります'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Both return to single mode after exit'),
-        findsNothing,
-      );
+      expect(find.text('退出後、ふたりともシングルモードに戻ります'), findsOneWidget);
+      expect(find.text('Both return to single mode after exit'), findsNothing);
     },
   );
 
   // ─── Anniversary and home tests ─────────────────────────────────────
 
-  testWidgets(
-    'paired mode: partner screen shows anniversary section',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('paired mode: partner screen shows anniversary section', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
+    );
 
-      // Navigate to Us tab
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.byIcon(Icons.favorite_border),
-        ),
-      );
-      await tester.pumpAndSettle();
+    // Navigate to Us tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Tap on partner avatar to open partner screen
-      await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
-      await tester.pumpAndSettle();
+    // Tap on partner avatar to open partner screen
+    await tester.tap(find.byKey(const ValueKey('us-hero-partner-slot')));
+    await tester.pumpAndSettle();
 
-      // Anniversary section title should be visible
-      expect(find.text('纪念日'), findsOneWidget);
-    },
-  );
+    // Anniversary section title should be visible
+    expect(find.text('纪念日'), findsOneWidget);
+  });
 
-  testWidgets(
-    'single mode: partner screen does not show anniversary section',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 1,
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('single mode: partner screen does not show anniversary section', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+      currentSpaceId: 'test-space-id',
+    );
 
-      // Navigate to Us tab
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationBar),
-          matching: find.byIcon(Icons.favorite_border),
-        ),
-      );
-      await tester.pumpAndSettle();
+    // Navigate to Us tab
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(Icons.favorite_border),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Tap on the add partner avatar
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Tap on the add partner avatar
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Should not show anniversary section in single mode
-      expect(find.text('纪念日'), findsNothing);
-    },
-  );
+    // Should not show anniversary section in single mode
+    expect(find.text('纪念日'), findsNothing);
+  });
 
-  testWidgets(
-    'home hero card loads anniversary data from Supabase',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('home hero card loads anniversary data from Supabase', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
+    );
 
-      // Days are loaded from anniversaries table via Supabase.
-      // In test environment, Supabase is not available, so days won't show.
-      expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
-    },
-  );
+    // Days are loaded from anniversaries table via Supabase.
+    // In test environment, Supabase is not available, so days won't show.
+    expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
+  });
 
-  testWidgets(
-    'home hero card does not show days in single mode',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 1,
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('home hero card does not show days in single mode', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+      currentSpaceId: 'test-space-id',
+    );
 
-      expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
-    },
-  );
+    expect(find.byKey(const ValueKey('home-hero-days')), findsNothing);
+  });
 
-  testWidgets(
-    'home hero card shows partner name in paired mode',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('home hero card shows partner name in paired mode', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
+    );
 
-      expect(find.byKey(const ValueKey('home-hero-partner-name')), findsOneWidget);
-      expect(find.text('Ache'), findsOneWidget);
-    },
-  );
+    expect(
+      find.byKey(const ValueKey('home-hero-partner-name')),
+      findsOneWidget,
+    );
+    expect(find.text('Ache'), findsOneWidget);
+  });
 
-  testWidgets(
-    'home hero card shows waiting message in single mode',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 1,
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('home hero card shows waiting message in single mode', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 1,
+      currentSpaceId: 'test-space-id',
+    );
 
-      expect(find.byKey(const ValueKey('home-hero-waiting')), findsOneWidget);
-      expect(find.text('等待另一半加入'), findsOneWidget);
-    },
-  );
+    expect(find.byKey(const ValueKey('home-hero-waiting')), findsOneWidget);
+    expect(find.text('等待另一半加入'), findsOneWidget);
+  });
 
-  testWidgets(
-    'home hero card shows quote',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        authStatus: AppAuthStatus.authenticated,
-        displayName: 'Xiaoman',
-        memberCount: 2,
-        partnerDisplayName: 'Ache',
-        currentSpaceId: 'test-space-id',
-      );
+  testWidgets('home hero card shows quote', (tester) async {
+    await _pumpApp(
+      tester,
+      authStatus: AppAuthStatus.authenticated,
+      displayName: 'Xiaoman',
+      memberCount: 2,
+      partnerDisplayName: 'Ache',
+      currentSpaceId: 'test-space-id',
+    );
 
-      expect(find.byKey(const ValueKey('home-hero-quote')), findsOneWidget);
-    },
-  );
+    expect(find.byKey(const ValueKey('home-hero-quote')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpApp(
@@ -2899,10 +2888,11 @@ Widget _accountSecurityHarness({
     child: MaterialApp(
       home: ProfileScreen(
         controller: controller,
-        spaceStatusRouteBuilder: spaceStatusRouteBuilder ??
-            (_, _) => const _FakeSpaceStatusScreen(),
+        spaceStatusRouteBuilder:
+            spaceStatusRouteBuilder ?? (_, _) => const _FakeSpaceStatusScreen(),
         accountSecurityBuilder: (_) => AccountSecurityScreen(
-          spaceStatusRouteBuilder: spaceStatusRouteBuilder ??
+          spaceStatusRouteBuilder:
+              spaceStatusRouteBuilder ??
               (_, _) => const _FakeSpaceStatusScreen(),
         ),
       ),

@@ -57,18 +57,18 @@ class SettingsMoreScreen extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                     title: strings.viewProfileTitle,
-                    subtitle: controller.displayName ??
+                    subtitle:
+                        controller.displayName ??
                         (strings.isChinese ? '未设置' : 'Not set'),
                     trailing: _chevron(isDark, theme),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) =>
-                              ProfileScreen(
-                                controller: controller,
-                                spaceStatusRouteBuilder:
-                                    buildAccountSecuritySpaceStatusRoute,
-                              ),
+                          builder: (_) => ProfileScreen(
+                            controller: controller,
+                            spaceStatusRouteBuilder:
+                                buildAccountSecuritySpaceStatusRoute,
+                          ),
                         ),
                       );
                     },
@@ -166,9 +166,7 @@ class SettingsMoreScreen extends StatelessWidget {
     return Icon(
       Icons.chevron_right,
       size: 20,
-      color: isDark
-          ? AppTheme.warmWhite25
-          : theme.colorScheme.onSurfaceVariant,
+      color: isDark ? AppTheme.warmWhite25 : theme.colorScheme.onSurfaceVariant,
     );
   }
 

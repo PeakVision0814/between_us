@@ -6,170 +6,161 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   // ─── Single mode: invite entry ────────────────────────────────────────
 
-  testWidgets(
-    'single mode: Us screen shows invite entry (add avatar)',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('single mode: Us screen shows invite entry (add avatar)', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab.
-      await _navigateToUsTab(tester);
+    // Navigate to Us tab.
+    await _navigateToUsTab(tester);
 
-      // Single mode should show the add-avatar slot (invite entry).
-      expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
-      expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsNothing);
-    },
-  );
+    // Single mode should show the add-avatar slot (invite entry).
+    expect(find.byKey(const ValueKey('us-hero-single-slot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsNothing);
+  });
 
-  testWidgets(
-    'single mode: tapping invite entry navigates to invite page',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('single mode: tapping invite entry navigates to invite page', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab.
-      await _navigateToUsTab(tester);
+    // Navigate to Us tab.
+    await _navigateToUsTab(tester);
 
-      // Tap the add avatar to navigate to invite page.
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Tap the add avatar to navigate to invite page.
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Invite page should show the placeholder section.
-      expect(
-        find.byKey(const ValueKey('us-invite-placeholder-section')),
-        findsOneWidget,
-      );
+    // Invite page should show the placeholder section.
+    expect(
+      find.byKey(const ValueKey('us-invite-placeholder-section')),
+      findsOneWidget,
+    );
 
-      // Should show invite action buttons.
-      expect(
-        find.byKey(const ValueKey('us-space-invite-actions')),
-        findsOneWidget,
-      );
+    // Should show invite action buttons.
+    expect(
+      find.byKey(const ValueKey('us-space-invite-actions')),
+      findsOneWidget,
+    );
 
-      // Generate invite code button.
-      expect(find.text('生成邀请码'), findsOneWidget);
+    // Generate invite code button.
+    expect(find.text('生成邀请码'), findsOneWidget);
 
-      // Enter invite code button.
-      expect(find.text('输入邀请码加入'), findsOneWidget);
-    },
-  );
+    // Enter invite code button.
+    expect(find.text('输入邀请码加入'), findsOneWidget);
+  });
 
-  testWidgets(
-    'single mode: tapping enter invite code shows dialog',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('single mode: tapping enter invite code shows dialog', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab.
-      await _navigateToUsTab(tester);
+    // Navigate to Us tab.
+    await _navigateToUsTab(tester);
 
-      // Tap the add avatar to navigate to invite page.
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Tap the add avatar to navigate to invite page.
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Tap the enter invite code button.
-      await tester.tap(find.text('输入邀请码加入'));
-      await tester.pumpAndSettle();
+    // Tap the enter invite code button.
+    await tester.tap(find.text('输入邀请码加入'));
+    await tester.pumpAndSettle();
 
-      // Dialog should appear with expected title.
-      expect(find.text('输入邀请码'), findsOneWidget);
+    // Dialog should appear with expected title.
+    expect(find.text('输入邀请码'), findsOneWidget);
 
-      // Dialog should have a hint text field.
-      expect(find.text('请输入对方分享的邀请码'), findsOneWidget);
+    // Dialog should have a hint text field.
+    expect(find.text('请输入对方分享的邀请码'), findsOneWidget);
 
-      // Dialog should have cancel and join buttons.
-      expect(find.text('取消'), findsOneWidget);
-      expect(find.text('加入'), findsOneWidget);
-    },
-  );
+    // Dialog should have cancel and join buttons.
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('加入'), findsOneWidget);
+  });
 
-  testWidgets(
-    'single mode: invite code dialog cancel closes dialog',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('single mode: invite code dialog cancel closes dialog', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab and open invite page.
-      await _navigateToUsTab(tester);
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Navigate to Us tab and open invite page.
+    await _navigateToUsTab(tester);
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Open the enter invite code dialog.
-      await tester.tap(find.text('输入邀请码加入'));
-      await tester.pumpAndSettle();
+    // Open the enter invite code dialog.
+    await tester.tap(find.text('输入邀请码加入'));
+    await tester.pumpAndSettle();
 
-      // Dialog should be open.
-      expect(find.text('输入邀请码'), findsOneWidget);
+    // Dialog should be open.
+    expect(find.text('输入邀请码'), findsOneWidget);
 
-      // Tap cancel.
-      await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
+    // Tap cancel.
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
 
-      // Dialog should be closed.
-      expect(find.text('输入邀请码'), findsNothing);
-    },
-  );
+    // Dialog should be closed.
+    expect(find.text('输入邀请码'), findsNothing);
+  });
 
-  testWidgets(
-    'single mode: invite page shows invite placeholder description',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 1,
-      );
+  testWidgets('single mode: invite page shows invite placeholder description', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
 
-      // Navigate to Us tab and open invite page.
-      await _navigateToUsTab(tester);
-      await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
-      await tester.pumpAndSettle();
+    // Navigate to Us tab and open invite page.
+    await _navigateToUsTab(tester);
+    await tester.tap(find.byKey(const ValueKey('us-hero-single-slot')));
+    await tester.pumpAndSettle();
 
-      // Invite page should show descriptive text.
-      expect(find.text('先给 TA 留一个位置'), findsWidgets);
-    },
-  );
+    // Invite page should show descriptive text.
+    expect(find.text('先给 TA 留一个位置'), findsWidgets);
+  });
 
   // ─── Paired mode: no invite entry ────────────────────────────────────
 
-  testWidgets(
-    'paired mode: Us screen shows partner slot, not invite entry',
-    (tester) async {
-      await _pumpApp(
-        tester,
-        displayName: '小满',
-        gender: AppController.genderFemale,
-        memberCount: 2,
-        partnerDisplayName: '阿澈',
-      );
+  testWidgets('paired mode: Us screen shows partner slot, not invite entry', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      displayName: '小满',
+      gender: AppController.genderFemale,
+      memberCount: 2,
+      partnerDisplayName: '阿澈',
+    );
 
-      // Navigate to Us tab.
-      await _navigateToUsTab(tester);
+    // Navigate to Us tab.
+    await _navigateToUsTab(tester);
 
-      // Paired mode shows partner slot, not single slot.
-      expect(
-        find.byKey(const ValueKey('us-hero-partner-slot')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('us-hero-single-slot')), findsNothing);
-    },
-  );
+    // Paired mode shows partner slot, not single slot.
+    expect(find.byKey(const ValueKey('us-hero-partner-slot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('us-hero-single-slot')), findsNothing);
+  });
 
   testWidgets(
     'paired mode: tapping partner slot opens partner profile, not invite',
@@ -238,21 +229,18 @@ void main() {
 
   // ─── hasActiveCoupleSpace boundary ────────────────────────────────────
 
-  test(
-    'hasActiveCoupleSpace is false when memberCount is 1',
-    () {
-      final controller = AppController();
-      controller.debugSetAuthState(
-        status: AppAuthStatus.authenticated,
-        supabaseReady: true,
-        displayName: '小满',
-        currentSpaceId: 'space-1',
-        memberCount: 1,
-      );
+  test('hasActiveCoupleSpace is false when memberCount is 1', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: '小满',
+      currentSpaceId: 'space-1',
+      memberCount: 1,
+    );
 
-      expect(controller.hasActiveCoupleSpace, isFalse);
-    },
-  );
+    expect(controller.hasActiveCoupleSpace, isFalse);
+  });
 
   test(
     'hasActiveCoupleSpace is true when memberCount >= 2 and spaceId set',
@@ -271,20 +259,17 @@ void main() {
     },
   );
 
-  test(
-    'hasActiveCoupleSpace is false when currentSpaceId is null',
-    () {
-      final controller = AppController();
-      controller.debugSetAuthState(
-        status: AppAuthStatus.authenticated,
-        supabaseReady: true,
-        displayName: '小满',
-        memberCount: 2,
-      );
+  test('hasActiveCoupleSpace is false when currentSpaceId is null', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: '小满',
+      memberCount: 2,
+    );
 
-      expect(controller.hasActiveCoupleSpace, isFalse);
-    },
-  );
+    expect(controller.hasActiveCoupleSpace, isFalse);
+  });
 }
 
 // ─── Test helpers ──────────────────────────────────────────────────────
@@ -305,14 +290,16 @@ Future<void> _pumpApp(
     gender: gender ?? AppController.genderFemale,
     memberCount: memberCount,
     partnerDisplayName: partnerDisplayName,
-    currentSpaceId: currentSpaceId ?? (memberCount >= 2 ? 'test-space-id' : null),
+    currentSpaceId:
+        currentSpaceId ?? (memberCount >= 2 ? 'test-space-id' : null),
   );
   controller.debugSeedLoadedProfile(
     userId: 'test-user',
     displayName: displayName,
     gender: gender ?? AppController.genderFemale,
     memberCount: memberCount,
-    currentSpaceId: currentSpaceId ?? (memberCount >= 2 ? 'test-space-id' : null),
+    currentSpaceId:
+        currentSpaceId ?? (memberCount >= 2 ? 'test-space-id' : null),
     partnerDisplayName: partnerDisplayName,
   );
 

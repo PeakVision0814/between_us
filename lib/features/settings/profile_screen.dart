@@ -292,7 +292,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: widget.accountSecurityBuilder ??
+                  builder:
+                      widget.accountSecurityBuilder ??
                       (_) => AccountSecurityScreen(
                         spaceStatusRouteBuilder: widget.spaceStatusRouteBuilder,
                       ),
@@ -404,10 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return normalized;
   }
 
-  String _accountSecuritySummary(
-    AppStrings strings,
-    AppController controller,
-  ) {
+  String _accountSecuritySummary(AppStrings strings, AppController controller) {
     final hasEmail = controller.email?.trim().isNotEmpty ?? false;
     final hasPhone = controller.phone?.trim().isNotEmpty ?? false;
     return switch ((hasEmail, hasPhone)) {
@@ -422,9 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Icon(
       Icons.chevron_right,
       size: 20,
-      color: isDark
-          ? AppTheme.warmWhite25
-          : theme.colorScheme.onSurfaceVariant,
+      color: isDark ? AppTheme.warmWhite25 : theme.colorScheme.onSurfaceVariant,
     );
   }
 

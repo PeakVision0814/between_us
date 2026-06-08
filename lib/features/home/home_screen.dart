@@ -7,7 +7,6 @@ import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../app/app_controller.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -68,7 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadAnniversaryData({bool force = false}) async {
-    if (!force && _lastLoadTime != null &&
+    if (!force &&
+        _lastLoadTime != null &&
         DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
       return;
     }
@@ -300,7 +300,9 @@ class _HomeHeroCard extends StatelessWidget {
                   width: 1,
                 )
               : null,
-          boxShadow: isDark ? AppTheme.shadowHeroDark : AppTheme.shadowHeroLight,
+          boxShadow: isDark
+              ? AppTheme.shadowHeroDark
+              : AppTheme.shadowHeroLight,
         ),
         child: Stack(
           children: [
@@ -462,7 +464,9 @@ class _PartnerInfo extends StatelessWidget {
             strings.homeHeroWaitingForPartner,
             key: const ValueKey('home-hero-waiting'),
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
+              color: isDark
+                  ? AppTheme.warmWhite60
+                  : colorScheme.onSurfaceVariant,
             ),
           ),
         ],

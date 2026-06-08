@@ -26,6 +26,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _loadingEvents = false;
   bool _reloadAfterCurrentLoad = false;
   DateTime? _lastLoadTime;
+  CalendarFilter _activeFilter = CalendarFilter.all;
 
   @visibleForTesting
   void debugSetEvents(List<CalendarEventRecord> events) {
@@ -54,20 +55,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _previousMonth() {
     setState(() {
-      _displayMonth = DateTime(
-        _displayMonth.year,
-        _displayMonth.month - 1,
-      );
+      _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1);
       _selectedDate = _dateOnly(_displayMonth);
     });
   }
 
   void _nextMonth() {
     setState(() {
-      _displayMonth = DateTime(
-        _displayMonth.year,
-        _displayMonth.month + 1,
-      );
+      _displayMonth = DateTime(_displayMonth.year, _displayMonth.month + 1);
       _selectedDate = _dateOnly(_displayMonth);
     });
   }
@@ -103,7 +98,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadEvents({bool force = false}) async {
-    if (!force && _lastLoadTime != null &&
+    if (!force &&
+        _lastLoadTime != null &&
         DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
       return;
     }
@@ -203,9 +199,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           .single();
 
       if (mounted) {
-        _upsertEventLocally(
-          CalendarEventRecord.fromJson(inserted),
-        );
+        _upsertEventLocally(CalendarEventRecord.fromJson(inserted));
       }
       await _loadEvents(force: true);
       return true;
@@ -356,9 +350,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       debugPrint('[Calendar] deleteCycleRecord failed: $e');
       if (mounted) {
         final strings = AppStrings.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.cycleDeleteFailedError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.cycleDeleteFailedError)));
       }
     }
   }
@@ -372,10 +366,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _upsertEventLocally(CalendarEventRecord record) {
     setState(() {
-      _events = [
-        ..._events.where((event) => event.id != record.id),
-        record,
-      ]..sort((left, right) => left.startsAt.compareTo(right.startsAt));
+      _events = [..._events.where((event) => event.id != record.id), record]
+        ..sort((left, right) => left.startsAt.compareTo(right.startsAt));
       _eventCreators = {for (final event in _events) event.id: event.createdBy};
     });
   }
@@ -621,9 +613,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _showCycleDialog({CycleRecord? record}) {
     final strings = AppStrings.of(context);
     final noteController = TextEditingController(text: record?.note ?? '');
-    DateTime startDate = record?.periodStartDate ??
-        _selectedDate ??
-        DateTime.now();
+    DateTime startDate =
+        record?.periodStartDate ?? _selectedDate ?? DateTime.now();
     DateTime? endDate = record?.periodEndDate;
 
     showDialog(
@@ -766,12 +757,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final entries = _events.map(_recordToEntry).toList();
     final visibleCycleRecords = _visibleCycleRecords(AppScope.of(context));
 
+    final filteredEntries = _filterEntries(entries);
+    final filteredCycleRecords = _filterCycleRecords(visibleCycleRecords);
+
     final entriesByDay = _groupEntriesByDay(
-      entries: entries,
+      entries: filteredEntries,
       visibleDays: visibleDays,
     );
     final cycleRecordsByDay = _groupCycleRecordsByDay(
-      records: visibleCycleRecords,
+      records: filteredCycleRecords,
       visibleDays: visibleDays,
     );
     final selectedEntries =
@@ -792,7 +786,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           (left, right) =>
               left.periodStartDate.compareTo(right.periodStartDate),
         );
-    final upcomingEntries = _getUpcomingEntries(entries, now);
+    final upcomingEntries = _getUpcomingEntries(filteredEntries, now);
 
     return Stack(
       children: [
@@ -841,12 +835,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   isDark: isDark,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // ── Event type filter chips ──
+              _FilterChipRow(
+                activeFilter: _activeFilter,
+                canUseCycleRecords: AppScope.of(context).canUseCycleRecords,
+                onSelected: (filter) {
+                  setState(() => _activeFilter = filter);
+                },
+              ),
+              const SizedBox(height: 16),
 
               // ── Selected date details ──
-              PageSectionHeader(
-                title: strings.calendarDetailsTitle,
-              ),
+              PageSectionHeader(title: strings.calendarDetailsTitle),
               const SizedBox(height: 10),
               PageSurfaceCard(
                 child: Column(
@@ -864,27 +866,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     if (selectedEntries.isEmpty && selectedCycleRecords.isEmpty)
                       _SelectedDayEmptyState(strings: strings, isDark: isDark)
                     else ...[
-                      ...selectedCycleRecords.map(
-                        (record) {
-                          final isOwner =
-                              record.ownerProfileId ==
-                              AppScope.of(context).selfProfileId;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _SelectedCycleRecordCard(
-                              record: record,
-                              isDark: isDark,
-                              isOwner: isOwner,
-                              onEdit: isOwner
-                                  ? () => _showCycleDialog(record: record)
-                                  : null,
-                              onDelete: isOwner
-                                  ? () => _confirmDeleteCycleRecord(record)
-                                  : null,
-                            ),
-                          );
-                        },
-                      ),
+                      ...selectedCycleRecords.map((record) {
+                        final isOwner =
+                            record.ownerProfileId ==
+                            AppScope.of(context).selfProfileId;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _SelectedCycleRecordCard(
+                            record: record,
+                            isDark: isDark,
+                            isOwner: isOwner,
+                            onEdit: isOwner
+                                ? () => _showCycleDialog(record: record)
+                                : null,
+                            onDelete: isOwner
+                                ? () => _confirmDeleteCycleRecord(record)
+                                : null,
+                          ),
+                        );
+                      }),
                       ...selectedEntries.map(
                         (entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -892,7 +892,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             entry: entry,
                             occurrence: _occurrenceOnDay(entry, _selectedDate!),
                             isDark: isDark,
-                            onDelete: _eventCreators[entry.id] ==
+                            onDelete:
+                                _eventCreators[entry.id] ==
                                     AppScope.of(context).selfProfileId
                                 ? () =>
                                       _confirmDeleteEvent(entry.id, entry.title)
@@ -908,9 +909,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               const SizedBox(height: 24),
 
               // ── Upcoming events ──
-              PageSectionHeader(
-                title: strings.calendarUpcomingTitle,
-              ),
+              PageSectionHeader(title: strings.calendarUpcomingTitle),
               const SizedBox(height: 10),
               if (upcomingEntries.isEmpty)
                 _UpcomingEmptyState(strings: strings, isDark: isDark)
@@ -922,7 +921,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       entry: item.entry,
                       occurrence: item.occurrence,
                       isDark: isDark,
-                      onDelete: _eventCreators[item.entry.id] ==
+                      onDelete:
+                          _eventCreators[item.entry.id] ==
                               AppScope.of(context).selfProfileId
                           ? () => _confirmDeleteEvent(
                               item.entry.id,
@@ -1056,6 +1056,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
         .toList();
   }
 
+  List<CalendarEntryData> _filterEntries(List<CalendarEntryData> entries) {
+    if (_activeFilter == CalendarFilter.all) return entries;
+    final targetType = switch (_activeFilter) {
+      CalendarFilter.anniversary => CalendarEntryType.anniversary,
+      CalendarFilter.datePlan => CalendarEntryType.datePlan,
+      CalendarFilter.reminder => CalendarEntryType.reminder,
+      CalendarFilter.cycle => null,
+      CalendarFilter.all => null,
+    };
+    if (targetType == null) return const [];
+    return entries.where((e) => e.type == targetType).toList();
+  }
+
+  List<CycleRecord> _filterCycleRecords(List<CycleRecord> records) {
+    if (_activeFilter == CalendarFilter.all ||
+        _activeFilter == CalendarFilter.cycle) {
+      return records;
+    }
+    return const [];
+  }
+
   static bool _cycleOccursOn(CycleRecord record, DateTime day) {
     final date = _dateOnly(day);
     final start = _dateOnly(record.periodStartDate);
@@ -1125,94 +1146,94 @@ class _MonthView extends StatelessWidget {
     final strings = AppStrings.of(context);
 
     return Column(
-        children: [
-          Row(
-            children: [
-              if (onPreviousMonth != null)
-                IconButton(
-                  onPressed: onPreviousMonth,
-                  icon: const Icon(Icons.chevron_left, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                ),
-              Expanded(
-                child: Text(
-                  strings.formatCalendarMonthYear(displayMonth),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+      children: [
+        Row(
+          children: [
+            if (onPreviousMonth != null)
+              IconButton(
+                onPressed: onPreviousMonth,
+                icon: const Icon(Icons.chevron_left, size: 20),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
-              if (onNextMonth != null)
-                IconButton(
-                  onPressed: onNextMonth,
-                  icon: const Icon(Icons.chevron_right, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                ),
-              if (onAddEvent != null)
-                IconButton(
-                  onPressed: onAddEvent,
-                  icon: const Icon(Icons.add, size: 20),
-                  tooltip: strings.createCalendarEntrySection,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: strings.weekLabels
-                .map(
-                  (label) => Expanded(
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isDark
-                              ? AppTheme.warmWhite60
-                              : colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 10),
-          for (var index = 0; index < visibleDays.length; index += 7)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  for (final day in visibleDays.sublist(index, index + 7))
-                    Expanded(
-                      child: _DayCell(
-                        date: day,
-                        inMonth: day.month == displayMonth.month,
-                        selected: _sameDate(day, selectedDate),
-                        hasEntries: entriesByDay.containsKey(_dateKey(day)),
-                        hasCycleRecord:
-                            cycleRecordsByDay.containsKey(_dateKey(day)),
-                        onTap: () => onSelectDate(day),
-                        isDark: isDark,
-                      ),
-                    ),
-                ],
+            Expanded(
+              child: Text(
+                strings.formatCalendarMonthYear(displayMonth),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
-        ],
-      );
+            if (onNextMonth != null)
+              IconButton(
+                onPressed: onNextMonth,
+                icon: const Icon(Icons.chevron_right, size: 20),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            if (onAddEvent != null)
+              IconButton(
+                onPressed: onAddEvent,
+                icon: const Icon(Icons.add, size: 20),
+                tooltip: strings.createCalendarEntrySection,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: strings.weekLabels
+              .map(
+                (label) => Expanded(
+                  child: Center(
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite60
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 10),
+        for (var index = 0; index < visibleDays.length; index += 7)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Stack(
+              children: [
+                _CycleBandRow(
+                  weekDays: visibleDays.sublist(index, index + 7),
+                  cycleRecordsByDay: cycleRecordsByDay,
+                  displayMonth: displayMonth,
+                  selectedDate: selectedDate,
+                  isDark: isDark,
+                ),
+                Row(
+                  children: [
+                    for (final day in visibleDays.sublist(index, index + 7))
+                      Expanded(
+                        child: _DayCell(
+                          date: day,
+                          inMonth: day.month == displayMonth.month,
+                          selected: _sameDate(day, selectedDate),
+                          hasEntries: entriesByDay.containsKey(_dateKey(day)),
+                          onTap: () => onSelectDate(day),
+                          isDark: isDark,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   static bool _sameDate(DateTime left, DateTime right) =>
@@ -1229,7 +1250,6 @@ class _DayCell extends StatelessWidget {
     required this.inMonth,
     required this.selected,
     required this.hasEntries,
-    required this.hasCycleRecord,
     required this.onTap,
     required this.isDark,
   });
@@ -1238,7 +1258,6 @@ class _DayCell extends StatelessWidget {
   final bool inMonth;
   final bool selected;
   final bool hasEntries;
-  final bool hasCycleRecord;
   final VoidCallback onTap;
   final bool isDark;
 
@@ -1248,19 +1267,13 @@ class _DayCell extends StatelessWidget {
 
     final background = selected
         ? colorScheme.primary
-        : (hasCycleRecord
-              ? _cycleMarkerColor(isDark).withValues(
-                  alpha: isDark ? 0.22 : 0.12,
-                )
-              : hasEntries
-              ? (isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : colorScheme.primary.withValues(alpha: 0.1))
-              : Colors.transparent);
+        : hasEntries
+        ? (isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : colorScheme.primary.withValues(alpha: 0.1))
+        : Colors.transparent;
     final borderColor = selected
         ? colorScheme.primary
-        : hasCycleRecord
-        ? _cycleMarkerColor(isDark).withValues(alpha: isDark ? 0.5 : 0.4)
         : hasEntries
         ? (isDark
               ? Colors.white.withValues(alpha: 0.1)
@@ -1298,32 +1311,17 @@ class _DayCell extends StatelessWidget {
                   '${date.day}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: textColor,
-                    fontWeight: selected || hasEntries || hasCycleRecord
+                    fontWeight: selected || hasEntries
                         ? FontWeight.w700
                         : FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _DayMarkerDot(
-                      visible: hasEntries,
-                      color: selected
-                          ? colorScheme.onPrimary
-                          : (isDark
-                                ? AppTheme.heroGlowBlush
-                                : colorScheme.primary),
-                    ),
-                    if (hasEntries && hasCycleRecord)
-                      const SizedBox(width: 3),
-                    _DayMarkerDot(
-                      visible: hasCycleRecord,
-                      color: selected
-                          ? AppTheme.fogLight
-                          : _cycleMarkerColor(isDark),
-                    ),
-                  ],
+                _DayMarkerDot(
+                  visible: hasEntries,
+                  color: selected
+                      ? colorScheme.onPrimary
+                      : (isDark ? AppTheme.heroGlowBlush : colorScheme.primary),
                 ),
               ],
             ),
@@ -1350,6 +1348,207 @@ class _DayMarkerDot extends StatelessWidget {
         color: visible ? color : Colors.transparent,
         shape: BoxShape.circle,
       ),
+    );
+  }
+}
+
+// ─── Cycle Band Row ──────────────────────────────────────────────────────
+
+class _CycleBandRow extends StatelessWidget {
+  const _CycleBandRow({
+    required this.weekDays,
+    required this.cycleRecordsByDay,
+    required this.displayMonth,
+    required this.selectedDate,
+    required this.isDark,
+  });
+
+  final List<DateTime> weekDays;
+  final Map<String, List<CycleRecord>> cycleRecordsByDay;
+  final DateTime displayMonth;
+  final DateTime selectedDate;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine which days in this week row are cycle days (in current month).
+    final cycleDays = <int>{};
+    for (var i = 0; i < weekDays.length; i++) {
+      final day = weekDays[i];
+      if (day.month != displayMonth.month) continue;
+      if (cycleRecordsByDay.containsKey(_dateKey(day))) {
+        cycleDays.add(i);
+      }
+    }
+
+    if (cycleDays.isEmpty) return const SizedBox.shrink();
+
+    // Build segments: groups of consecutive cycle days.
+    final segments = _buildSegments(cycleDays);
+
+    final bandColor = _cycleMarkerColor(
+      isDark,
+    ).withValues(alpha: isDark ? 0.22 : 0.12);
+
+    return Row(
+      children: List.generate(7, (i) {
+        final segment = _segmentForIndex(segments, i);
+        if (segment == null) {
+          return const Expanded(child: SizedBox.shrink());
+        }
+
+        final isStart = i == segment.start;
+        final isEnd = i == segment.end;
+        final isSingle = segment.isSingle;
+        final isSelected = _sameDate(weekDays[i], selectedDate);
+
+        // Don't show band when the day is selected.
+        if (isSelected) {
+          return const Expanded(child: SizedBox.shrink());
+        }
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: bandColor,
+                borderRadius: BorderRadius.horizontal(
+                  left: isStart || isSingle
+                      ? const Radius.circular(AppTheme.radiusMd)
+                      : const Radius.circular(2),
+                  right: isEnd || isSingle
+                      ? const Radius.circular(AppTheme.radiusMd)
+                      : const Radius.circular(2),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// Build consecutive segments from a set of day indices.
+  static List<_CycleSegment> _buildSegments(Set<int> days) {
+    if (days.isEmpty) return const [];
+    final sorted = days.toList()..sort();
+    final segments = <_CycleSegment>[];
+    var start = sorted[0];
+    var end = sorted[0];
+
+    for (var i = 1; i < sorted.length; i++) {
+      if (sorted[i] == end + 1) {
+        end = sorted[i];
+      } else {
+        segments.add(_CycleSegment(start, end));
+        start = sorted[i];
+        end = sorted[i];
+      }
+    }
+    segments.add(_CycleSegment(start, end));
+    return segments;
+  }
+
+  /// Find which segment (if any) contains the given index.
+  static _CycleSegment? _segmentForIndex(List<_CycleSegment> segments, int i) {
+    for (final seg in segments) {
+      if (i >= seg.start && i <= seg.end) return seg;
+    }
+    return null;
+  }
+
+  static bool _sameDate(DateTime left, DateTime right) =>
+      left.year == right.year &&
+      left.month == right.month &&
+      left.day == right.day;
+}
+
+class _CycleSegment {
+  const _CycleSegment(this.start, this.end);
+
+  final int start;
+  final int end;
+
+  bool get isSingle => start == end;
+}
+
+// ─── Filter Chip Row ─────────────────────────────────────────────────────
+
+class _FilterChipRow extends StatelessWidget {
+  const _FilterChipRow({
+    required this.activeFilter,
+    required this.canUseCycleRecords,
+    required this.onSelected,
+  });
+
+  final CalendarFilter activeFilter;
+  final bool canUseCycleRecords;
+  final ValueChanged<CalendarFilter> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final filters = [
+      CalendarFilter.all,
+      CalendarFilter.anniversary,
+      CalendarFilter.datePlan,
+      CalendarFilter.reminder,
+      if (canUseCycleRecords) CalendarFilter.cycle,
+    ];
+
+    return Row(
+      children: [
+        for (var i = 0; i < filters.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          _buildChip(context, strings, colorScheme, isDark, filters[i]),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildChip(
+    BuildContext context,
+    AppStrings strings,
+    ColorScheme colorScheme,
+    bool isDark,
+    CalendarFilter filter,
+  ) {
+    final isSelected = activeFilter == filter;
+    final label = strings.calendarFilterLabel(filter);
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(filter),
+      selectedColor: isDark
+          ? AppTheme.darkBlush.withValues(alpha: 0.5)
+          : AppTheme.blushLight,
+      backgroundColor: isDark
+          ? Colors.white.withValues(alpha: 0.06)
+          : AppTheme.warmGray50,
+      side: BorderSide(
+        color: isSelected
+            ? (isDark
+                  ? AppTheme.darkBlushAccent.withValues(alpha: 0.6)
+                  : colorScheme.primary.withValues(alpha: 0.4))
+            : (isDark ? AppTheme.nightBorder : AppTheme.warmGray200),
+      ),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? (isDark ? AppTheme.warmWhite90 : colorScheme.primary)
+            : (isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant),
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+        fontSize: 13,
+      ),
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -1463,7 +1662,8 @@ class _SelectedEntryCard extends StatelessWidget {
 
     final name = creatorId == controller.selfProfileId
         ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
-        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+        : (controller.partnerDisplayName ??
+              (strings.isChinese ? 'TA' : 'Partner'));
 
     return Text(
       strings.createdByLabel(name),
@@ -1759,7 +1959,8 @@ class _UpcomingEventCard extends StatelessWidget {
 
     final name = creatorId == controller.selfProfileId
         ? (controller.displayName ?? (strings.isChinese ? '我' : 'Me'))
-        : (controller.partnerDisplayName ?? (strings.isChinese ? 'TA' : 'Partner'));
+        : (controller.partnerDisplayName ??
+              (strings.isChinese ? 'TA' : 'Partner'));
 
     return Text(
       strings.createdByLabel(name),
@@ -1794,7 +1995,10 @@ class _CalendarPendingEmptyState extends StatelessWidget {
               size: 48,
             ),
             const SizedBox(height: 16),
-            Text(strings.calendarNoEventsYet, style: theme.textTheme.titleMedium),
+            Text(
+              strings.calendarNoEventsYet,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Text(
               strings.invitePartnerToStartUsing,
@@ -1834,7 +2038,10 @@ class _UpcomingEmptyState extends StatelessWidget {
               size: 48,
             ),
             const SizedBox(height: 16),
-            Text(strings.calendarNoEventsYet, style: theme.textTheme.titleMedium),
+            Text(
+              strings.calendarNoEventsYet,
+              style: theme.textTheme.titleMedium,
+            ),
           ],
         ),
       ),

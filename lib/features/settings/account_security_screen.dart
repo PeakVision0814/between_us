@@ -431,9 +431,7 @@ class _BindingPanel extends StatelessWidget {
     final errorText = _bindingErrorText(strings, controller.bindingErrorCode);
 
     return PageSurfaceCard(
-      key: ValueKey(
-        isPhone ? 'bind-phone-panel' : 'bind-email-panel',
-      ),
+      key: ValueKey(isPhone ? 'bind-phone-panel' : 'bind-email-panel'),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,7 +518,9 @@ class _BindingPanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextField(
-              key: ValueKey(isPhone ? 'bind-phone-otp-field' : 'bind-email-otp-field'),
+              key: ValueKey(
+                isPhone ? 'bind-phone-otp-field' : 'bind-email-otp-field',
+              ),
               controller: codeController,
               enabled: !controller.bindingBusy,
               keyboardType: TextInputType.number,
@@ -581,7 +581,8 @@ class _BindingPanel extends StatelessWidget {
         strings.accountSecurityPhoneBindingSendFailedMessage,
       'binding_email_send_failed' =>
         strings.accountSecurityEmailBindingSendFailedMessage,
-      'binding_verify_failed' => strings.accountSecurityBindingVerifyFailedMessage,
+      'binding_verify_failed' =>
+        strings.accountSecurityBindingVerifyFailedMessage,
       _ => strings.authUnknownErrorMessage,
     };
   }

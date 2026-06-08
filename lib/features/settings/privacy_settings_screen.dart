@@ -37,8 +37,9 @@ class PrivacySettingsScreen extends StatelessWidget {
                   key: const ValueKey('cycle-sharing-switch'),
                   value: controller.cycleSharingEnabled,
                   onChanged: (enabled) async {
-                    final success =
-                        await controller.setCycleSharingEnabled(enabled);
+                    final success = await controller.setCycleSharingEnabled(
+                      enabled,
+                    );
                     if (!success && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(strings.cycleCreateFailedError)),

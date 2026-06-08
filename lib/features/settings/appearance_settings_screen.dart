@@ -111,9 +111,7 @@ class AppearanceSettingsScreen extends StatelessWidget {
                   color: theme.colorScheme.primary,
                 ),
                 title: Text(strings.timeZoneTitle),
-                subtitle: Text(
-                  '${_timeZoneLabel()} · ${strings.timeZoneHint}',
-                ),
+                subtitle: Text('${_timeZoneLabel()} · ${strings.timeZoneHint}'),
               ),
             ],
           ),

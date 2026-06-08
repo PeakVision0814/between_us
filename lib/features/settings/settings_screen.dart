@@ -70,7 +70,8 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadSpaceData({bool force = false}) async {
-    if (!force && _lastLoadTime != null &&
+    if (!force &&
+        _lastLoadTime != null &&
         DateTime.now().difference(_lastLoadTime!).inMinutes < 5) {
       return;
     }
@@ -250,7 +251,9 @@ class _UsScreenState extends State<UsScreen> with WidgetsBindingObserver {
           title: Text(strings.inviteEnterCodeDialogTitle),
           content: TextField(
             controller: textController,
-            decoration: InputDecoration(hintText: strings.inviteEnterCodeDialogHint),
+            decoration: InputDecoration(
+              hintText: strings.inviteEnterCodeDialogHint,
+            ),
             autofocus: true,
             enabled: !_acceptingInvite,
           ),
@@ -860,9 +863,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
         ),
         const SizedBox(height: 24),
         // ── 纪念日区域 ──
-        PageSectionHeader(
-          title: strings.anniversarySectionTitle,
-        ),
+        PageSectionHeader(title: strings.anniversarySectionTitle),
         const SizedBox(height: 10),
         ..._anniversaries.map(
           (anniversary) => Padding(
@@ -1495,8 +1496,7 @@ class _SpaceStatusScreenState extends State<SpaceStatusScreen> {
     final strings = AppStrings.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final partnerName =
-        widget.partnerName ?? strings.partnerFallbackName;
+    final partnerName = widget.partnerName ?? strings.partnerFallbackName;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

@@ -38,13 +38,8 @@ class AppStrings {
   }
 
   String get appName => 'Between Us';
-  String get authSignInTitle => _resolve(
-    zhCn: '登录',
-    zhTw: '登入',
-    en: 'Sign In',
-    ja: 'ログイン',
-    ko: '로그인',
-  );
+  String get authSignInTitle =>
+      _resolve(zhCn: '登录', zhTw: '登入', en: 'Sign In', ja: 'ログイン', ko: '로그인');
   String get authRegisterTitle => _resolve(
     zhCn: '创建账号',
     zhTw: '建立帳號',
@@ -73,20 +68,10 @@ class AppStrings {
     ja: 'セッションを確認中...',
     ko: '세션 확인 중...',
   );
-  String get authRetryLabel => _resolve(
-    zhCn: '重试',
-    zhTw: '重試',
-    en: 'Retry',
-    ja: '再試行',
-    ko: '재시도',
-  );
-  String get authEmailLabel => _resolve(
-    zhCn: '邮箱',
-    zhTw: '電子郵件',
-    en: 'Email',
-    ja: 'メールアドレス',
-    ko: '이메일',
-  );
+  String get authRetryLabel =>
+      _resolve(zhCn: '重试', zhTw: '重試', en: 'Retry', ja: '再試行', ko: '재시도');
+  String get authEmailLabel =>
+      _resolve(zhCn: '邮箱', zhTw: '電子郵件', en: 'Email', ja: 'メールアドレス', ko: '이메일');
   String get authEmailHint => _resolve(
     zhCn: '输入接收验证码的邮箱',
     zhTw: '輸入接收驗證碼的電子郵件',
@@ -94,21 +79,12 @@ class AppStrings {
     ja: '認証コードを受け取るメールアドレスを入力',
     ko: '인증 코드를 받을 이메일을 입력하세요',
   );
-  String get authEmailMethodLabel => _resolve(
-    zhCn: '邮箱',
-    zhTw: '電子郵件',
-    en: 'Email',
-  );
-  String get authPhoneMethodLabel => _resolve(
-    zhCn: '手机号',
-    zhTw: '手機號',
-    en: 'Phone',
-  );
-  String get authPhoneLabel => _resolve(
-    zhCn: '手机号',
-    zhTw: '手機號',
-    en: 'Phone number',
-  );
+  String get authEmailMethodLabel =>
+      _resolve(zhCn: '邮箱', zhTw: '電子郵件', en: 'Email');
+  String get authPhoneMethodLabel =>
+      _resolve(zhCn: '手机号', zhTw: '手機號', en: 'Phone');
+  String get authPhoneLabel =>
+      _resolve(zhCn: '手机号', zhTw: '手機號', en: 'Phone number');
   String get authPhoneHint => _resolve(
     zhCn: '请输入 E.164 格式，例如 +8613812345678',
     zhTw: '請輸入 E.164 格式，例如 +8613812345678',
@@ -135,11 +111,8 @@ class AppStrings {
     ja: 'メールアドレス変更',
     ko: '이메일 변경',
   );
-  String get authChangePhoneLabel => _resolve(
-    zhCn: '更换手机号',
-    zhTw: '更換手機號',
-    en: 'Change phone',
-  );
+  String get authChangePhoneLabel =>
+      _resolve(zhCn: '更换手机号', zhTw: '更換手機號', en: 'Change phone');
   String get authSendSignInCodeLabel => _resolve(
     zhCn: '发送登录验证码',
     zhTw: '發送登入驗證碼',
@@ -295,8 +268,7 @@ class AppStrings {
   String get authPhoneUserNotRegisteredMessage => _resolve(
     zhCn: '该手机号尚未注册，请先创建账号。',
     zhTw: '該手機號尚未註冊，請先建立帳號。',
-    en:
-        'This phone number is not registered yet. Please create an account first.',
+    en: 'This phone number is not registered yet. Please create an account first.',
   );
   String get authPhoneUserAlreadyRegisteredMessage => _resolve(
     zhCn: '该手机号已经注册，请直接登录。',
@@ -337,27 +309,12 @@ class AppStrings {
     ko: '인증 중 문제가 발생했습니다. 다시 시도하세요.',
   );
 
-  String get profileEditLabel => _resolve(
-    zhCn: '编辑',
-    zhTw: '編輯',
-    en: 'Edit',
-    ja: '編集',
-    ko: '편집',
-  );
-  String get profileCancelLabel => _resolve(
-    zhCn: '取消',
-    zhTw: '取消',
-    en: 'Cancel',
-    ja: 'キャンセル',
-    ko: '취소',
-  );
-  String get profileSaveLabel => _resolve(
-    zhCn: '保存',
-    zhTw: '儲存',
-    en: 'Save',
-    ja: '保存',
-    ko: '저장',
-  );
+  String get profileEditLabel =>
+      _resolve(zhCn: '编辑', zhTw: '編輯', en: 'Edit', ja: '編集', ko: '편집');
+  String get profileCancelLabel =>
+      _resolve(zhCn: '取消', zhTw: '取消', en: 'Cancel', ja: 'キャンセル', ko: '취소');
+  String get profileSaveLabel =>
+      _resolve(zhCn: '保存', zhTw: '儲存', en: 'Save', ja: '保存', ko: '저장');
   String get profileDisplayNameLabel => _resolve(
     zhCn: '昵称',
     zhTw: '暱稱',
@@ -386,27 +343,12 @@ class AppStrings {
     ja: '表示名は40文字以内にしてください',
     ko: '표시 이름은 40자를 초과할 수 없습니다',
   );
-  String get profileGenderLabel => _resolve(
-    zhCn: '性别',
-    zhTw: '性別',
-    en: 'Gender',
-    ja: '性別',
-    ko: '성별',
-  );
-  String get profileGenderMaleLabel => _resolve(
-    zhCn: '男生',
-    zhTw: '男生',
-    en: 'Male',
-    ja: '男性',
-    ko: '남성',
-  );
-  String get profileGenderFemaleLabel => _resolve(
-    zhCn: '女生',
-    zhTw: '女生',
-    en: 'Female',
-    ja: '女性',
-    ko: '여성',
-  );
+  String get profileGenderLabel =>
+      _resolve(zhCn: '性别', zhTw: '性別', en: 'Gender', ja: '性別', ko: '성별');
+  String get profileGenderMaleLabel =>
+      _resolve(zhCn: '男生', zhTw: '男生', en: 'Male', ja: '男性', ko: '남성');
+  String get profileGenderFemaleLabel =>
+      _resolve(zhCn: '女生', zhTw: '女生', en: 'Female', ja: '女性', ko: '여성');
   String get profileGenderRequiredError => _resolve(
     zhCn: '请选择性别',
     zhTw: '請選擇性別',
@@ -414,13 +356,8 @@ class AppStrings {
     ja: '性別を選択してください',
     ko: '성별을 선택하세요',
   );
-  String get profileBirthdayLabel => _resolve(
-    zhCn: '生日',
-    zhTw: '生日',
-    en: 'Birthday',
-    ja: '誕生日',
-    ko: '생일',
-  );
+  String get profileBirthdayLabel =>
+      _resolve(zhCn: '生日', zhTw: '生日', en: 'Birthday', ja: '誕生日', ko: '생일');
   String get profileBirthdayHint => _resolve(
     zhCn: '点击选择日期',
     zhTw: '點擊選擇日期',
@@ -428,40 +365,23 @@ class AppStrings {
     ja: 'タップして日付を選択',
     ko: '날짜를 선택하려면 탭하세요',
   );
-  String get profileBirthdayClearLabel => _resolve(
-    zhCn: '清空',
-    zhTw: '清空',
-    en: 'Clear',
-    ja: 'クリア',
-    ko: '지우기',
-  );
-  String get profileEmailLabel => _resolve(
-    zhCn: '邮箱',
-    zhTw: '電子郵件',
-    en: 'Email',
-    ja: 'メールアドレス',
-    ko: '이메일',
-  );
-  String get profileSharedInfoSectionTitle => _resolve(
-    zhCn: '展示给 TA 的资料',
-    zhTw: '展示給 TA 的資料',
-    en: 'Shared profile',
-  );
+  String get profileBirthdayClearLabel =>
+      _resolve(zhCn: '清空', zhTw: '清空', en: 'Clear', ja: 'クリア', ko: '지우기');
+  String get profileEmailLabel =>
+      _resolve(zhCn: '邮箱', zhTw: '電子郵件', en: 'Email', ja: 'メールアドレス', ko: '이메일');
+  String get profileSharedInfoSectionTitle =>
+      _resolve(zhCn: '展示给 TA 的资料', zhTw: '展示給 TA 的資料', en: 'Shared profile');
   String get profileSharedInfoSectionSubtitle => _resolve(
     zhCn: '昵称、性别和生日会用于你们的空间展示。',
     zhTw: '暱稱、性別和生日會用於你們的空間展示。',
     en: 'Name, gender, and birthday are used in your shared space.',
   );
-  String get profileAccountSecuritySectionTitle => _resolve(
-    zhCn: '账号与安全',
-    zhTw: '帳號與安全',
-    en: 'Account & security',
-  );
+  String get profileAccountSecuritySectionTitle =>
+      _resolve(zhCn: '账号与安全', zhTw: '帳號與安全', en: 'Account & security');
   String get profileAccountSecuritySectionSubtitle => _resolve(
     zhCn: '登录邮箱和手机号只用于当前账号，不会默认展示给 TA。',
     zhTw: '登入電子郵件和手機號只用於目前帳號，不會預設展示給 TA。',
-    en:
-        'Login email and phone are for this account only and are not shown by default.',
+    en: 'Login email and phone are for this account only and are not shown by default.',
   );
   String get profileAccountSecurityBothBound => _resolve(
     zhCn: '已绑定邮箱和手机号',
@@ -716,13 +636,8 @@ class AppStrings {
     ja: 'パートナーが共有した招待コードを入力してください',
     ko: '파트너가 공유한 초대 코드를 입력하세요',
   );
-  String get inviteJoinButton => _resolve(
-    zhCn: '加入',
-    zhTw: '加入',
-    en: 'Join',
-    ja: '参加',
-    ko: '참여',
-  );
+  String get inviteJoinButton =>
+      _resolve(zhCn: '加入', zhTw: '加入', en: 'Join', ja: '参加', ko: '참여');
   String get inviteJoinSuccessMessage => _resolve(
     zhCn: '已成功加入空间',
     zhTw: '已成功加入空間',
@@ -745,8 +660,10 @@ class AppStrings {
     ko: '파트너를 초대하여 사용을 시작하세요',
   );
   String inviteExpiryText(int month, int day, int hour, int minute) => _resolve(
-    zhCn: '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
-    zhTw: '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+    zhCn:
+        '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+    zhTw:
+        '有效期至 $month 月 $day 日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
     en: 'Expires $month/$day ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
     ja: '有効期限: $month月$day日 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
     ko: '만료: $month월 $day일 ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
@@ -754,20 +671,10 @@ class AppStrings {
 
   // ── Partner / self display names ──────────────────────────────────────
 
-  String get partnerFallbackName => _resolve(
-    zhCn: 'TA',
-    zhTw: 'TA',
-    en: 'Partner',
-    ja: 'パートナー',
-    ko: '파트너',
-  );
-  String get selfFallbackName => _resolve(
-    zhCn: '我',
-    zhTw: '我',
-    en: 'Me',
-    ja: '自分',
-    ko: '나',
-  );
+  String get partnerFallbackName =>
+      _resolve(zhCn: 'TA', zhTw: 'TA', en: 'Partner', ja: 'パートナー', ko: '파트너');
+  String get selfFallbackName =>
+      _resolve(zhCn: '我', zhTw: '我', en: 'Me', ja: '自分', ko: '나');
 
   // ── Home hero card ────────────────────────────────────────────────────
 
@@ -818,13 +725,8 @@ class AppStrings {
     ko: '함께한 날',
   );
 
-  String get homeHeroDaysUnit => _resolve(
-    zhCn: '天',
-    zhTw: '天',
-    en: 'days',
-    ja: '日',
-    ko: '일',
-  );
+  String get homeHeroDaysUnit =>
+      _resolve(zhCn: '天', zhTw: '天', en: 'days', ja: '日', ko: '일');
 
   String get homeHeroWaitingForPartner => _resolve(
     zhCn: '等待另一半加入',
@@ -852,20 +754,10 @@ class AppStrings {
     ko: '네트워크 연결을 확인하세요',
   );
 
-  String get homeTab => _resolve(
-    zhCn: '首页',
-    zhTw: '首頁',
-    en: 'Home',
-    ja: 'ホーム',
-    ko: '홈',
-  );
-  String get calendarTab => _resolve(
-    zhCn: '日历',
-    zhTw: '日曆',
-    en: 'Calendar',
-    ja: 'カレンダー',
-    ko: '캘린더',
-  );
+  String get homeTab =>
+      _resolve(zhCn: '首页', zhTw: '首頁', en: 'Home', ja: 'ホーム', ko: '홈');
+  String get calendarTab =>
+      _resolve(zhCn: '日历', zhTw: '日曆', en: 'Calendar', ja: 'カレンダー', ko: '캘린더');
   String get plansNotesTab => _resolve(
     zhCn: '计划笔记',
     zhTw: '計畫筆記',
@@ -873,13 +765,8 @@ class AppStrings {
     ja: 'プラン・メモ',
     ko: '계획・메모',
   );
-  String get usTab => _resolve(
-    zhCn: '我们',
-    zhTw: '我們',
-    en: 'Us',
-    ja: 'ふたり',
-    ko: '우리',
-  );
+  String get usTab =>
+      _resolve(zhCn: '我们', zhTw: '我們', en: 'Us', ja: 'ふたり', ko: '우리');
 
   String get overviewSection => _resolve(
     zhCn: '我们概览',
@@ -978,8 +865,8 @@ class AppStrings {
   );
 
   List<String> get weekLabels => switch (language) {
-    AppLanguage.zhCn || AppLanguage.zhTw =>
-      const ['一', '二', '三', '四', '五', '六', '日'],
+    AppLanguage.zhCn ||
+    AppLanguage.zhTw => const ['一', '二', '三', '四', '五', '六', '日'],
     AppLanguage.en => const ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
     AppLanguage.ja => const ['月', '火', '水', '木', '金', '土', '日'],
     AppLanguage.ko => const ['월', '화', '수', '목', '금', '토', '일'],
@@ -993,18 +880,14 @@ class AppStrings {
   );
 
   String get calendarTitle => calendarTab;
-  String get calendarLeadTitle => _resolve(
-    zhCn: '本月安排',
-    en: 'This month at a glance',
-  );
+  String get calendarLeadTitle =>
+      _resolve(zhCn: '本月安排', en: 'This month at a glance');
   String get calendarLeadSubtitle => _resolve(
     zhCn: '纪念日、约会和提醒，都放在这里。',
     en: 'Anniversaries, scheduled plans, and reminders stay here.',
   );
-  String get selectedDateSection => _resolve(
-    zhCn: '选中日期详情',
-    en: 'Selected date details',
-  );
+  String get selectedDateSection =>
+      _resolve(zhCn: '选中日期详情', en: 'Selected date details');
   String get upcomingEventsSection => _resolve(
     zhCn: '近期事项',
     zhTw: '近期事項',
@@ -1019,7 +902,8 @@ class AppStrings {
     ja: 'イベント追加',
     ko: '이벤트 추가',
   );
-  String get selectedDateLabel => isChinese ? '6 月 6 日 · 周六' : 'June 6 · Saturday';
+  String get selectedDateLabel =>
+      isChinese ? '6 月 6 日 · 周六' : 'June 6 · Saturday';
   String get createAnniversaryLabel => _resolve(
     zhCn: '纪念日',
     zhTw: '紀念日',
@@ -1027,55 +911,31 @@ class AppStrings {
     ja: '記念日',
     ko: '기념일',
   );
-  String get createDatePlanLabel => _resolve(
-    zhCn: '约会',
-    zhTw: '約會',
-    en: 'Date plan',
-    ja: 'デート',
-    ko: '데이트',
-  );
-  String get createReminderLabel => _resolve(
-    zhCn: '提醒',
-    zhTw: '提醒',
-    en: 'Reminder',
-    ja: 'リマインダー',
-    ko: '알림',
-  );
+  String get createDatePlanLabel =>
+      _resolve(zhCn: '约会', zhTw: '約會', en: 'Date plan', ja: 'デート', ko: '데이트');
+  String get createReminderLabel =>
+      _resolve(zhCn: '提醒', zhTw: '提醒', en: 'Reminder', ja: 'リマインダー', ko: '알림');
   String get plansNotesTitle => plansNotesTab;
-  String get plansNotesLeadTitle => _resolve(
-    zhCn: '没定日期的，先放这里',
-    en: 'Keep undecided things here first',
-  );
+  String get plansNotesLeadTitle =>
+      _resolve(zhCn: '没定日期的，先放这里', en: 'Keep undecided things here first');
   String get plansNotesLeadSubtitle => _resolve(
     zhCn: '有日期的去日历，没日期的计划和随记留在这里。',
     en: 'Dated items belong in calendar. Undated plans and notes stay here.',
   );
-  String get plansSectionTitle => _resolve(
-    zhCn: '计划',
-    zhTw: '計畫',
-    en: 'Plans',
-    ja: 'プラン',
-    ko: '계획',
-  );
+  String get plansSectionTitle =>
+      _resolve(zhCn: '计划', zhTw: '計畫', en: 'Plans', ja: 'プラン', ko: '계획');
   String get plansSectionSubtitle => _resolve(
     zhCn: '还没定日期的想法、待讨论事项和约会意向。',
     en: 'Undated ideas, date intentions, and things to discuss.',
   );
-  String get notesSectionTitle => _resolve(
-    zhCn: '随记',
-    zhTw: '隨記',
-    en: 'Notes',
-    ja: 'メモ',
-    ko: '메모',
-  );
+  String get notesSectionTitle =>
+      _resolve(zhCn: '随记', zhTw: '隨記', en: 'Notes', ja: 'メモ', ko: '메모');
   String get notesSectionSubtitle => _resolve(
     zhCn: '随手记下的小事、心情和共享日常。',
     en: 'Light shared notes, little thoughts, and daily moments.',
   );
-  String get moveToCalendarLabel => _resolve(
-    zhCn: '以后放进日历',
-    en: 'Later move to calendar',
-  );
+  String get moveToCalendarLabel =>
+      _resolve(zhCn: '以后放进日历', en: 'Later move to calendar');
   String get addPlanLabel => _resolve(
     zhCn: '加一个计划',
     zhTw: '加一個計畫',
@@ -1208,13 +1068,8 @@ class AppStrings {
     ja: 'カスタム記念日は最大2つまで',
     ko: '커스텀 기념일은 최대 2개까지',
   );
-  String get anniversaryDateLabel => _resolve(
-    zhCn: '日期',
-    zhTw: '日期',
-    en: 'Date',
-    ja: '日付',
-    ko: '날짜',
-  );
+  String get anniversaryDateLabel =>
+      _resolve(zhCn: '日期', zhTw: '日期', en: 'Date', ja: '日付', ko: '날짜');
 
   String get nextEventLabel => _resolve(
     zhCn: '下一个安排',
@@ -1237,13 +1092,8 @@ class AppStrings {
     ja: 'プライバシーと共有',
     ko: '개인정보 및 공유',
   );
-  String get languageTitle => _resolve(
-    zhCn: '语言',
-    zhTw: '語言',
-    en: 'Language',
-    ja: '言語',
-    ko: '언어',
-  );
+  String get languageTitle =>
+      _resolve(zhCn: '语言', zhTw: '語言', en: 'Language', ja: '言語', ko: '언어');
   String get themeTitle => _resolve(
     zhCn: '主题模式',
     zhTw: '主題模式',
@@ -1300,11 +1150,8 @@ class AppStrings {
     ja: 'プライバシーと共有',
     ko: '개인정보 및 공유',
   );
-  String get accountSecurityTitle => _resolve(
-    zhCn: '账号与安全',
-    zhTw: '帳號與安全',
-    en: 'Account & security',
-  );
+  String get accountSecurityTitle =>
+      _resolve(zhCn: '账号与安全', zhTw: '帳號與安全', en: 'Account & security');
   String get accountSecuritySettingsSubtitle => _resolve(
     zhCn: '登录邮箱、手机号和账号凭证',
     zhTw: '登入電子郵件、手機號和帳號憑證',
@@ -1315,51 +1162,27 @@ class AppStrings {
     zhTw: '管理可以登入這個帳號的電子郵件和手機號。',
     en: 'Manage the email and phone number that can sign in to this account.',
   );
-  String get accountSecurityEmailTitle => _resolve(
-    zhCn: '登录邮箱',
-    zhTw: '登入電子郵件',
-    en: 'Login email',
-  );
-  String get accountSecurityPhoneTitle => _resolve(
-    zhCn: '登录手机号',
-    zhTw: '登入手機號',
-    en: 'Login phone',
-  );
-  String get accountSecurityEmailUnbound => _resolve(
-    zhCn: '未绑定邮箱',
-    zhTw: '未綁定電子郵件',
-    en: 'No email bound',
-  );
-  String get accountSecurityPhoneUnbound => _resolve(
-    zhCn: '未绑定手机号',
-    zhTw: '未綁定手機號',
-    en: 'No phone bound',
-  );
-  String get accountSecurityBindEmailLabel => _resolve(
-    zhCn: '绑定邮箱',
-    zhTw: '綁定電子郵件',
-    en: 'Bind email',
-  );
-  String get accountSecurityBindPhoneLabel => _resolve(
-    zhCn: '绑定手机号',
-    zhTw: '綁定手機號',
-    en: 'Bind phone',
-  );
+  String get accountSecurityEmailTitle =>
+      _resolve(zhCn: '登录邮箱', zhTw: '登入電子郵件', en: 'Login email');
+  String get accountSecurityPhoneTitle =>
+      _resolve(zhCn: '登录手机号', zhTw: '登入手機號', en: 'Login phone');
+  String get accountSecurityEmailUnbound =>
+      _resolve(zhCn: '未绑定邮箱', zhTw: '未綁定電子郵件', en: 'No email bound');
+  String get accountSecurityPhoneUnbound =>
+      _resolve(zhCn: '未绑定手机号', zhTw: '未綁定手機號', en: 'No phone bound');
+  String get accountSecurityBindEmailLabel =>
+      _resolve(zhCn: '绑定邮箱', zhTw: '綁定電子郵件', en: 'Bind email');
+  String get accountSecurityBindPhoneLabel =>
+      _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone');
   String get accountSecurityPrivacyHint => _resolve(
     zhCn: '手机号用于登录和账号安全，不会默认展示给 TA。',
     zhTw: '手機號用於登入和帳號安全，不會預設展示給 TA。',
     en: 'Your phone number is for sign-in and account security. It is not shown to your partner by default.',
   );
-  String get accountSecurityBindPhoneTitle => _resolve(
-    zhCn: '绑定手机号',
-    zhTw: '綁定手機號',
-    en: 'Bind phone number',
-  );
-  String get accountSecurityBindEmailTitle => _resolve(
-    zhCn: '绑定邮箱',
-    zhTw: '綁定電子郵件',
-    en: 'Bind email',
-  );
+  String get accountSecurityBindPhoneTitle =>
+      _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone number');
+  String get accountSecurityBindEmailTitle =>
+      _resolve(zhCn: '绑定邮箱', zhTw: '綁定電子郵件', en: 'Bind email');
   String get accountSecurityBindPhoneHint => _resolve(
     zhCn: '请输入 E.164 格式手机号。绑定后，它会成为当前账号的登录方式。',
     zhTw: '請輸入 E.164 格式手機號。綁定後，它會成為目前帳號的登入方式。',
@@ -1370,16 +1193,10 @@ class AppStrings {
     zhTw: '綁定後，這個電子郵件會成為目前帳號的登入方式。',
     en: 'After binding, this email can sign in to this account.',
   );
-  String get accountSecuritySendBindingCodeLabel => _resolve(
-    zhCn: '发送绑定验证码',
-    zhTw: '發送綁定驗證碼',
-    en: 'Send binding code',
-  );
-  String get accountSecurityVerifyBindingLabel => _resolve(
-    zhCn: '验证并绑定',
-    zhTw: '驗證並綁定',
-    en: 'Verify and bind',
-  );
+  String get accountSecuritySendBindingCodeLabel =>
+      _resolve(zhCn: '发送绑定验证码', zhTw: '發送綁定驗證碼', en: 'Send binding code');
+  String get accountSecurityVerifyBindingLabel =>
+      _resolve(zhCn: '验证并绑定', zhTw: '驗證並綁定', en: 'Verify and bind');
   String accountSecurityBindingCodeSentTo(String target) => _resolve(
     zhCn: '验证码已发送至 $target',
     zhTw: '驗證碼已發送至 $target',
@@ -1410,21 +1227,15 @@ class AppStrings {
     zhTw: '綁定驗證碼校驗失敗，請確認後重試。',
     en: 'Binding verification failed. Check the code and try again.',
   );
-  String get accountSecurityDangerSectionTitle => _resolve(
-    zhCn: '危险操作',
-    zhTw: '危險操作',
-    en: 'Dangerous actions',
-  );
+  String get accountSecurityDangerSectionTitle =>
+      _resolve(zhCn: '危险操作', zhTw: '危險操作', en: 'Dangerous actions');
   String get accountSecurityDangerSectionSubtitle => _resolve(
     zhCn: '这些操作会影响当前账号，请慢慢确认。',
     zhTw: '這些操作會影響目前帳號，請慢慢確認。',
     en: 'These actions affect this account. Review them carefully.',
   );
-  String get accountSecurityDeleteAccountTitle => _resolve(
-    zhCn: '注销账号',
-    zhTw: '註銷帳號',
-    en: 'Delete account',
-  );
+  String get accountSecurityDeleteAccountTitle =>
+      _resolve(zhCn: '注销账号', zhTw: '註銷帳號', en: 'Delete account');
   String get accountSecurityDeleteAccountSubtitle => _resolve(
     zhCn: '当前阶段只提供规则确认，不会真正删除账号。',
     zhTw: '目前階段只提供規則確認，不會真正刪除帳號。',
@@ -1436,54 +1247,33 @@ class AppStrings {
     en: 'Account deletion is paused',
   );
   String get accountSecurityDeleteBlockedBody => _resolve(
-    zhCn:
-        '你们仍在一个双人空间中。为了避免影响 TA 的空间状态，请先解除当前双人空间，再注销账号。',
-    zhTw:
-        '你們仍在一個雙人空間中。為了避免影響 TA 的空間狀態，請先解除目前雙人空間，再註銷帳號。',
-    en:
-        'You are still in a couple space. To avoid affecting your partner’s space state, leave the current couple space before deleting the account.',
+    zhCn: '你们仍在一个双人空间中。为了避免影响 TA 的空间状态，请先解除当前双人空间，再注销账号。',
+    zhTw: '你們仍在一個雙人空間中。為了避免影響 TA 的空間狀態，請先解除目前雙人空間，再註銷帳號。',
+    en: 'You are still in a couple space. To avoid affecting your partner’s space state, leave the current couple space before deleting the account.',
   );
-  String get accountSecurityOpenSpaceStatusLabel => _resolve(
-    zhCn: '去空间状态',
-    zhTw: '去空間狀態',
-    en: 'Open space status',
-  );
+  String get accountSecurityOpenSpaceStatusLabel =>
+      _resolve(zhCn: '去空间状态', zhTw: '去空間狀態', en: 'Open space status');
   String get accountSecurityDeleteFirstConfirmTitle => _resolve(
     zhCn: '确认要注销账号吗？',
     zhTw: '確認要註銷帳號嗎？',
     en: 'Delete this account?',
   );
   String get accountSecurityDeleteFirstConfirmBody => _resolve(
-    zhCn:
-        '注销后将无法继续用当前账号登录，个人资料和账号凭证会停止使用。历史共享数据不会由客户端批量删除。',
-    zhTw:
-        '註銷後將無法繼續用目前帳號登入，個人資料和帳號憑證會停止使用。歷史共享資料不會由客戶端批量刪除。',
-    en:
-        'After deletion, this account can no longer sign in. Profile and login credentials stop being used. Historical shared data is not batch-deleted by the client.',
+    zhCn: '注销后将无法继续用当前账号登录，个人资料和账号凭证会停止使用。历史共享数据不会由客户端批量删除。',
+    zhTw: '註銷後將無法繼續用目前帳號登入，個人資料和帳號憑證會停止使用。歷史共享資料不會由客戶端批量刪除。',
+    en: 'After deletion, this account can no longer sign in. Profile and login credentials stop being used. Historical shared data is not batch-deleted by the client.',
   );
-  String get accountSecurityDeleteFirstConfirmLabel => _resolve(
-    zhCn: '继续确认',
-    zhTw: '繼續確認',
-    en: 'Continue',
-  );
-  String get accountSecurityDeleteSecondConfirmTitle => _resolve(
-    zhCn: '再次确认注销',
-    zhTw: '再次確認註銷',
-    en: 'Confirm deletion again',
-  );
+  String get accountSecurityDeleteFirstConfirmLabel =>
+      _resolve(zhCn: '继续确认', zhTw: '繼續確認', en: 'Continue');
+  String get accountSecurityDeleteSecondConfirmTitle =>
+      _resolve(zhCn: '再次确认注销', zhTw: '再次確認註銷', en: 'Confirm deletion again');
   String get accountSecurityDeleteSecondConfirmBody => _resolve(
-    zhCn:
-        '真正注销需要服务端安全能力处理。当前客户端不会删除 Auth 用户，也不会批量删除共享数据。',
-    zhTw:
-        '真正註銷需要服務端安全能力處理。目前客戶端不會刪除 Auth 使用者，也不會批量刪除共享資料。',
-    en:
-        'Real deletion requires server-side security handling. This client will not delete the Auth user or batch-delete shared data.',
+    zhCn: '真正注销需要服务端安全能力处理。当前客户端不会删除 Auth 用户，也不会批量删除共享数据。',
+    zhTw: '真正註銷需要服務端安全能力處理。目前客戶端不會刪除 Auth 使用者，也不會批量刪除共享資料。',
+    en: 'Real deletion requires server-side security handling. This client will not delete the Auth user or batch-delete shared data.',
   );
-  String get accountSecurityDeleteSecondConfirmLabel => _resolve(
-    zhCn: '确认注销',
-    zhTw: '確認註銷',
-    en: 'Confirm deletion',
-  );
+  String get accountSecurityDeleteSecondConfirmLabel =>
+      _resolve(zhCn: '确认注销', zhTw: '確認註銷', en: 'Confirm deletion');
   String get accountSecurityDeleteUnavailableTitle => _resolve(
     zhCn: '还不能完成注销',
     zhTw: '還不能完成註銷',
@@ -1492,14 +1282,10 @@ class AppStrings {
   String get accountSecurityDeleteUnavailableBody => _resolve(
     zhCn: '注销账号功能将在服务端注销能力接入后完成。当前账号不会被删除。',
     zhTw: '註銷帳號功能將在服務端註銷能力接入後完成。目前帳號不會被刪除。',
-    en:
-        'Account deletion will be completed after the server-side deletion capability is added. This account was not deleted.',
+    en: 'Account deletion will be completed after the server-side deletion capability is added. This account was not deleted.',
   );
-  String get accountSecurityDeleteDialogOkLabel => _resolve(
-    zhCn: '知道了',
-    zhTw: '知道了',
-    en: 'OK',
-  );
+  String get accountSecurityDeleteDialogOkLabel =>
+      _resolve(zhCn: '知道了', zhTw: '知道了', en: 'OK');
   String get cycleSharingTitle => _resolve(
     zhCn: '经期记录共享',
     zhTw: '經期記錄共享',
@@ -1514,13 +1300,8 @@ class AppStrings {
     ja: 'オンにすると、パートナーがカレンダーであなたの生理期間の記録を確認できます',
     ko: '켜면 파트너가 캘린더에서 내 생리 기간 기록을 볼 수 있습니다',
   );
-  String get cycleSharingEnabledLabel => _resolve(
-    zhCn: '已共享',
-    zhTw: '已共享',
-    en: 'Shared',
-    ja: '共有中',
-    ko: '공유됨',
-  );
+  String get cycleSharingEnabledLabel =>
+      _resolve(zhCn: '已共享', zhTw: '已共享', en: 'Shared', ja: '共有中', ko: '공유됨');
   String get cycleSharingDisabledLabel => _resolve(
     zhCn: '未共享',
     zhTw: '未共享',
@@ -1627,8 +1408,10 @@ class AppStrings {
     ko: '커플 공간 나가기',
   );
   String get exitSpaceWarningBody => _resolve(
-    zhCn: '退出后，你们双方都会回到单人态。双人空间中的计划、随记、日历数据不会被删除，但双方都将无法继续查看或编辑。后续如重新组成空间，旧空间数据不会自动合并。',
-    zhTw: '退出後，你們雙方都會回到單人態。雙人空間中的計畫、隨記、日曆資料不會被刪除，但雙方都將無法繼續檢視或編輯。後續如重新組成空間，舊空間資料不會自動合併。',
+    zhCn:
+        '退出后，你们双方都会回到单人态。双人空间中的计划、随记、日历数据不会被删除，但双方都将无法继续查看或编辑。后续如重新组成空间，旧空间数据不会自动合并。',
+    zhTw:
+        '退出後，你們雙方都會回到單人態。雙人空間中的計畫、隨記、日曆資料不會被刪除，但雙方都將無法繼續檢視或編輯。後續如重新組成空間，舊空間資料不會自動合併。',
     en: 'After exiting, both of you will return to single mode. Plans, notes, and calendar data in this space will not be deleted, but neither of you will be able to view or edit them. If you form a new space later, old data will not be merged automatically.',
     ja: '退出後、お二人ともシングルモードに戻ります。このスペースのプラン、メモ、カレンダーデータは削除されませんが、閲覧・編集できなくなります。後で新しいスペースを作成しても、旧データは自動的に統合されません。',
     ko: '나가면 두 사람 모두 싱글 모드로 돌아갑니다. 이 공간의 계획, 메모, 캘린더 데이터는 삭제되지 않지만, 더 이상 볼 수 없고 편집할 수 없습니다. 나중에 새 공간을 만들어도 이전 데이터는 자동으로 병합되지 않습니다.',
@@ -1745,27 +1528,12 @@ class AppStrings {
     ja: 'エクスポートと解除',
     ko: '내보내기 및 연결 해제',
   );
-  String get themeSystemLabel => _resolve(
-    zhCn: '跟随系统',
-    zhTw: '跟隨系統',
-    en: 'System',
-    ja: 'システム',
-    ko: '시스템',
-  );
-  String get themeLightLabel => _resolve(
-    zhCn: '浅色',
-    zhTw: '淺色',
-    en: 'Light',
-    ja: 'ライト',
-    ko: '라이트',
-  );
-  String get themeDarkLabel => _resolve(
-    zhCn: '深色',
-    zhTw: '深色',
-    en: 'Dark',
-    ja: 'ダーク',
-    ko: '다크',
-  );
+  String get themeSystemLabel =>
+      _resolve(zhCn: '跟随系统', zhTw: '跟隨系統', en: 'System', ja: 'システム', ko: '시스템');
+  String get themeLightLabel =>
+      _resolve(zhCn: '浅色', zhTw: '淺色', en: 'Light', ja: 'ライト', ko: '라이트');
+  String get themeDarkLabel =>
+      _resolve(zhCn: '深色', zhTw: '深色', en: 'Dark', ja: 'ダーク', ko: '다크');
 
   List<PlanItemCopy> get plans => isChinese
       ? const [
@@ -1859,14 +1627,10 @@ class AppStrings {
     zhCn: '日历和计划默认是共享的，随记默认只有作者自己能改。',
     en: 'Calendar and plans are shared by default. Notes are editable only by their author.',
   );
-  String get relationshipDateValue => _resolve(
-    zhCn: '2025 年 10 月 5 日',
-    en: 'October 5, 2025',
-  );
-  String get calendarDetailsTitle => _resolve(
-    zhCn: '这一天有什么',
-    en: 'What is on this day',
-  );
+  String get relationshipDateValue =>
+      _resolve(zhCn: '2025 年 10 月 5 日', en: 'October 5, 2025');
+  String get calendarDetailsTitle =>
+      _resolve(zhCn: '这一天有什么', en: 'What is on this day');
   String get calendarUpcomingTitle => _resolve(
     zhCn: '近期事项',
     zhTw: '近期事項',
@@ -1888,20 +1652,10 @@ class AppStrings {
     ja: '一回限り',
     ko: '일회성',
   );
-  String get calendarTodayLabel => _resolve(
-    zhCn: '今天',
-    zhTw: '今天',
-    en: 'Today',
-    ja: '今日',
-    ko: '오늘',
-  );
-  String get calendarTomorrowLabel => _resolve(
-    zhCn: '明天',
-    zhTw: '明天',
-    en: 'Tomorrow',
-    ja: '明日',
-    ko: '내일',
-  );
+  String get calendarTodayLabel =>
+      _resolve(zhCn: '今天', zhTw: '今天', en: 'Today', ja: '今日', ko: '오늘');
+  String get calendarTomorrowLabel =>
+      _resolve(zhCn: '明天', zhTw: '明天', en: 'Tomorrow', ja: '明日', ko: '내일');
 
   String calendarTypeLabel(CalendarEntryType type) => switch (type) {
     CalendarEntryType.anniversary => _resolve(
@@ -1940,6 +1694,44 @@ class AppStrings {
         CalendarRepeatRule.yearly => calendarRepeatYearlyLabel,
       };
 
+  String calendarFilterLabel(CalendarFilter filter) => switch (filter) {
+    CalendarFilter.all => _resolve(
+      zhCn: '全部',
+      zhTw: '全部',
+      en: 'All',
+      ja: 'すべて',
+      ko: '전체',
+    ),
+    CalendarFilter.anniversary => _resolve(
+      zhCn: '纪念日',
+      zhTw: '紀念日',
+      en: 'Anniversaries',
+      ja: '記念日',
+      ko: '기념일',
+    ),
+    CalendarFilter.datePlan => _resolve(
+      zhCn: '约会',
+      zhTw: '約會',
+      en: 'Dates',
+      ja: 'デート',
+      ko: '데이트',
+    ),
+    CalendarFilter.reminder => _resolve(
+      zhCn: '提醒',
+      zhTw: '提醒',
+      en: 'Reminders',
+      ja: 'リマインダー',
+      ko: '알림',
+    ),
+    CalendarFilter.cycle => _resolve(
+      zhCn: '生理期',
+      zhTw: '生理期',
+      en: 'Cycle',
+      ja: '生理期間',
+      ko: '생리 기간',
+    ),
+  };
+
   // ── Calendar composer dialog ──────────────────────────────────────────
 
   String get calendarCreateDialogTitle => _resolve(
@@ -1949,13 +1741,8 @@ class AppStrings {
     ja: 'カレンダーに追加',
     ko: '캘린더에 추가',
   );
-  String get calendarTitleHint => _resolve(
-    zhCn: '标题',
-    zhTw: '標題',
-    en: 'Title',
-    ja: 'タイトル',
-    ko: '제목',
-  );
+  String get calendarTitleHint =>
+      _resolve(zhCn: '标题', zhTw: '標題', en: 'Title', ja: 'タイトル', ko: '제목');
   String get calendarDescriptionHint => _resolve(
     zhCn: '描述（可选）',
     zhTw: '描述（可選）',
@@ -1963,27 +1750,12 @@ class AppStrings {
     ja: '説明（任意）',
     ko: '설명 (선택)',
   );
-  String get calendarDateLabel => _resolve(
-    zhCn: '日期',
-    zhTw: '日期',
-    en: 'Date',
-    ja: '日付',
-    ko: '날짜',
-  );
-  String get calendarTimeLabel => _resolve(
-    zhCn: '时间',
-    zhTw: '時間',
-    en: 'Time',
-    ja: '時間',
-    ko: '시간',
-  );
-  String get calendarCreateButton => _resolve(
-    zhCn: '创建',
-    zhTw: '建立',
-    en: 'Create',
-    ja: '作成',
-    ko: '생성',
-  );
+  String get calendarDateLabel =>
+      _resolve(zhCn: '日期', zhTw: '日期', en: 'Date', ja: '日付', ko: '날짜');
+  String get calendarTimeLabel =>
+      _resolve(zhCn: '时间', zhTw: '時間', en: 'Time', ja: '時間', ko: '시간');
+  String get calendarCreateButton =>
+      _resolve(zhCn: '创建', zhTw: '建立', en: 'Create', ja: '作成', ko: '생성');
   String get calendarCreateFailedError => _resolve(
     zhCn: '创建失败，请重试',
     zhTw: '建立失敗，請重試',
@@ -2019,13 +1791,8 @@ class AppStrings {
     ja: '終了日',
     ko: '종료일',
   );
-  String get cycleEndDateUnsetLabel => _resolve(
-    zhCn: '未填写',
-    zhTw: '未填寫',
-    en: 'Not set',
-    ja: '未設定',
-    ko: '미설정',
-  );
+  String get cycleEndDateUnsetLabel =>
+      _resolve(zhCn: '未填写', zhTw: '未填寫', en: 'Not set', ja: '未設定', ko: '미설정');
   String get cycleNoteHint => _resolve(
     zhCn: '备注（可选）',
     zhTw: '備註（可選）',
@@ -2033,13 +1800,8 @@ class AppStrings {
     ja: 'メモ（任意）',
     ko: '메모 (선택)',
   );
-  String get cycleSaveButton => _resolve(
-    zhCn: '保存',
-    zhTw: '儲存',
-    en: 'Save',
-    ja: '保存',
-    ko: '저장',
-  );
+  String get cycleSaveButton =>
+      _resolve(zhCn: '保存', zhTw: '儲存', en: 'Save', ja: '保存', ko: '저장');
   String get cycleCreateFailedError => _resolve(
     zhCn: '经期记录保存失败，请重试',
     zhTw: '經期記錄儲存失敗，請重試',
@@ -2089,13 +1851,8 @@ class AppStrings {
     ja: 'パートナーの生理期間記録',
     ko: '파트너의 생리 기간 기록',
   );
-  String get cycleDateRangeSeparator => _resolve(
-    zhCn: '至',
-    zhTw: '至',
-    en: 'to',
-    ja: '〜',
-    ko: '~',
-  );
+  String get cycleDateRangeSeparator =>
+      _resolve(zhCn: '至', zhTw: '至', en: 'to', ja: '〜', ko: '~');
   String get calendarNoEventsYet => _resolve(
     zhCn: '还没有日历事件',
     zhTw: '還沒有日曆事件',
@@ -2124,13 +1881,8 @@ class AppStrings {
     ja: '削除すると、このイベントはカレンダーに表示されなくなります。',
     ko: '삭제하면 이 이벤트는 캘린더에 더 이상 표시되지 않습니다.',
   );
-  String get calendarDeleteButton => _resolve(
-    zhCn: '删除',
-    zhTw: '刪除',
-    en: 'Delete',
-    ja: '削除',
-    ko: '삭제',
-  );
+  String get calendarDeleteButton =>
+      _resolve(zhCn: '删除', zhTw: '刪除', en: 'Delete', ja: '削除', ko: '삭제');
   String get calendarDeleteFailedError => _resolve(
     zhCn: '删除失败，请重试',
     zhTw: '刪除失敗，請重試',
@@ -2162,10 +1914,8 @@ class AppStrings {
 
   String formatCalendarMonthYear(DateTime date) {
     return switch (language) {
-      AppLanguage.zhCn || AppLanguage.zhTw =>
-        '${date.year} 年 ${date.month} 月',
-      AppLanguage.en =>
-        '${_englishMonthNames[date.month - 1]} ${date.year}',
+      AppLanguage.zhCn || AppLanguage.zhTw => '${date.year} 年 ${date.month} 月',
+      AppLanguage.en => '${_englishMonthNames[date.month - 1]} ${date.year}',
       AppLanguage.ja => '${date.year}年${date.month}月',
       AppLanguage.ko => '${date.year}년 ${date.month}월',
     };
@@ -2202,8 +1952,7 @@ class AppStrings {
   }
 
   String calendarWeekdayLabel(int weekday) => switch (language) {
-    AppLanguage.zhCn || AppLanguage.zhTw =>
-      _chineseWeekdayNames[weekday - 1],
+    AppLanguage.zhCn || AppLanguage.zhTw => _chineseWeekdayNames[weekday - 1],
     AppLanguage.en => _englishWeekdayNames[weekday - 1],
     AppLanguage.ja => _japaneseWeekdayNames[weekday - 1],
     AppLanguage.ko => _koreanWeekdayNames[weekday - 1],
@@ -2339,6 +2088,8 @@ class NoteItemCopy {
 enum CalendarEntryType { anniversary, datePlan, reminder, cycle }
 
 enum CalendarRepeatRule { none, yearly }
+
+enum CalendarFilter { all, anniversary, datePlan, reminder, cycle }
 
 class CalendarEntryData {
   const CalendarEntryData({

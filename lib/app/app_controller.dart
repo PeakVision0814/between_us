@@ -74,8 +74,7 @@ class AppController extends ChangeNotifier {
   String? get gender => _gender;
   DateTime? get birthday => _birthday;
   bool get cycleSharingEnabled => _cycleSharingEnabled;
-  bool get canUseCycleRecords =>
-      gender == genderFemale && hasActiveCoupleSpace;
+  bool get canUseCycleRecords => gender == genderFemale && hasActiveCoupleSpace;
   String? get email {
     try {
       return Supabase.instance.client.auth.currentUser?.email;
