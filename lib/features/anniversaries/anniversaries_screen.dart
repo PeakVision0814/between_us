@@ -798,9 +798,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    final monthDays = strings.calendarVisibleDaysForMonth(_displayMonth);
-    final weekDays = _calendarVisibleDaysForWeek(_selectedDate!);
-    final visibleDays = _calendarExpanded ? monthDays : weekDays;
+    final visibleDays = strings.calendarVisibleDaysForMonth(_displayMonth);
     final now = DateTime.now();
 
     final entries = _events.map(_recordToEntry).toList();
@@ -874,11 +872,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     curve: Curves.easeOutCubic,
                     alignment: Alignment.topCenter,
                     child: _MonthView(
-                      key: ValueKey(
-                        _calendarExpanded
-                            ? 'calendar-month-view'
-                            : 'calendar-week-view',
-                      ),
                       displayMonth: _displayMonth,
                       visibleDays: visibleDays,
                       selectedDate: _selectedDate!,
@@ -1168,15 +1161,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
 
-  static List<DateTime> _calendarVisibleDaysForWeek(DateTime selectedDate) {
-    final selected = _dateOnly(selectedDate);
-    final weekStart = selected.subtract(Duration(days: selected.weekday - 1));
-    return List<DateTime>.generate(
-      7,
-      (index) => weekStart.add(Duration(days: index)),
-    );
-  }
-
   static String _formatDateForStorage(DateTime value) {
     final normalized = _dateOnly(value);
     final month = normalized.month.toString().padLeft(2, '0');
@@ -1191,9 +1175,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
 // ─── Month View ─────────────────────────────────────────────────────────
 
+bool _sameCalendarDate(DateTime left, DateTime right) =>
+    left.year == right.year &&
+    left.month == right.month &&
+    left.day == right.day;
+
 class _MonthView extends StatelessWidget {
   const _MonthView({
-    super.key,
     required this.displayMonth,
     required this.visibleDays,
     required this.selectedDate,
@@ -1303,49 +1291,120 @@ class _MonthView extends StatelessWidget {
               .toList(),
         ),
         const SizedBox(height: 10),
-        for (var index = 0; index < visibleDays.length; index += 7)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Stack(
+        Semantics(
+          container: true,
+          child: KeyedSubtree(
+            key: ValueKey(
+              expanded ? 'calendar-month-view' : 'calendar-week-view',
+            ),
+            child: Column(
               children: [
-                _CycleBandRow(
-                  weekDays: visibleDays.sublist(index, index + 7),
-                  cycleRecordsByDay: cycleRecordsByDay,
-                  displayMonth: displayMonth,
-                  selectedDate: selectedDate,
-                  isDark: isDark,
-                  cellHeight: dayCellHeight,
-                ),
-                Row(
-                  children: [
-                    for (final day in visibleDays.sublist(index, index + 7))
-                      Expanded(
-                        child: _DayCell(
-                          date: day,
-                          inMonth: day.month == displayMonth.month,
-                          selected: _sameDate(day, selectedDate),
-                          hasEntries: entriesByDay.containsKey(_dateKey(day)),
-                          onTap: () => onSelectDate(day),
-                          isDark: isDark,
-                          height: dayCellHeight,
-                        ),
-                      ),
-                  ],
-                ),
+                for (var index = 0; index < visibleDays.length; index += 7)
+                  _CalendarWeekRow(
+                    key: ValueKey('calendar-week-row-${index ~/ 7}'),
+                    weekDays: visibleDays.sublist(index, index + 7),
+                    displayMonth: displayMonth,
+                    selectedDate: selectedDate,
+                    entriesByDay: entriesByDay,
+                    cycleRecordsByDay: cycleRecordsByDay,
+                    expanded: expanded,
+                    isDark: isDark,
+                    cellHeight: dayCellHeight,
+                    onSelectDate: onSelectDate,
+                  ),
               ],
             ),
           ),
+        ),
       ],
     );
   }
-
-  static bool _sameDate(DateTime left, DateTime right) =>
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
 }
 
 // ─── Day Cell ───────────────────────────────────────────────────────────
+
+class _CalendarWeekRow extends StatelessWidget {
+  const _CalendarWeekRow({
+    super.key,
+    required this.weekDays,
+    required this.displayMonth,
+    required this.selectedDate,
+    required this.entriesByDay,
+    required this.cycleRecordsByDay,
+    required this.expanded,
+    required this.isDark,
+    required this.cellHeight,
+    required this.onSelectDate,
+  });
+
+  final List<DateTime> weekDays;
+  final DateTime displayMonth;
+  final DateTime selectedDate;
+  final Map<String, List<CalendarEntryData>> entriesByDay;
+  final Map<String, List<CycleRecord>> cycleRecordsByDay;
+  final bool expanded;
+  final bool isDark;
+  final double cellHeight;
+  final ValueChanged<DateTime> onSelectDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelectedWeek = weekDays.any(
+      (day) => _sameCalendarDate(day, selectedDate),
+    );
+    final rowVisible = expanded || isSelectedWeek;
+    final row = Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Stack(
+        children: [
+          _CycleBandRow(
+            weekDays: weekDays,
+            cycleRecordsByDay: cycleRecordsByDay,
+            displayMonth: displayMonth,
+            selectedDate: selectedDate,
+            isDark: isDark,
+            cellHeight: cellHeight,
+          ),
+          Row(
+            children: [
+              for (final day in weekDays)
+                Expanded(
+                  child: _DayCell(
+                    date: day,
+                    inMonth: day.month == displayMonth.month,
+                    selected: _sameCalendarDate(day, selectedDate),
+                    hasEntries: entriesByDay.containsKey(_dateKey(day)),
+                    onTap: () => onSelectDate(day),
+                    isDark: isDark,
+                    height: cellHeight,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return IgnorePointer(
+      ignoring: !rowVisible,
+      child: ClipRect(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(end: rowVisible ? 1 : 0),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          builder: (context, factor, child) {
+            return Align(
+              alignment: Alignment.topCenter,
+              heightFactor: factor,
+              child: Opacity(opacity: factor.clamp(0, 1), child: child),
+            );
+          },
+          child: row,
+        ),
+      ),
+    );
+  }
+}
 
 class _DayCell extends StatelessWidget {
   const _DayCell({

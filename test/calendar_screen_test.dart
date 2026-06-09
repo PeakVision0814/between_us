@@ -619,6 +619,45 @@ void main() {
     }
   });
 
+  testWidgets('paired mode: collapse keeps selected week and shrinks others', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    final today = _dateOnly(DateTime.now());
+    final visibleDays = _visibleMonthDays(today);
+    final selectedWeekIndex =
+        visibleDays.indexWhere((day) {
+          return day.year == today.year &&
+              day.month == today.month &&
+              day.day == today.day;
+        }) ~/
+        7;
+    final otherWeekIndex = selectedWeekIndex == 0 ? 1 : 0;
+
+    await tester.tap(find.byKey(const ValueKey('calendar-toggle-month-view')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(ValueKey('calendar-week-row-$selectedWeekIndex')))
+          .height,
+      greaterThan(40),
+    );
+    expect(
+      tester
+          .getSize(find.byKey(ValueKey('calendar-week-row-$otherWeekIndex')))
+          .height,
+      lessThan(1),
+    );
+  });
+
   testWidgets('paired mode: tapping a week day updates selected detail', (
     tester,
   ) async {
@@ -817,6 +856,22 @@ Finder _calendarDayFinder(DateTime date) {
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+List<DateTime> _visibleMonthDays(DateTime displayMonth) {
+  final monthStart = DateTime(displayMonth.year, displayMonth.month);
+  var gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
+
+  if (gridStart.year == monthStart.year &&
+      gridStart.month == monthStart.month &&
+      gridStart.day == monthStart.day) {
+    gridStart = gridStart.subtract(const Duration(days: 7));
+  }
+
+  return List<DateTime>.generate(
+    42,
+    (index) => gridStart.add(Duration(days: index)),
+  );
+}
 
 Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
   // Find the vertical Scrollable (ListView) inside CalendarScreen,
