@@ -962,7 +962,7 @@ class AppController extends ChangeNotifier {
   }
 
   /// 订阅 Supabase Realtime，监听当前空间的数据变化。
-  /// 当 couple_spaces / calendar_events / plans / notes 发生变更时，
+  /// 当关系状态或空间内容发生变更时，
   /// 自动调用 loadPreferences 刷新数据并 notifyListeners。
   void _subscribeToRealtime() {
     _unsubscribeFromRealtime();
@@ -981,6 +981,28 @@ class AppController extends ChangeNotifier {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'couple_memberships',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
+            value: spaceId,
+          ),
+          callback: (_) => _onRealtimeDataChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'couple_space_exit_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'couple_space_id',
             value: spaceId,
           ),
           callback: (_) => _onRealtimeDataChanged(),
@@ -1040,7 +1062,11 @@ class AppController extends ChangeNotifier {
           ),
           callback: (_) => _onRealtimeDataChanged(),
         )
-        .subscribe();
+        .subscribe((status, error) {
+          debugPrint(
+            '[Realtime] Channel public:space:$spaceId status=$status error=$error',
+          );
+        });
   }
 
   void _unsubscribeFromRealtime() {
