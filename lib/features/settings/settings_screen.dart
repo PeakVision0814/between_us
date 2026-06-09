@@ -1843,74 +1843,84 @@ class _SpaceModule extends StatelessWidget {
             ),
           ),
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      AppTheme.heroDeepPurple.withValues(alpha: 0.86),
-                      AppTheme.nightSurface.withValues(alpha: 0.9),
-                      const Color(0xFF12101A).withValues(alpha: 0.92),
-                    ]
-                  : [
-                      Colors.white.withValues(alpha: 0.92),
-                      AppTheme.heroBlushLight.withValues(alpha: 0.54),
-                      AppTheme.heroPeachLight.withValues(alpha: 0.34),
-                    ],
+        SizedBox(
+          key: const ValueKey('us-space-module-card'),
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        AppTheme.heroDeepPurple.withValues(alpha: 0.86),
+                        AppTheme.nightSurface.withValues(alpha: 0.9),
+                        const Color(0xFF12101A).withValues(alpha: 0.92),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.92),
+                        AppTheme.heroBlushLight.withValues(alpha: 0.54),
+                        AppTheme.heroPeachLight.withValues(alpha: 0.34),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+              border: Border.all(
+                color: isDark
+                    ? AppTheme.heroGlowBlush.withValues(alpha: 0.28)
+                    : Colors.white.withValues(alpha: 0.86),
+                width: isDark ? 0.9 : 1,
+              ),
+              boxShadow: isDark
+                  ? AppTheme.shadowCardDarkStrong
+                  : AppTheme.shadowCardLightStrong,
             ),
-            borderRadius: BorderRadius.circular(AppTheme.radius2xl),
-            border: Border.all(
-              color: isDark
-                  ? AppTheme.heroGlowBlush.withValues(alpha: 0.28)
-                  : Colors.white.withValues(alpha: 0.86),
-              width: isDark ? 0.9 : 1,
-            ),
-            boxShadow: isDark
-                ? AppTheme.shadowCardDarkStrong
-                : AppTheme.shadowCardLightStrong,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppTheme.radius2xl),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: isDark
-                            ? const Alignment(0.74, -0.78)
-                            : const Alignment(-0.64, -0.9),
-                        radius: isDark ? 1.12 : 1.02,
-                        colors: isDark
-                            ? [
-                                AppTheme.heroGlowPurple.withValues(alpha: 0.22),
-                                AppTheme.heroGlowBlush.withValues(alpha: 0.07),
-                                Colors.transparent,
-                              ]
-                            : [
-                                Colors.white.withValues(alpha: 0.72),
-                                AppTheme.heroBlushLight.withValues(alpha: 0.16),
-                                Colors.transparent,
-                              ],
-                        stops: const [0, 0.5, 1],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.radius2xl),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: isDark
+                              ? const Alignment(0.74, -0.78)
+                              : const Alignment(-0.64, -0.9),
+                          radius: isDark ? 1.12 : 1.02,
+                          colors: isDark
+                              ? [
+                                  AppTheme.heroGlowPurple.withValues(
+                                    alpha: 0.22,
+                                  ),
+                                  AppTheme.heroGlowBlush.withValues(
+                                    alpha: 0.07,
+                                  ),
+                                  Colors.transparent,
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.72),
+                                  AppTheme.heroBlushLight.withValues(
+                                    alpha: 0.16,
+                                  ),
+                                  Colors.transparent,
+                                ],
+                          stops: const [0, 0.5, 1],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 12,
-                    children: [
-                      for (final entry in entries)
-                        _SpaceModuleEntry(data: entry, isDark: isDark),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 12,
+                      children: [
+                        for (final entry in entries)
+                          _SpaceModuleEntry(data: entry, isDark: isDark),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

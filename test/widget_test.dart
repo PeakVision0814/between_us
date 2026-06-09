@@ -1801,12 +1801,21 @@ void main() {
       find.descendant(of: spaceSection, matching: find.text('Space status')),
       findsOneWidget,
     );
-
-    // Paired mode: Space status entry is tappable and navigates
+    final spaceModuleCard = find.byKey(
+      const ValueKey('us-space-module-card'),
+    );
     final spaceStatusEntry = find.byKey(
       const ValueKey('us-space-entry-Space status'),
     );
+    expect(spaceModuleCard, findsOneWidget);
     expect(spaceStatusEntry, findsOneWidget);
+    expect(
+      tester.getSize(spaceModuleCard).width,
+      greaterThan(tester.getSize(spaceStatusEntry).width),
+    );
+    expect(tester.getSize(spaceModuleCard).height, lessThan(150));
+
+    // Paired mode: Space status entry is tappable and navigates
     await tester.tap(spaceStatusEntry);
     await tester.pumpAndSettle();
 
