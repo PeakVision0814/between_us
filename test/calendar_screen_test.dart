@@ -591,7 +591,7 @@ void main() {
       supabaseReady: true,
     );
 
-    await _dragCalendar(tester, const Offset(0, -220));
+    await _collapseCalendar(tester);
 
     expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
     expect(find.byKey(const ValueKey('calendar-month-view')), findsNothing);
@@ -607,7 +607,7 @@ void main() {
       supabaseReady: true,
     );
 
-    await _dragCalendar(tester, const Offset(0, -220));
+    await _collapseCalendar(tester);
 
     final today = _dateOnly(DateTime.now());
     final weekStart = today.subtract(Duration(days: today.weekday - 1));
@@ -640,8 +640,7 @@ void main() {
         7;
     final otherWeekIndex = selectedWeekIndex == 0 ? 1 : 0;
 
-    await tester.tap(find.byKey(const ValueKey('calendar-toggle-month-view')));
-    await tester.pumpAndSettle();
+    await _collapseCalendar(tester);
 
     expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
     expect(
@@ -658,6 +657,50 @@ void main() {
     );
   });
 
+  testWidgets(
+    'paired mode: collapsed week header stays pinned while scrolling',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        supabaseReady: true,
+      );
+
+      await _collapseCalendar(tester);
+      final headerTop = tester
+          .getTopLeft(find.byKey(const ValueKey('calendar-week-view')))
+          .dy;
+
+      await _dragCalendar(tester, const Offset(0, -520));
+
+      expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('calendar-week-view'))).dy,
+        headerTop,
+      );
+    },
+  );
+
+  testWidgets('paired mode: downward scroll restores full month view', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    await _collapseCalendar(tester);
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+
+    await _expandCalendar(tester);
+
+    expect(find.byKey(const ValueKey('calendar-month-view')), findsOneWidget);
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsNothing);
+  });
+
   testWidgets('paired mode: tapping a week day updates selected detail', (
     tester,
   ) async {
@@ -668,7 +711,7 @@ void main() {
       supabaseReady: true,
     );
 
-    await _dragCalendar(tester, const Offset(0, -220));
+    await _collapseCalendar(tester);
 
     final today = _dateOnly(DateTime.now());
     final targetDate = today.weekday == DateTime.sunday
@@ -702,7 +745,9 @@ void main() {
     );
   });
 
-  testWidgets('paired mode: toggle button restores month view', (tester) async {
+  testWidgets('paired mode: toggle button scrolls between collapsed and full', (
+    tester,
+  ) async {
     await _pumpCalendar(
       tester,
       memberCount: 2,
@@ -717,6 +762,51 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('calendar-toggle-month-view')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('calendar-month-view')), findsOneWidget);
+  });
+
+  testWidgets('paired mode: cross-month day selection syncs month and detail', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    final today = _dateOnly(DateTime.now());
+    final visibleDays = _visibleMonthDays(today);
+    final crossMonthDate = visibleDays.firstWhere(
+      (day) => day.month != today.month,
+    );
+    final expectedMonth = '${crossMonthDate.year} 年 ${crossMonthDate.month} 月';
+    const eventTitle = 'cross-month-target-event';
+
+    final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+    state.debugSetEvents([
+      CalendarEventRecord(
+        id: 'event-cross-month-target',
+        coupleSpaceId: 'test-space-id',
+        createdBy: 'test-user',
+        eventType: 'date_plan',
+        title: eventTitle,
+        startsAt: crossMonthDate,
+        createdAt: today,
+        updatedAt: today,
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(_calendarDayFinder(crossMonthDate));
+    await tester.pumpAndSettle();
+
+    expect(find.text(expectedMonth), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('calendar-detail-title-event-cross-month-target'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -843,6 +933,14 @@ Finder _calendarScrollableFinder() {
 Future<void> _dragCalendar(WidgetTester tester, Offset offset) async {
   await tester.drag(_calendarScrollableFinder(), offset);
   await tester.pumpAndSettle();
+}
+
+Future<void> _collapseCalendar(WidgetTester tester) async {
+  await _dragCalendar(tester, const Offset(0, -520));
+}
+
+Future<void> _expandCalendar(WidgetTester tester) async {
+  await _dragCalendar(tester, const Offset(0, 520));
 }
 
 Finder _calendarDayFinder(DateTime date) {
