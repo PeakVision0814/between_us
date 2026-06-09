@@ -86,9 +86,9 @@ class AppStrings {
   String get authPhoneLabel =>
       _resolve(zhCn: '手机号', zhTw: '手機號', en: 'Phone number');
   String get authPhoneHint => _resolve(
-    zhCn: '请输入 E.164 格式，例如 +8613812345678',
-    zhTw: '請輸入 E.164 格式，例如 +8613812345678',
-    en: 'Use E.164 format, for example +8613812345678',
+    zhCn: '输入 11 位大陆手机号，不需要填写 +86',
+    zhTw: '輸入 11 位大陸手機號，不需要填寫 +86',
+    en: 'Enter an 11-digit mainland China phone number, without +86',
   );
   String get authOtpLabel => _resolve(
     zhCn: '验证码',
@@ -223,9 +223,9 @@ class AppStrings {
     ko: '유효한 이메일 주소를 입력하세요.',
   );
   String get authInvalidPhoneMessage => _resolve(
-    zhCn: '请输入 E.164 格式的手机号，例如 +8613812345678。',
-    zhTw: '請輸入 E.164 格式的手機號，例如 +8613812345678。',
-    en: 'Enter a phone number in E.164 format, for example +8613812345678.',
+    zhCn: '请输入 1 开头的 11 位大陆手机号。',
+    zhTw: '請輸入 1 開頭的 11 位大陸手機號。',
+    en: 'Enter an 11-digit mainland China phone number starting with 1.',
   );
   String get authOtpSendFailedMessage => _resolve(
     zhCn: '验证码发送失败，请稍后重试。',
@@ -1174,24 +1174,40 @@ class AppStrings {
       _resolve(zhCn: '绑定邮箱', zhTw: '綁定電子郵件', en: 'Bind email');
   String get accountSecurityBindPhoneLabel =>
       _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone');
+  String get accountSecurityChangeLabel =>
+      _resolve(zhCn: '更换', zhTw: '更換', en: 'Change');
   String get accountSecurityPrivacyHint => _resolve(
-    zhCn: '手机号用于登录和账号安全，不会默认展示给 TA。',
-    zhTw: '手機號用於登入和帳號安全，不會預設展示給 TA。',
-    en: 'Your phone number is for sign-in and account security. It is not shown to your partner by default.',
+    zhCn: '手机号只用于登录和账号安全。当前版本仅支持中国大陆手机号，输入时不需要填写 +86。',
+    zhTw: '手機號只用於登入和帳號安全。目前版本僅支援中國大陸手機號，輸入時不需要填寫 +86。',
+    en: 'Your phone number is only for sign-in and account security. This version only supports mainland China phone numbers, without +86.',
   );
   String get accountSecurityBindPhoneTitle =>
       _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone number');
   String get accountSecurityBindEmailTitle =>
       _resolve(zhCn: '绑定邮箱', zhTw: '綁定電子郵件', en: 'Bind email');
+  String get accountSecurityChangePhoneTitle =>
+      _resolve(zhCn: '更换手机号', zhTw: '更換手機號', en: 'Change phone number');
+  String get accountSecurityChangeEmailTitle =>
+      _resolve(zhCn: '更换邮箱', zhTw: '更換電子郵件', en: 'Change email');
   String get accountSecurityBindPhoneHint => _resolve(
-    zhCn: '请输入 E.164 格式手机号。绑定后，它会成为当前账号的登录方式。',
-    zhTw: '請輸入 E.164 格式手機號。綁定後，它會成為目前帳號的登入方式。',
-    en: 'Enter a phone number in E.164 format. After binding, it can sign in to this account.',
+    zhCn: '请输入 11 位大陆手机号。绑定后，它会成为当前账号的登录方式。',
+    zhTw: '請輸入 11 位大陸手機號。綁定後，它會成為目前帳號的登入方式。',
+    en: 'Enter an 11-digit mainland China phone number. After binding, it can sign in to this account.',
   );
   String get accountSecurityBindEmailHint => _resolve(
     zhCn: '绑定后，这个邮箱会成为当前账号的登录方式。',
     zhTw: '綁定後，這個電子郵件會成為目前帳號的登入方式。',
     en: 'After binding, this email can sign in to this account.',
+  );
+  String get accountSecurityChangePhoneHint => _resolve(
+    zhCn: '请输入新的 11 位大陆手机号，不需要填写 +86。验证后，它会替换当前登录手机号。',
+    zhTw: '請輸入新的 11 位大陸手機號，不需要填寫 +86。驗證後，它會取代目前登入手機號。',
+    en: 'Enter a new 11-digit mainland China phone number, without +86. After verification, it replaces the current login phone.',
+  );
+  String get accountSecurityChangeEmailHint => _resolve(
+    zhCn: '请输入新的邮箱。验证后，它会替换当前登录邮箱。',
+    zhTw: '請輸入新的電子郵件。驗證後，它會取代目前登入電子郵件。',
+    en: 'Enter a new email. After verification, it replaces the current login email.',
   );
   String get accountSecuritySendBindingCodeLabel =>
       _resolve(zhCn: '发送绑定验证码', zhTw: '發送綁定驗證碼', en: 'Send binding code');
@@ -1211,6 +1227,11 @@ class AppStrings {
     zhCn: '这个邮箱或手机号已经属于另一个账号，不能直接绑定。',
     zhTw: '這個電子郵件或手機號已經屬於另一個帳號，不能直接綁定。',
     en: 'This email or phone number already belongs to another account.',
+  );
+  String get accountSecuritySameCredentialMessage => _resolve(
+    zhCn: '请输入新的邮箱或手机号。',
+    zhTw: '請輸入新的電子郵件或手機號。',
+    en: 'Enter a new email or phone number.',
   );
   String get accountSecurityPhoneBindingSendFailedMessage => _resolve(
     zhCn: '手机号绑定验证码发送失败，请稍后重试。',

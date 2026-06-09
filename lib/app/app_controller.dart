@@ -118,6 +118,15 @@ class AppController extends ChangeNotifier {
     AppThemePreference.dark => ThemeMode.dark,
   };
 
+  @visibleForTesting
+  static String? normalizeMainlandChinaPhoneForAuth(String phone) {
+    final normalized = phone.trim();
+    if (!RegExp(r'^1\d{10}$').hasMatch(normalized)) {
+      return null;
+    }
+    return '+86$normalized';
+  }
+
   Future<void> bootstrap() async {
     _authBusy = false;
     _authErrorCode = null;
@@ -284,12 +293,12 @@ class AppController extends ChangeNotifier {
     required String phone,
     required bool shouldCreateUser,
   }) async {
-    final normalizedPhone = phone.trim();
+    final normalizedPhone = normalizeMainlandChinaPhoneForAuth(phone);
     if (!_supabaseReady) {
       _setAuthError('initialize_failed');
       return false;
     }
-    if (!_looksLikeE164Phone(normalizedPhone)) {
+    if (normalizedPhone == null) {
       _setAuthError('invalid_phone');
       return false;
     }
@@ -404,7 +413,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<bool> requestPhoneBindingOtp(String phone) async {
-    final normalizedPhone = phone.trim();
+    final normalizedPhone = normalizeMainlandChinaPhoneForAuth(phone);
     if (!_supabaseReady) {
       _setBindingError('initialize_failed');
       return false;
@@ -413,8 +422,12 @@ class AppController extends ChangeNotifier {
       _setBindingError('not_authenticated');
       return false;
     }
-    if (!_looksLikeE164Phone(normalizedPhone)) {
+    if (normalizedPhone == null) {
       _setBindingError('invalid_phone');
+      return false;
+    }
+    if (_isSamePhoneCredential(normalizedPhone, this.phone)) {
+      _setBindingError('same_credential');
       return false;
     }
 
@@ -499,6 +512,10 @@ class AppController extends ChangeNotifier {
     }
     if (!_looksLikeEmail(normalizedEmail)) {
       _setBindingError('invalid_email');
+      return false;
+    }
+    if (_isSameEmailCredential(normalizedEmail, this.email)) {
+      _setBindingError('same_credential');
       return false;
     }
 
@@ -1272,8 +1289,32 @@ class AppController extends ChangeNotifier {
     return atIndex > 0 && atIndex < value.length - 1;
   }
 
-  bool _looksLikeE164Phone(String value) {
-    return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(value);
+  bool _isSameEmailCredential(String target, String? current) {
+    final normalizedCurrent = current?.trim().toLowerCase();
+    return normalizedCurrent != null &&
+        normalizedCurrent.isNotEmpty &&
+        normalizedCurrent == target.toLowerCase();
+  }
+
+  bool _isSamePhoneCredential(String target, String? current) {
+    final normalizedCurrent = _normalizeStoredPhoneForComparison(current);
+    return normalizedCurrent != null && normalizedCurrent == target;
+  }
+
+  String? _normalizeStoredPhoneForComparison(String? phone) {
+    final normalized = phone?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    final mainlandWithPlus = RegExp(r'^\+86(1\d{10})$').firstMatch(normalized);
+    if (mainlandWithPlus != null) {
+      return '+86${mainlandWithPlus.group(1)}';
+    }
+    final mainlandWithoutPlus = RegExp(r'^86(1\d{10})$').firstMatch(normalized);
+    if (mainlandWithoutPlus != null) {
+      return '+86${mainlandWithoutPlus.group(1)}';
+    }
+    return normalizeMainlandChinaPhoneForAuth(normalized);
   }
 
   Future<String?> _loadOrCreateCurrentSpaceId(

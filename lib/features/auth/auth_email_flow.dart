@@ -363,6 +363,12 @@ class _AuthEntryStepState extends State<_AuthEntryStep> {
               ? TextInputType.emailAddress
               : TextInputType.phone,
           textInputAction: TextInputAction.done,
+          inputFormatters: isEmail
+              ? null
+              : [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
           autofillHints: isEmail
               ? const [AutofillHints.email]
               : const [AutofillHints.telephoneNumber],

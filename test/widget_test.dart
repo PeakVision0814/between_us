@@ -143,12 +143,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
-      '13812345678',
+      '23812345678',
     );
     await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'), findsOneWidget);
+    expect(find.text('请输入 1 开头的 11 位大陆手机号。'), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
@@ -168,7 +168,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
-      '+8613812345678',
+      '13812345678',
     );
     await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
     await tester.pumpAndSettle();
@@ -218,7 +218,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
-      '+8613912345678',
+      '13912345678',
     );
     await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
     await tester.pumpAndSettle();
@@ -359,6 +359,7 @@ void main() {
     expect(find.text('+8613812345678'), findsOneWidget);
     expect(find.text('绑定手机号'), findsNothing);
     expect(find.text('绑定邮箱'), findsNothing);
+    expect(find.text('更换'), findsNWidgets(2));
   });
 
   testWidgets('unbound phone can enter phone binding flow', (tester) async {
@@ -407,15 +408,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('请输入 E.164 格式的手机号，例如 +8613812345678。'), findsOneWidget);
+    expect(find.text('请输入 1 开头的 11 位大陆手机号。'), findsOneWidget);
     expect(controller.requestedPhones, isEmpty);
   });
 
-  testWidgets('invalid phone binding otp length shows an error', (
-    tester,
-  ) async {
+  testWidgets('invalid phone change otp length shows an error', (tester) async {
     final controller = _FakeAccountSecurityController(
       emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
     );
     controller.debugSetAuthState(
       status: AppAuthStatus.authenticated,
@@ -427,11 +427,11 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
-    await tester.tap(find.text('绑定手机号'));
+    await tester.tap(find.text('更换').last);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-phone-field')),
-      '+8613812345678',
+      '13912345678',
     );
     await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
     await tester.pumpAndSettle();
@@ -443,6 +443,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('请输入 6 位验证码。'), findsOneWidget);
+    expect(controller.requestedPhones, ['+8613912345678']);
     expect(controller.verifiedPhoneTokens, isEmpty);
   });
 
@@ -496,6 +497,117 @@ void main() {
     expect(controller.requestedEmails, isEmpty);
   });
 
+  testWidgets('current phone change target is rejected before sending', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(find.text('更换').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-phone-field')),
+      '13812345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请输入新的邮箱或手机号。'), findsOneWidget);
+    expect(controller.requestedPhones, isEmpty);
+  });
+
+  test(
+    'current phone without plus is rejected before Supabase request',
+    () async {
+      final controller = _CurrentPhoneController('8613812345678');
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      final success = await controller.requestPhoneBindingOtp('13812345678');
+
+      expect(success, isFalse);
+      expect(controller.bindingErrorCode, 'same_credential');
+    },
+  );
+
+  testWidgets('current email change target is rejected before sending', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(find.text('更换').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-email-field')),
+      'ME@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请输入新的邮箱或手机号。'), findsOneWidget);
+    expect(controller.requestedEmails, isEmpty);
+  });
+
+  testWidgets('invalid email change otp length shows an error', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(find.text('更换').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-email-field')),
+      'new@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-email-otp-field')),
+      '12345',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-email-verify-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请输入 6 位验证码。'), findsOneWidget);
+    expect(controller.requestedEmails, ['new@example.com']);
+    expect(controller.verifiedEmailTokens, isEmpty);
+  });
+
   testWidgets('binding target already in use shows conflict message', (
     tester,
   ) async {
@@ -517,9 +629,38 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-phone-field')),
-      '+8613812345678',
+      '13812345678',
     );
     await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'), findsOneWidget);
+  });
+
+  testWidgets('email binding target already in use shows conflict message', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      phoneValue: '+8613812345678',
+      conflictOnEmailRequest: true,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(find.text('绑定邮箱'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-email-field')),
+      'used@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
     await tester.pumpAndSettle();
 
     expect(find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'), findsOneWidget);
@@ -2935,22 +3076,26 @@ class _SuccessfulPhoneSignInController extends AppController {
 
   @override
   Future<bool> sendPhoneOtpForSignIn(String phone) async {
-    signInPhones.add(phone.trim());
+    final normalizedPhone =
+        AppController.normalizeMainlandChinaPhoneForAuth(phone) ?? phone.trim();
+    signInPhones.add(normalizedPhone);
     debugSetAuthState(
       status: AppAuthStatus.phoneOtpSent,
       supabaseReady: true,
-      pendingPhone: phone.trim(),
+      pendingPhone: normalizedPhone,
     );
     return true;
   }
 
   @override
   Future<bool> sendPhoneOtpForSignUp(String phone) async {
-    signUpPhones.add(phone.trim());
+    final normalizedPhone =
+        AppController.normalizeMainlandChinaPhoneForAuth(phone) ?? phone.trim();
+    signUpPhones.add(normalizedPhone);
     debugSetAuthState(
       status: AppAuthStatus.phoneOtpSent,
       supabaseReady: true,
-      pendingPhone: phone.trim(),
+      pendingPhone: normalizedPhone,
     );
     return true;
   }
@@ -2974,16 +3119,27 @@ class _SuccessfulPhoneSignInController extends AppController {
 class _SuccessfulPhoneRegisterController
     extends _SuccessfulPhoneSignInController {}
 
+class _CurrentPhoneController extends AppController {
+  _CurrentPhoneController(this.phoneValue);
+
+  final String phoneValue;
+
+  @override
+  String? get phone => phoneValue;
+}
+
 class _FakeAccountSecurityController extends AppController {
   _FakeAccountSecurityController({
     this.emailValue,
     this.phoneValue,
     this.conflictOnPhoneRequest = false,
+    this.conflictOnEmailRequest = false,
   });
 
   String? emailValue;
   String? phoneValue;
   bool conflictOnPhoneRequest;
+  bool conflictOnEmailRequest;
   final List<String> requestedPhones = [];
   final List<String> requestedEmails = [];
   final List<String> verifiedPhoneTokens = [];
@@ -2997,8 +3153,10 @@ class _FakeAccountSecurityController extends AppController {
 
   @override
   Future<bool> requestPhoneBindingOtp(String phone) async {
-    final normalizedPhone = phone.trim();
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(normalizedPhone)) {
+    final normalizedPhone = AppController.normalizeMainlandChinaPhoneForAuth(
+      phone,
+    );
+    if (normalizedPhone == null) {
       debugSetAuthState(
         status: authStatus,
         supabaseReady: supabaseReady,
@@ -3007,6 +3165,18 @@ class _FakeAccountSecurityController extends AppController {
         pendingBindingEmail: pendingBindingEmail,
         pendingBindingPhone: pendingBindingPhone,
         bindingErrorCode: 'invalid_phone',
+      );
+      return false;
+    }
+    if (normalizedPhone == phoneValue?.trim()) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        pendingBindingEmail: pendingBindingEmail,
+        pendingBindingPhone: pendingBindingPhone,
+        bindingErrorCode: 'same_credential',
       );
       return false;
     }
@@ -3072,7 +3242,29 @@ class _FakeAccountSecurityController extends AppController {
       );
       return false;
     }
+    if (normalizedEmail == emailValue?.trim().toLowerCase()) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        pendingBindingEmail: pendingBindingEmail,
+        pendingBindingPhone: pendingBindingPhone,
+        bindingErrorCode: 'same_credential',
+      );
+      return false;
+    }
     requestedEmails.add(normalizedEmail);
+    if (conflictOnEmailRequest) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        bindingErrorCode: 'binding_target_in_use',
+      );
+      return false;
+    }
     debugSetAuthState(
       status: authStatus,
       supabaseReady: supabaseReady,

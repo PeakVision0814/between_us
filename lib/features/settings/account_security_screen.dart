@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/app_strings.dart';
@@ -251,10 +252,9 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                     ),
                     actionLabel: email == null || email.isEmpty
                         ? strings.accountSecurityBindEmailLabel
-                        : null,
-                    onAction: email == null || email.isEmpty
-                        ? () => _startBinding(controller, _BindingKind.email)
-                        : null,
+                        : strings.accountSecurityChangeLabel,
+                    onAction: () =>
+                        _startBinding(controller, _BindingKind.email),
                   ),
                   PageDivider(indent: 56),
                   _CredentialStatusItem(
@@ -268,10 +268,9 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                     ),
                     actionLabel: phone == null || phone.isEmpty
                         ? strings.accountSecurityBindPhoneLabel
-                        : null,
-                    onAction: phone == null || phone.isEmpty
-                        ? () => _startBinding(controller, _BindingKind.phone)
-                        : null,
+                        : strings.accountSecurityChangeLabel,
+                    onAction: () =>
+                        _startBinding(controller, _BindingKind.phone),
                   ),
                 ],
               ),
@@ -428,6 +427,9 @@ class _BindingPanel extends StatelessWidget {
     final pending = isPhone
         ? controller.pendingBindingPhone
         : controller.pendingBindingEmail;
+    final currentCredential = isPhone ? controller.phone : controller.email;
+    final isChanging =
+        currentCredential != null && currentCredential.isNotEmpty;
     final errorText = _bindingErrorText(strings, controller.bindingErrorCode);
 
     return PageSurfaceCard(
@@ -438,14 +440,22 @@ class _BindingPanel extends StatelessWidget {
         children: [
           Text(
             isPhone
-                ? strings.accountSecurityBindPhoneTitle
+                ? isChanging
+                      ? strings.accountSecurityChangePhoneTitle
+                      : strings.accountSecurityBindPhoneTitle
+                : isChanging
+                ? strings.accountSecurityChangeEmailTitle
                 : strings.accountSecurityBindEmailTitle,
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
             isPhone
-                ? strings.accountSecurityBindPhoneHint
+                ? isChanging
+                      ? strings.accountSecurityChangePhoneHint
+                      : strings.accountSecurityBindPhoneHint
+                : isChanging
+                ? strings.accountSecurityChangeEmailHint
                 : strings.accountSecurityBindEmailHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -470,6 +480,12 @@ class _BindingPanel extends StatelessWidget {
               keyboardType: isPhone
                   ? TextInputType.phone
                   : TextInputType.emailAddress,
+              inputFormatters: isPhone
+                  ? [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ]
+                  : null,
               decoration: InputDecoration(
                 labelText: isPhone
                     ? strings.authPhoneLabel
@@ -576,6 +592,7 @@ class _BindingPanel extends StatelessWidget {
       'invalid_token_length' => strings.authInvalidTokenLengthMessage,
       'missing_pending_phone' => strings.authMissingPendingPhoneMessage,
       'missing_pending_email' => strings.authMissingPendingEmailMessage,
+      'same_credential' => strings.accountSecuritySameCredentialMessage,
       'binding_target_in_use' => strings.accountSecurityBindingConflictMessage,
       'binding_phone_send_failed' =>
         strings.accountSecurityPhoneBindingSendFailedMessage,
