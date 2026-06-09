@@ -1675,6 +1675,21 @@ class AppStrings {
   String get calendarTomorrowLabel =>
       _resolve(zhCn: '明天', zhTw: '明天', en: 'Tomorrow', ja: '明日', ko: '내일');
 
+  String get calendarCollapseMonthLabel => _resolve(
+    zhCn: '收起月历',
+    zhTw: '收起月曆',
+    en: 'Collapse calendar',
+    ja: '月表示を閉じる',
+    ko: '월 달력 접기',
+  );
+  String get calendarExpandMonthLabel => _resolve(
+    zhCn: '展开月历',
+    zhTw: '展開月曆',
+    en: 'Expand calendar',
+    ja: '月表示を開く',
+    ko: '월 달력 펼치기',
+  );
+
   String calendarTypeLabel(CalendarEntryType type) => switch (type) {
     CalendarEntryType.anniversary => _resolve(
       zhCn: '纪念日',

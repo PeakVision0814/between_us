@@ -567,6 +567,119 @@ void main() {
     expect(find.text('经期'), findsWidgets);
   });
 
+  testWidgets('paired mode: calendar starts expanded in month view', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    expect(find.byKey(const ValueKey('calendar-month-view')), findsOneWidget);
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsNothing);
+  });
+
+  testWidgets('paired mode: upward scroll collapses calendar to week view', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    await _dragCalendar(tester, const Offset(0, -220));
+
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+    expect(find.byKey(const ValueKey('calendar-month-view')), findsNothing);
+  });
+
+  testWidgets('paired mode: week view shows selected date week', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    await _dragCalendar(tester, const Offset(0, -220));
+
+    final today = _dateOnly(DateTime.now());
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+    for (var i = 0; i < 7; i++) {
+      expect(
+        _calendarDayFinder(weekStart.add(Duration(days: i))),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('paired mode: tapping a week day updates selected detail', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    await _dragCalendar(tester, const Offset(0, -220));
+
+    final today = _dateOnly(DateTime.now());
+    final targetDate = today.weekday == DateTime.sunday
+        ? today.subtract(const Duration(days: 1))
+        : today.add(const Duration(days: 1));
+    const eventTitle = 'week-view-target-event';
+
+    // ignore: avoid_dynamic_calls
+    final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+    state.debugSetEvents([
+      CalendarEventRecord(
+        id: 'event-week-target',
+        coupleSpaceId: 'test-space-id',
+        createdBy: 'test-user',
+        eventType: 'date_plan',
+        title: eventTitle,
+        startsAt: targetDate,
+        createdAt: today,
+        updatedAt: today,
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(_calendarDayFinder(targetDate));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-detail-title-event-week-target')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('paired mode: toggle button restores month view', (tester) async {
+    await _pumpCalendar(
+      tester,
+      memberCount: 2,
+      currentSpaceId: 'test-space-id',
+      supabaseReady: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('calendar-toggle-month-view')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('calendar-week-view')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('calendar-toggle-month-view')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('calendar-month-view')), findsOneWidget);
+  });
+
   testWidgets(
     'calendar avoids horizontal overflow on narrow large-text screens',
     (tester) async {
@@ -628,6 +741,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      await _dragCalendar(tester, const Offset(0, -220));
+
       expect(overflowMessages, isEmpty);
     },
   );
@@ -676,16 +791,37 @@ Future<void> _pumpCalendar(
   await tester.pumpAndSettle();
 }
 
-Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
-  // Find the vertical Scrollable (ListView) inside CalendarScreen,
-  // ignoring the horizontal Scrollable from _FilterChipRow.
-  final scrollableFinder = find.descendant(
+Finder _calendarScrollableFinder() {
+  return find.descendant(
     of: find.byType(CalendarScreen),
     matching: find.byWidgetPredicate(
       (widget) =>
           widget is Scrollable && widget.axisDirection == AxisDirection.down,
     ),
   );
+}
+
+Future<void> _dragCalendar(WidgetTester tester, Offset offset) async {
+  await tester.drag(_calendarScrollableFinder(), offset);
+  await tester.pumpAndSettle();
+}
+
+Finder _calendarDayFinder(DateTime date) {
+  return find.byKey(
+    ValueKey(
+      'calendar-day-${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}',
+    ),
+  );
+}
+
+DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
+  // Find the vertical Scrollable (ListView) inside CalendarScreen,
+  // ignoring the horizontal Scrollable from _FilterChipRow.
+  final scrollableFinder = _calendarScrollableFinder();
   // Try scrollUntilVisible first (works when target is already in widget tree).
   try {
     await tester.scrollUntilVisible(finder, 200, scrollable: scrollableFinder);

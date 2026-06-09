@@ -16,6 +16,10 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  static const double _calendarCollapseScrollOffset = 36;
+  static const double _calendarExpandScrollOffset = 8;
+  static const double _calendarExpandDragDelta = -20;
+
   DateTime? _selectedDate;
   late DateTime _displayMonth;
   List<CalendarEventRecord> _events = [];
@@ -27,6 +31,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _reloadAfterCurrentLoad = false;
   DateTime? _lastLoadTime;
   CalendarFilter _activeFilter = CalendarFilter.all;
+  bool _calendarExpanded = true;
 
   @visibleForTesting
   void debugSetEvents(List<CalendarEventRecord> events) {
@@ -65,6 +70,48 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _displayMonth = DateTime(_displayMonth.year, _displayMonth.month + 1);
       _selectedDate = _dateOnly(_displayMonth);
     });
+  }
+
+  void _selectCalendarDay(DateTime day) {
+    final normalized = _dateOnly(day);
+    setState(() {
+      _selectedDate = normalized;
+      if (_displayMonth.year != normalized.year ||
+          _displayMonth.month != normalized.month) {
+        _displayMonth = DateTime(normalized.year, normalized.month);
+      }
+    });
+  }
+
+  void _setCalendarExpanded(bool expanded) {
+    if (_calendarExpanded == expanded || !mounted) return;
+    setState(() => _calendarExpanded = expanded);
+  }
+
+  bool _handleCalendarScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    final pixels = notification.metrics.pixels;
+    if (pixels <= _calendarExpandScrollOffset) {
+      _setCalendarExpanded(true);
+      return false;
+    }
+
+    if (_calendarExpanded && pixels >= _calendarCollapseScrollOffset) {
+      _setCalendarExpanded(false);
+      return false;
+    }
+
+    if (!_calendarExpanded &&
+        notification is ScrollUpdateNotification &&
+        (notification.scrollDelta ?? 0) <= _calendarExpandDragDelta &&
+        pixels <= _calendarCollapseScrollOffset) {
+      _setCalendarExpanded(true);
+    }
+
+    return false;
   }
 
   @override
@@ -751,7 +798,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    final visibleDays = strings.calendarVisibleDaysForMonth(_displayMonth);
+    final monthDays = strings.calendarVisibleDaysForMonth(_displayMonth);
+    final weekDays = _calendarVisibleDaysForWeek(_selectedDate!);
+    final visibleDays = _calendarExpanded ? monthDays : weekDays;
     final now = DateTime.now();
 
     final entries = _events.map(_recordToEntry).toList();
@@ -769,23 +818,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       visibleDays: visibleDays,
     );
     final selectedEntries =
-        [
-          ...(entriesByDay[_dateKey(_selectedDate!)] ??
-              const <CalendarEntryData>[]),
-        ]..sort(
-          (left, right) => _occurrenceOnDay(
-            left,
-            _selectedDate!,
-          ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
-        );
+        filteredEntries
+            .where((entry) => entry.occursOn(_selectedDate!))
+            .toList()
+          ..sort(
+            (left, right) => _occurrenceOnDay(
+              left,
+              _selectedDate!,
+            ).compareTo(_occurrenceOnDay(right, _selectedDate!)),
+          );
     final selectedCycleRecords =
-        [
-          ...(cycleRecordsByDay[_dateKey(_selectedDate!)] ??
-              const <CycleRecord>[]),
-        ]..sort(
-          (left, right) =>
-              left.periodStartDate.compareTo(right.periodStartDate),
-        );
+        filteredCycleRecords
+            .where((record) => _cycleOccursOn(record, _selectedDate!))
+            .toList()
+          ..sort(
+            (left, right) =>
+                left.periodStartDate.compareTo(right.periodStartDate),
+          );
     final upcomingEntries = _getUpcomingEntries(filteredEntries, now);
 
     return Stack(
@@ -810,130 +859,148 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
         ),
-        RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            children: [
-              // ── Month grid ──
-              PageSurfaceCard(
-                padding: const EdgeInsets.all(14),
-                child: _MonthView(
-                  displayMonth: _displayMonth,
-                  visibleDays: visibleDays,
-                  selectedDate: _selectedDate!,
-                  entriesByDay: entriesByDay,
-                  cycleRecordsByDay: cycleRecordsByDay,
-                  onSelectDate: (day) {
-                    setState(() {
-                      _selectedDate = _dateOnly(day);
-                    });
-                  },
-                  onAddEvent: _showCreateDialog,
-                  onPreviousMonth: _previousMonth,
-                  onNextMonth: _nextMonth,
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Event type filter chips ──
-              _FilterChipRow(
-                activeFilter: _activeFilter,
-                canUseCycleRecords: AppScope.of(context).canUseCycleRecords,
-                onSelected: (filter) {
-                  setState(() => _activeFilter = filter);
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── Selected date details ──
-              PageSectionHeader(title: strings.calendarDetailsTitle),
-              const SizedBox(height: 10),
-              PageSurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      strings.formatCalendarDate(
-                        _selectedDate!,
-                        includeWeekday: true,
+        NotificationListener<ScrollNotification>(
+          onNotification: _handleCalendarScroll,
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: [
+                // ── Month grid ──
+                PageSurfaceCard(
+                  padding: const EdgeInsets.all(14),
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: _MonthView(
+                      key: ValueKey(
+                        _calendarExpanded
+                            ? 'calendar-month-view'
+                            : 'calendar-week-view',
                       ),
-                      key: const ValueKey('calendar-selected-date-label'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 14),
-                    if (selectedEntries.isEmpty && selectedCycleRecords.isEmpty)
-                      _SelectedDayEmptyState(strings: strings, isDark: isDark)
-                    else ...[
-                      ...selectedCycleRecords.map((record) {
-                        final isOwner =
-                            record.ownerProfileId ==
-                            AppScope.of(context).selfProfileId;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _SelectedCycleRecordCard(
-                            record: record,
-                            isDark: isDark,
-                            isOwner: isOwner,
-                            onEdit: isOwner
-                                ? () => _showCycleDialog(record: record)
-                                : null,
-                            onDelete: isOwner
-                                ? () => _confirmDeleteCycleRecord(record)
-                                : null,
-                          ),
-                        );
-                      }),
-                      ...selectedEntries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _SelectedEntryCard(
-                            entry: entry,
-                            occurrence: _occurrenceOnDay(entry, _selectedDate!),
-                            isDark: isDark,
-                            onDelete:
-                                _eventCreators[entry.id] ==
-                                    AppScope.of(context).selfProfileId
-                                ? () =>
-                                      _confirmDeleteEvent(entry.id, entry.title)
-                                : null,
-                            createdBy: _eventCreators[entry.id],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Upcoming events ──
-              PageSectionHeader(title: strings.calendarUpcomingTitle),
-              const SizedBox(height: 10),
-              if (upcomingEntries.isEmpty)
-                _UpcomingEmptyState(strings: strings, isDark: isDark)
-              else
-                ...upcomingEntries.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _UpcomingEventCard(
-                      entry: item.entry,
-                      occurrence: item.occurrence,
+                      displayMonth: _displayMonth,
+                      visibleDays: visibleDays,
+                      selectedDate: _selectedDate!,
+                      entriesByDay: entriesByDay,
+                      cycleRecordsByDay: cycleRecordsByDay,
+                      expanded: _calendarExpanded,
+                      onToggleExpanded: () =>
+                          _setCalendarExpanded(!_calendarExpanded),
+                      onSelectDate: _selectCalendarDay,
+                      onAddEvent: _showCreateDialog,
+                      onPreviousMonth: _previousMonth,
+                      onNextMonth: _nextMonth,
                       isDark: isDark,
-                      onDelete:
-                          _eventCreators[item.entry.id] ==
-                              AppScope.of(context).selfProfileId
-                          ? () => _confirmDeleteEvent(
-                              item.entry.id,
-                              item.entry.title,
-                            )
-                          : null,
-                      createdBy: _eventCreators[item.entry.id],
                     ),
                   ),
                 ),
-            ],
+                const SizedBox(height: 16),
+
+                // ── Event type filter chips ──
+                _FilterChipRow(
+                  activeFilter: _activeFilter,
+                  canUseCycleRecords: AppScope.of(context).canUseCycleRecords,
+                  onSelected: (filter) {
+                    setState(() => _activeFilter = filter);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // ── Selected date details ──
+                PageSectionHeader(title: strings.calendarDetailsTitle),
+                const SizedBox(height: 10),
+                PageSurfaceCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        strings.formatCalendarDate(
+                          _selectedDate!,
+                          includeWeekday: true,
+                        ),
+                        key: const ValueKey('calendar-selected-date-label'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 14),
+                      if (selectedEntries.isEmpty &&
+                          selectedCycleRecords.isEmpty)
+                        _SelectedDayEmptyState(strings: strings, isDark: isDark)
+                      else ...[
+                        ...selectedCycleRecords.map((record) {
+                          final isOwner =
+                              record.ownerProfileId ==
+                              AppScope.of(context).selfProfileId;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SelectedCycleRecordCard(
+                              record: record,
+                              isDark: isDark,
+                              isOwner: isOwner,
+                              onEdit: isOwner
+                                  ? () => _showCycleDialog(record: record)
+                                  : null,
+                              onDelete: isOwner
+                                  ? () => _confirmDeleteCycleRecord(record)
+                                  : null,
+                            ),
+                          );
+                        }),
+                        ...selectedEntries.map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SelectedEntryCard(
+                              entry: entry,
+                              occurrence: _occurrenceOnDay(
+                                entry,
+                                _selectedDate!,
+                              ),
+                              isDark: isDark,
+                              onDelete:
+                                  _eventCreators[entry.id] ==
+                                      AppScope.of(context).selfProfileId
+                                  ? () => _confirmDeleteEvent(
+                                      entry.id,
+                                      entry.title,
+                                    )
+                                  : null,
+                              createdBy: _eventCreators[entry.id],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Upcoming events ──
+                PageSectionHeader(title: strings.calendarUpcomingTitle),
+                const SizedBox(height: 10),
+                if (upcomingEntries.isEmpty)
+                  _UpcomingEmptyState(strings: strings, isDark: isDark)
+                else
+                  ...upcomingEntries.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _UpcomingEventCard(
+                        entry: item.entry,
+                        occurrence: item.occurrence,
+                        isDark: isDark,
+                        onDelete:
+                            _eventCreators[item.entry.id] ==
+                                AppScope.of(context).selfProfileId
+                            ? () => _confirmDeleteEvent(
+                                item.entry.id,
+                                item.entry.title,
+                              )
+                            : null,
+                        createdBy: _eventCreators[item.entry.id],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
@@ -1101,6 +1168,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
 
+  static List<DateTime> _calendarVisibleDaysForWeek(DateTime selectedDate) {
+    final selected = _dateOnly(selectedDate);
+    final weekStart = selected.subtract(Duration(days: selected.weekday - 1));
+    return List<DateTime>.generate(
+      7,
+      (index) => weekStart.add(Duration(days: index)),
+    );
+  }
+
   static String _formatDateForStorage(DateTime value) {
     final normalized = _dateOnly(value);
     final month = normalized.month.toString().padLeft(2, '0');
@@ -1117,11 +1193,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
 class _MonthView extends StatelessWidget {
   const _MonthView({
+    super.key,
     required this.displayMonth,
     required this.visibleDays,
     required this.selectedDate,
     required this.entriesByDay,
     required this.cycleRecordsByDay,
+    required this.expanded,
+    required this.onToggleExpanded,
     required this.onSelectDate,
     required this.isDark,
     this.onAddEvent,
@@ -1134,6 +1213,8 @@ class _MonthView extends StatelessWidget {
   final DateTime selectedDate;
   final Map<String, List<CalendarEntryData>> entriesByDay;
   final Map<String, List<CycleRecord>> cycleRecordsByDay;
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
   final ValueChanged<DateTime> onSelectDate;
   final bool isDark;
   final VoidCallback? onAddEvent;
@@ -1163,6 +1244,8 @@ class _MonthView extends StatelessWidget {
               child: Text(
                 strings.formatCalendarMonthYear(displayMonth),
                 style: Theme.of(context).textTheme.titleMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (onNextMonth != null)
@@ -1182,6 +1265,22 @@ class _MonthView extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
+            IconButton(
+              key: const ValueKey('calendar-toggle-month-view'),
+              onPressed: onToggleExpanded,
+              icon: Icon(
+                expanded
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: 20,
+              ),
+              tooltip: expanded
+                  ? strings.calendarCollapseMonthLabel
+                  : strings.calendarExpandMonthLabel,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
           ],
         ),
         const SizedBox(height: 12),
