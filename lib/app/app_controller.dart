@@ -39,6 +39,10 @@ class AppController extends ChangeNotifier {
   String? _pendingBindingPhone;
   String? _bindingErrorCode;
   bool _bindingBusy = false;
+  String? _recoveryEmail;
+  DateTime? _recoveryEmailVerifiedAt;
+  String? _recoveryEmailPending;
+  DateTime? _recoveryEmailOtpExpiresAt;
   String? _loadedPreferencesUserId;
   String? _displayName;
   String? _gender;
@@ -74,6 +78,12 @@ class AppController extends ChangeNotifier {
   String? get pendingBindingPhone => _pendingBindingPhone;
   String? get bindingErrorCode => _bindingErrorCode;
   bool get bindingBusy => _bindingBusy;
+  String? get recoveryEmail => _recoveryEmail;
+  DateTime? get recoveryEmailVerifiedAt => _recoveryEmailVerifiedAt;
+  String? get recoveryEmailPending => _recoveryEmailPending;
+  DateTime? get recoveryEmailOtpExpiresAt => _recoveryEmailOtpExpiresAt;
+  bool get hasVerifiedRecoveryEmail =>
+      _recoveryEmail != null && _recoveryEmailVerifiedAt != null;
   bool get isAuthenticated => _authStatus == AppAuthStatus.authenticated;
   bool get signOutInProgress => _authBusy && isAuthenticated;
   String? get displayName => _displayName;
@@ -597,6 +607,106 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> requestRecoveryEmailChange(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (!_looksLikeEmail(normalizedEmail)) {
+      _setBindingError('invalid_email');
+      return false;
+    }
+    if (_isSameEmailCredential(normalizedEmail, this.email) ||
+        _isSameEmailCredential(normalizedEmail, _recoveryEmail)) {
+      _setBindingError('same_recovery_email');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.rpc(
+        'request_recovery_email_change',
+        params: {'p_email': normalizedEmail},
+      );
+      final row = _firstRpcRow(response);
+      _recoveryEmailPending =
+          (row?['recovery_email_pending'] as String?) ?? normalizedEmail;
+      _recoveryEmailOtpExpiresAt = _parseDateTime(row?['expires_at']);
+      _bindingErrorCode = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Request recovery email failed: $error');
+      _bindingErrorCode = _recoveryEmailErrorCode(
+        error,
+        fallback: 'recovery_email_send_failed',
+      );
+      notifyListeners();
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
+  Future<bool> verifyRecoveryEmailChange(String token) async {
+    if (!_supabaseReady) {
+      _setBindingError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setBindingError('not_authenticated');
+      return false;
+    }
+    if (_recoveryEmailPending == null) {
+      _setBindingError('missing_pending_recovery_email');
+      return false;
+    }
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      _setBindingError('invalid_token_length');
+      return false;
+    }
+
+    _setBindingBusy(true);
+    _bindingErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.rpc(
+        'verify_recovery_email_change',
+        params: {'p_token': normalizedToken},
+      );
+      final row = _firstRpcRow(response);
+      _recoveryEmail =
+          (row?['recovery_email'] as String?) ?? _recoveryEmailPending;
+      _recoveryEmailVerifiedAt =
+          _parseDateTime(row?['recovery_email_verified_at']) ?? DateTime.now();
+      _recoveryEmailPending = null;
+      _recoveryEmailOtpExpiresAt = null;
+      _bindingErrorCode = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Verify recovery email failed: $error');
+      _bindingErrorCode = _recoveryEmailErrorCode(
+        error,
+        fallback: 'recovery_email_verify_failed',
+      );
+      notifyListeners();
+      return false;
+    } finally {
+      _setBindingBusy(false);
+    }
+  }
+
   Future<bool> signOut() async {
     if (!_supabaseReady) {
       _setAuthError('initialize_failed');
@@ -732,6 +842,13 @@ class AppController extends ChangeNotifier {
   void clearPendingBindingState() {
     _pendingBindingEmail = null;
     _pendingBindingPhone = null;
+    _bindingErrorCode = null;
+    notifyListeners();
+  }
+
+  void clearRecoveryEmailPendingForChange() {
+    _recoveryEmailPending = null;
+    _recoveryEmailOtpExpiresAt = null;
     _bindingErrorCode = null;
     notifyListeners();
   }
@@ -873,6 +990,23 @@ class AppController extends ChangeNotifier {
       final notif = profile['notification_preview_enabled'] as bool?;
       if (notif != null && _notificationPreviewEnabled != notif) {
         _notificationPreviewEnabled = notif;
+        changed = true;
+      }
+      final recoveryEmail = profile['recovery_email'] as String?;
+      if (_recoveryEmail != recoveryEmail) {
+        _recoveryEmail = recoveryEmail;
+        changed = true;
+      }
+      final recoveryEmailVerifiedAt = _parseDateTime(
+        profile['recovery_email_verified_at'],
+      );
+      if (_recoveryEmailVerifiedAt != recoveryEmailVerifiedAt) {
+        _recoveryEmailVerifiedAt = recoveryEmailVerifiedAt;
+        changed = true;
+      }
+      final recoveryEmailPending = profile['recovery_email_pending'] as String?;
+      if (_recoveryEmailPending != recoveryEmailPending) {
+        _recoveryEmailPending = recoveryEmailPending;
         changed = true;
       }
       _loadedPreferencesUserId = userId;
@@ -1329,6 +1463,10 @@ class AppController extends ChangeNotifier {
     _pendingBindingPhone = null;
     _bindingErrorCode = null;
     _bindingBusy = false;
+    _recoveryEmail = null;
+    _recoveryEmailVerifiedAt = null;
+    _recoveryEmailPending = null;
+    _recoveryEmailOtpExpiresAt = null;
     _loadedPreferencesUserId = null;
     _profileLoadedForCurrentSession = false;
     _displayName = null;
@@ -1421,6 +1559,42 @@ class AppController extends ChangeNotifier {
   bool _looksLikeEmail(String value) {
     final atIndex = value.indexOf('@');
     return atIndex > 0 && atIndex < value.length - 1;
+  }
+
+  Map<String, dynamic>? _firstRpcRow(dynamic response) {
+    return switch (response) {
+      final List<dynamic> rows when rows.isNotEmpty =>
+        rows.first as Map<String, dynamic>,
+      final Map<String, dynamic> row => row,
+      _ => null,
+    };
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value is! String || value.trim().isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(value);
+  }
+
+  String _recoveryEmailErrorCode(Object error, {required String fallback}) {
+    final message = error.toString().toLowerCase();
+    if (message.contains('invalid_email')) return 'invalid_email';
+    if (message.contains('same_recovery_email')) {
+      return 'same_recovery_email';
+    }
+    if (message.contains('recovery_email_in_use') ||
+        message.contains('unique') ||
+        message.contains('duplicate')) {
+      return 'recovery_email_in_use';
+    }
+    if (message.contains('missing_pending_recovery_email')) {
+      return 'missing_pending_recovery_email';
+    }
+    if (message.contains('expired')) return 'recovery_email_token_expired';
+    if (message.contains('invalid_token')) return 'invalid_token_length';
+    if (message.contains('not_authenticated')) return 'not_authenticated';
+    return fallback;
   }
 
   bool _isSameEmailCredential(String target, String? current) {
@@ -1589,6 +1763,10 @@ class AppController extends ChangeNotifier {
     String? gender,
     DateTime? birthday,
     bool cycleSharingEnabled = false,
+    String? recoveryEmail,
+    DateTime? recoveryEmailVerifiedAt,
+    String? recoveryEmailPending,
+    DateTime? recoveryEmailOtpExpiresAt,
     String? selfProfileId,
     String? currentSpaceId,
     int memberCount = 0,
@@ -1609,6 +1787,10 @@ class AppController extends ChangeNotifier {
     _gender = gender;
     _birthday = birthday;
     _cycleSharingEnabled = cycleSharingEnabled;
+    _recoveryEmail = recoveryEmail;
+    _recoveryEmailVerifiedAt = recoveryEmailVerifiedAt;
+    _recoveryEmailPending = recoveryEmailPending;
+    _recoveryEmailOtpExpiresAt = recoveryEmailOtpExpiresAt;
     _selfProfileId = selfProfileId;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;

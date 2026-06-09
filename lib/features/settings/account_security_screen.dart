@@ -6,7 +6,7 @@ import '../../app/app_strings.dart';
 import '../../app/app_theme.dart';
 import '../../shared/widgets/page_visual_language.dart';
 
-enum _BindingKind { phone, email }
+enum _BindingKind { phone, email, recoveryEmail }
 
 typedef SpaceStatusRouteBuilder =
     Widget Function(AppController controller, String? partnerName);
@@ -27,12 +27,15 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
   _BindingKind? _activeBinding;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _recoveryEmailController =
+      TextEditingController();
   final TextEditingController _codeController = TextEditingController();
 
   @override
   void dispose() {
     _phoneController.dispose();
     _emailController.dispose();
+    _recoveryEmailController.dispose();
     _codeController.dispose();
     super.dispose();
   }
@@ -41,12 +44,18 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     final kind = _activeBinding;
     if (kind == null) return;
 
+    final recoveryEmailTarget = controller.recoveryEmailPending?.trim();
     final success = switch (kind) {
       _BindingKind.phone => await controller.requestPhoneBindingOtp(
         _phoneController.text,
       ),
       _BindingKind.email => await controller.requestEmailBindingOtp(
         _emailController.text,
+      ),
+      _BindingKind.recoveryEmail => await controller.requestRecoveryEmailChange(
+        recoveryEmailTarget != null && recoveryEmailTarget.isNotEmpty
+            ? recoveryEmailTarget
+            : _recoveryEmailController.text,
       ),
     };
     if (success && mounted) {
@@ -65,12 +74,16 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
       _BindingKind.email => await controller.verifyEmailBindingOtp(
         _codeController.text,
       ),
+      _BindingKind.recoveryEmail => await controller.verifyRecoveryEmailChange(
+        _codeController.text,
+      ),
     };
     if (success && mounted) {
       setState(() {
         _activeBinding = null;
         _phoneController.clear();
         _emailController.clear();
+        _recoveryEmailController.clear();
         _codeController.clear();
       });
     }
@@ -78,8 +91,28 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
 
   void _startBinding(AppController controller, _BindingKind kind) {
     controller.clearPendingBindingState();
+    if (kind == _BindingKind.recoveryEmail) {
+      controller.clearRecoveryEmailPendingForChange();
+    }
     setState(() {
       _activeBinding = kind;
+      _codeController.clear();
+    });
+  }
+
+  void _continueRecoveryEmailVerification(AppController controller) {
+    controller.clearPendingBindingState();
+    setState(() {
+      _activeBinding = _BindingKind.recoveryEmail;
+      _codeController.clear();
+    });
+  }
+
+  void _changeRecoveryEmail(AppController controller) {
+    controller.clearRecoveryEmailPendingForChange();
+    setState(() {
+      _activeBinding = _BindingKind.recoveryEmail;
+      _recoveryEmailController.clear();
       _codeController.clear();
     });
   }
@@ -90,6 +123,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
       _activeBinding = null;
       _phoneController.clear();
       _emailController.clear();
+      _recoveryEmailController.clear();
       _codeController.clear();
     });
   }
@@ -238,6 +272,8 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final email = controller.email;
     final phone = controller.phone;
+    final recoveryEmail = controller.recoveryEmail;
+    final recoveryEmailPending = controller.recoveryEmailPending;
 
     return Scaffold(
       key: const ValueKey('account-security-screen'),
@@ -298,6 +334,31 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                     onAction: () =>
                         _startBinding(controller, _BindingKind.phone),
                   ),
+                  PageDivider(indent: 56),
+                  _CredentialStatusItem(
+                    valueKey: const ValueKey(
+                      'account-security-recovery-email-status',
+                    ),
+                    icon: Icons.mark_email_unread_outlined,
+                    title: strings.accountSecurityRecoveryEmailTitle,
+                    value: _recoveryEmailLabel(
+                      recoveryEmail: recoveryEmail,
+                      pendingEmail: recoveryEmailPending,
+                      strings: strings,
+                    ),
+                    actionLabel:
+                        recoveryEmailPending != null &&
+                            recoveryEmailPending.isNotEmpty
+                        ? strings.accountSecurityContinueVerifyLabel
+                        : (recoveryEmail == null || recoveryEmail.isEmpty)
+                        ? strings.accountSecurityBindRecoveryEmailLabel
+                        : strings.accountSecurityChangeLabel,
+                    onAction: () =>
+                        recoveryEmailPending != null &&
+                            recoveryEmailPending.isNotEmpty
+                        ? _continueRecoveryEmailVerification(controller)
+                        : _startBinding(controller, _BindingKind.recoveryEmail),
+                  ),
                 ],
               ),
             ),
@@ -317,10 +378,12 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                 controller: controller,
                 phoneController: _phoneController,
                 emailController: _emailController,
+                recoveryEmailController: _recoveryEmailController,
                 codeController: _codeController,
                 onChanged: (_) => controller.clearBindingError(),
                 onRequest: () => _requestBinding(controller),
                 onVerify: () => _verifyBinding(controller),
+                onChangeRecoveryEmail: () => _changeRecoveryEmail(controller),
                 onCancel: () => _cancelBinding(controller),
               ),
             ],
@@ -369,6 +432,22 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
           : strings.accountSecurityPhoneUnbound;
     }
     return normalized;
+  }
+
+  String _recoveryEmailLabel({
+    required String? recoveryEmail,
+    required String? pendingEmail,
+    required AppStrings strings,
+  }) {
+    final pending = pendingEmail?.trim();
+    if (pending != null && pending.isNotEmpty) {
+      return strings.accountSecurityRecoveryEmailPendingValue(pending);
+    }
+    final verified = recoveryEmail?.trim();
+    if (verified != null && verified.isNotEmpty) {
+      return strings.accountSecurityRecoveryEmailVerifiedValue(verified);
+    }
+    return strings.accountSecurityRecoveryEmailUnbound;
   }
 }
 
@@ -428,10 +507,12 @@ class _BindingPanel extends StatelessWidget {
     required this.controller,
     required this.phoneController,
     required this.emailController,
+    required this.recoveryEmailController,
     required this.codeController,
     required this.onChanged,
     required this.onRequest,
     required this.onVerify,
+    required this.onChangeRecoveryEmail,
     required this.onCancel,
   });
 
@@ -439,10 +520,12 @@ class _BindingPanel extends StatelessWidget {
   final AppController controller;
   final TextEditingController phoneController;
   final TextEditingController emailController;
+  final TextEditingController recoveryEmailController;
   final TextEditingController codeController;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onRequest;
   final Future<void> Function() onVerify;
+  final VoidCallback onChangeRecoveryEmail;
   final VoidCallback onCancel;
 
   @override
@@ -450,39 +533,63 @@ class _BindingPanel extends StatelessWidget {
     final strings = AppStrings.of(context);
     final theme = Theme.of(context);
     final isPhone = kind == _BindingKind.phone;
-    final pending = isPhone
-        ? controller.pendingBindingPhone
-        : controller.pendingBindingEmail;
-    final currentCredential = isPhone ? controller.phone : controller.email;
+    final isRecoveryEmail = kind == _BindingKind.recoveryEmail;
+    final pending = switch (kind) {
+      _BindingKind.phone => controller.pendingBindingPhone,
+      _BindingKind.email => controller.pendingBindingEmail,
+      _BindingKind.recoveryEmail => controller.recoveryEmailPending,
+    };
+    final currentCredential = switch (kind) {
+      _BindingKind.phone => controller.phone,
+      _BindingKind.email => controller.email,
+      _BindingKind.recoveryEmail =>
+        controller.recoveryEmail ?? controller.recoveryEmailPending,
+    };
     final isChanging =
         currentCredential != null && currentCredential.isNotEmpty;
     final errorText = _bindingErrorText(strings, controller.bindingErrorCode);
+    final panelKey = switch (kind) {
+      _BindingKind.phone => 'bind-phone-panel',
+      _BindingKind.email => 'bind-email-panel',
+      _BindingKind.recoveryEmail => 'bind-recovery-email-panel',
+    };
 
     return PageSurfaceCard(
-      key: ValueKey(isPhone ? 'bind-phone-panel' : 'bind-email-panel'),
+      key: ValueKey(panelKey),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            isPhone
-                ? isChanging
-                      ? strings.accountSecurityChangePhoneTitle
-                      : strings.accountSecurityBindPhoneTitle
-                : isChanging
-                ? strings.accountSecurityChangeEmailTitle
-                : strings.accountSecurityBindEmailTitle,
-            style: theme.textTheme.titleMedium,
-          ),
+          Text(switch (kind) {
+            _BindingKind.phone =>
+              isChanging
+                  ? strings.accountSecurityChangePhoneTitle
+                  : strings.accountSecurityBindPhoneTitle,
+            _BindingKind.email =>
+              isChanging
+                  ? strings.accountSecurityChangeEmailTitle
+                  : strings.accountSecurityBindEmailTitle,
+            _BindingKind.recoveryEmail =>
+              isChanging
+                  ? strings.accountSecurityChangeRecoveryEmailTitle
+                  : strings.accountSecurityBindRecoveryEmailTitle,
+          }, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            isPhone
-                ? isChanging
-                      ? strings.accountSecurityChangePhoneHint
-                      : strings.accountSecurityBindPhoneHint
-                : isChanging
-                ? strings.accountSecurityChangeEmailHint
-                : strings.accountSecurityBindEmailHint,
+            switch (kind) {
+              _BindingKind.phone =>
+                isChanging
+                    ? strings.accountSecurityChangePhoneHint
+                    : strings.accountSecurityBindPhoneHint,
+              _BindingKind.email =>
+                isChanging
+                    ? strings.accountSecurityChangeEmailHint
+                    : strings.accountSecurityBindEmailHint,
+              _BindingKind.recoveryEmail =>
+                isChanging
+                    ? strings.accountSecurityChangeRecoveryEmailHint
+                    : strings.accountSecurityBindRecoveryEmailHint,
+            },
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -500,8 +607,16 @@ class _BindingPanel extends StatelessWidget {
           const SizedBox(height: 16),
           if (pending == null) ...[
             TextField(
-              key: ValueKey(isPhone ? 'bind-phone-field' : 'bind-email-field'),
-              controller: isPhone ? phoneController : emailController,
+              key: ValueKey(switch (kind) {
+                _BindingKind.phone => 'bind-phone-field',
+                _BindingKind.email => 'bind-email-field',
+                _BindingKind.recoveryEmail => 'bind-recovery-email-field',
+              }),
+              controller: isPhone
+                  ? phoneController
+                  : isRecoveryEmail
+                  ? recoveryEmailController
+                  : emailController,
               enabled: !controller.bindingBusy,
               keyboardType: isPhone
                   ? TextInputType.phone
@@ -535,11 +650,12 @@ class _BindingPanel extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
-                    key: ValueKey(
-                      isPhone
-                          ? 'bind-phone-send-button'
-                          : 'bind-email-send-button',
-                    ),
+                    key: ValueKey(switch (kind) {
+                      _BindingKind.phone => 'bind-phone-send-button',
+                      _BindingKind.email => 'bind-email-send-button',
+                      _BindingKind.recoveryEmail =>
+                        'bind-recovery-email-send-button',
+                    }),
                     onPressed: controller.bindingBusy ? null : onRequest,
                     child: controller.bindingBusy
                         ? const SizedBox(
@@ -558,11 +674,34 @@ class _BindingPanel extends StatelessWidget {
               key: const ValueKey('account-security-pending-target'),
               style: theme.textTheme.titleSmall,
             ),
+            if (isRecoveryEmail) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  TextButton(
+                    key: const ValueKey('bind-recovery-email-resend-button'),
+                    onPressed: controller.bindingBusy ? null : onRequest,
+                    child: Text(strings.accountSecuritySendBindingCodeLabel),
+                  ),
+                  TextButton(
+                    key: const ValueKey('bind-recovery-email-change-button'),
+                    onPressed: controller.bindingBusy
+                        ? null
+                        : onChangeRecoveryEmail,
+                    child: Text(strings.accountSecurityChangeLabel),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
-              key: ValueKey(
-                isPhone ? 'bind-phone-otp-field' : 'bind-email-otp-field',
-              ),
+              key: ValueKey(switch (kind) {
+                _BindingKind.phone => 'bind-phone-otp-field',
+                _BindingKind.email => 'bind-email-otp-field',
+                _BindingKind.recoveryEmail => 'bind-recovery-email-otp-field',
+              }),
               controller: codeController,
               enabled: !controller.bindingBusy,
               keyboardType: TextInputType.number,
@@ -585,11 +724,12 @@ class _BindingPanel extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
-                    key: ValueKey(
-                      isPhone
-                          ? 'bind-phone-verify-button'
-                          : 'bind-email-verify-button',
-                    ),
+                    key: ValueKey(switch (kind) {
+                      _BindingKind.phone => 'bind-phone-verify-button',
+                      _BindingKind.email => 'bind-email-verify-button',
+                      _BindingKind.recoveryEmail =>
+                        'bind-recovery-email-verify-button',
+                    }),
                     onPressed: controller.bindingBusy ? null : onVerify,
                     child: controller.bindingBusy
                         ? const SizedBox(
@@ -619,11 +759,22 @@ class _BindingPanel extends StatelessWidget {
       'missing_pending_phone' => strings.authMissingPendingPhoneMessage,
       'missing_pending_email' => strings.authMissingPendingEmailMessage,
       'same_credential' => strings.accountSecuritySameCredentialMessage,
+      'same_recovery_email' => strings.accountSecuritySameRecoveryEmailMessage,
       'binding_target_in_use' => strings.accountSecurityBindingConflictMessage,
+      'recovery_email_in_use' =>
+        strings.accountSecurityRecoveryEmailConflictMessage,
+      'missing_pending_recovery_email' =>
+        strings.accountSecurityMissingPendingRecoveryEmailMessage,
+      'recovery_email_token_expired' =>
+        strings.accountSecurityRecoveryEmailTokenExpiredMessage,
       'binding_phone_send_failed' =>
         strings.accountSecurityPhoneBindingSendFailedMessage,
       'binding_email_send_failed' =>
         strings.accountSecurityEmailBindingSendFailedMessage,
+      'recovery_email_send_failed' =>
+        strings.accountSecurityRecoveryEmailSendFailedMessage,
+      'recovery_email_verify_failed' =>
+        strings.accountSecurityRecoveryEmailVerifyFailedMessage,
       'binding_verify_failed' =>
         strings.accountSecurityBindingVerifyFailedMessage,
       _ => strings.authUnknownErrorMessage,

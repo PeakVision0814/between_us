@@ -439,6 +439,377 @@ void main() {
     expect(find.text('绑定手机号'), findsNothing);
     expect(find.text('绑定邮箱'), findsNothing);
     expect(find.text('更换'), findsNWidgets(2));
+    expect(find.text('绑定辅助邮箱'), findsOneWidget);
+  });
+
+  testWidgets('account security shows unbound recovery email entry', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      phoneValue: '+8613812345678',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    expect(find.text('辅助邮箱'), findsOneWidget);
+    expect(find.text('未绑定'), findsOneWidget);
+    expect(find.text('绑定辅助邮箱'), findsOneWidget);
+  });
+
+  testWidgets('pending recovery email shows pending verification state', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      recoveryEmailPendingValue: 'backup@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      recoveryEmailPending: 'backup@example.com',
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    expect(find.text('backup@example.com · 待验证'), findsOneWidget);
+    expect(find.text('继续验证'), findsOneWidget);
+
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.recoveryEmailPendingValue, 'backup@example.com');
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-otp-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-resend-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-change-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('bind-recovery-email-resend-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.requestedRecoveryEmails, ['backup@example.com']);
+
+    await tester.tap(
+      find.byKey(const ValueKey('bind-recovery-email-change-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.recoveryEmailPendingValue, isNull);
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('verified recovery email shows verified state', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      recoveryEmailValue: 'backup@example.com',
+      recoveryEmailVerifiedAtValue: DateTime(2026, 6, 9),
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      recoveryEmail: 'backup@example.com',
+      recoveryEmailVerifiedAt: DateTime(2026, 6, 9),
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    expect(find.text('backup@example.com · 已验证'), findsOneWidget);
+  });
+
+  testWidgets('invalid recovery email shows an error', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'not-email',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+
+    expect(find.text('请输入有效的邮箱地址。'), findsOneWidget);
+  });
+
+  testWidgets('current login email is rejected as recovery email', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'me@example.com',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+
+    expect(find.text('请输入新的辅助邮箱。'), findsOneWidget);
+    expect(controller.requestedRecoveryEmails, isEmpty);
+  });
+
+  testWidgets('current recovery email is rejected before request', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      recoveryEmailValue: 'backup@example.com',
+      recoveryEmailVerifiedAtValue: DateTime(2026, 6, 9),
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      recoveryEmail: 'backup@example.com',
+      recoveryEmailVerifiedAt: DateTime(2026, 6, 9),
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'backup@example.com',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+
+    expect(find.text('请输入新的辅助邮箱。'), findsOneWidget);
+    expect(controller.requestedRecoveryEmails, isEmpty);
+  });
+
+  testWidgets('recovery email request success enters verification step', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'backup@example.com',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+
+    expect(controller.requestedRecoveryEmails, ['backup@example.com']);
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-otp-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('bind-recovery-email-resend-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('recovery email verify failure shows an error', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      recoveryEmailPendingValue: 'backup@example.com',
+      failRecoveryEmailVerify: true,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      recoveryEmailPending: 'backup@example.com',
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-otp-field')),
+      '123456',
+    );
+    final verifyButton = find.byKey(
+      const ValueKey('bind-recovery-email-verify-button'),
+    );
+    await _tapVisible(tester, verifyButton);
+
+    expect(find.text('辅助邮箱验证码校验失败，请确认后重试。'), findsOneWidget);
+  });
+
+  testWidgets('recovery email verify success shows verified state', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'backup@example.com',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-otp-field')),
+      '123456',
+    );
+    final verifyButton = find.byKey(
+      const ValueKey('bind-recovery-email-verify-button'),
+    );
+    await _tapVisible(tester, verifyButton);
+
+    expect(controller.verifiedRecoveryEmailTokens, ['123456']);
+    expect(find.text('backup@example.com · 已验证'), findsOneWidget);
+  });
+
+  testWidgets('recovery email conflict shows dedicated message', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      conflictOnRecoveryEmailRequest: true,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-recovery-email-status'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-recovery-email-field')),
+      'used@example.com',
+    );
+    final sendButton = find.byKey(
+      const ValueKey('bind-recovery-email-send-button'),
+    );
+    await _tapVisible(tester, sendButton);
+
+    expect(find.text('这个邮箱已经属于另一个账号，不能直接绑定。'), findsOneWidget);
   });
 
   testWidgets('unbound phone can enter phone binding flow', (tester) async {
@@ -484,8 +855,10 @@ void main() {
       find.byKey(const ValueKey('bind-phone-field')),
       '138',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-send-button')),
+    );
 
     expect(find.text('请输入 1 开头的 11 位大陆手机号。'), findsOneWidget);
     expect(controller.requestedPhones, isEmpty);
@@ -514,8 +887,10 @@ void main() {
       find.byKey(const ValueKey('bind-phone-field')),
       '13812345678',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-send-button')),
+    );
 
     expect(controller.requestedPhones, ['+8613812345678']);
     expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
@@ -537,20 +912,28 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
-    await tester.tap(find.text('更换').last);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-phone-status'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-phone-field')),
       '13912345678',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-send-button')),
+    );
     await tester.enterText(
       find.byKey(const ValueKey('bind-phone-otp-field')),
       '12345',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-verify-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-verify-button')),
+    );
 
     expect(find.text('请输入 6 位验证码。'), findsOneWidget);
     expect(controller.requestedPhones, ['+8613912345678']);
@@ -600,8 +983,10 @@ void main() {
       find.byKey(const ValueKey('bind-email-field')),
       'not-email',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-email-send-button')),
+    );
 
     expect(find.text('请输入有效的邮箱地址。'), findsOneWidget);
     expect(controller.requestedEmails, isEmpty);
@@ -624,14 +1009,20 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
-    await tester.tap(find.text('更换').last);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-phone-status'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-phone-field')),
       '13812345678',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-send-button')),
+    );
 
     expect(find.text('请输入新的邮箱或手机号。'), findsOneWidget);
     expect(controller.requestedPhones, isEmpty);
@@ -924,14 +1315,20 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
-    await tester.tap(find.text('更换').first);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-email-status'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-email-field')),
       'ME@example.com',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-email-send-button')),
+    );
 
     expect(find.text('请输入新的邮箱或手机号。'), findsOneWidget);
     expect(controller.requestedEmails, isEmpty);
@@ -952,20 +1349,28 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
-    await tester.tap(find.text('更换').first);
+    await tester.tap(
+      _accountSecurityActionForStatus(
+        const ValueKey('account-security-email-status'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('bind-email-field')),
       'new@example.com',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-email-send-button')),
+    );
     await tester.enterText(
       find.byKey(const ValueKey('bind-email-otp-field')),
       '12345',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-email-verify-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-email-verify-button')),
+    );
 
     expect(find.text('请输入 6 位验证码。'), findsOneWidget);
     expect(controller.requestedEmails, ['new@example.com']);
@@ -995,8 +1400,10 @@ void main() {
       find.byKey(const ValueKey('bind-phone-field')),
       '13812345678',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-phone-send-button')),
+    );
 
     expect(find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'), findsOneWidget);
   });
@@ -1024,8 +1431,10 @@ void main() {
       find.byKey(const ValueKey('bind-email-field')),
       'used@example.com',
     );
-    await tester.tap(find.byKey(const ValueKey('bind-email-send-button')));
-    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('bind-email-send-button')),
+    );
 
     expect(find.text('这个邮箱或手机号已经属于另一个账号，不能直接绑定。'), findsOneWidget);
   });
@@ -1801,9 +2210,7 @@ void main() {
       find.descendant(of: spaceSection, matching: find.text('Space status')),
       findsOneWidget,
     );
-    final spaceModuleCard = find.byKey(
-      const ValueKey('us-space-module-card'),
-    );
+    final spaceModuleCard = find.byKey(const ValueKey('us-space-module-card'));
     final spaceStatusEntry = find.byKey(
       const ValueKey('us-space-entry-Space status'),
     );
@@ -3533,6 +3940,30 @@ Future<void> _openAccountSecurityFromProfile(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Finder _accountSecurityActionForStatus(Key statusKey) {
+  final statusRow = find.ancestor(
+    of: find.byKey(statusKey),
+    matching: find.byType(Row),
+  );
+  return find.descendant(of: statusRow, matching: find.byType(TextButton));
+}
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  for (var attempt = 0; attempt < 8; attempt += 1) {
+    final center = tester.getCenter(finder);
+    if (center.dy >= 24 && center.dy <= 576) {
+      break;
+    }
+    final scrollable = find.byType(Scrollable).last;
+    await tester.drag(scrollable, Offset(0, center.dy > 576 ? -120 : 120));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
 Widget _accountSecurityHarness({
   required AppController controller,
   SpaceStatusRouteBuilder? spaceStatusRouteBuilder,
@@ -3675,29 +4106,54 @@ class _FakeAccountSecurityController extends AppController {
   _FakeAccountSecurityController({
     this.emailValue,
     this.phoneValue,
+    this.recoveryEmailValue,
+    this.recoveryEmailVerifiedAtValue,
+    this.recoveryEmailPendingValue,
     this.conflictOnPhoneRequest = false,
     this.conflictOnEmailRequest = false,
+    this.conflictOnRecoveryEmailRequest = false,
+    this.failRecoveryEmailVerify = false,
     this.failPhoneRequest = false,
     this.deleteAccountResult = _FakeDeleteAccountResult.success,
   });
 
   String? emailValue;
   String? phoneValue;
+  String? recoveryEmailValue;
+  DateTime? recoveryEmailVerifiedAtValue;
+  String? recoveryEmailPendingValue;
+  DateTime? recoveryEmailOtpExpiresAtValue;
   bool conflictOnPhoneRequest;
   bool conflictOnEmailRequest;
+  bool conflictOnRecoveryEmailRequest;
+  bool failRecoveryEmailVerify;
   bool failPhoneRequest;
   _FakeDeleteAccountResult deleteAccountResult;
   int deleteAccountCalls = 0;
   final List<String> requestedPhones = [];
   final List<String> requestedEmails = [];
+  final List<String> requestedRecoveryEmails = [];
   final List<String> verifiedPhoneTokens = [];
   final List<String> verifiedEmailTokens = [];
+  final List<String> verifiedRecoveryEmailTokens = [];
 
   @override
   String? get email => emailValue;
 
   @override
   String? get phone => phoneValue;
+
+  @override
+  String? get recoveryEmail => recoveryEmailValue;
+
+  @override
+  DateTime? get recoveryEmailVerifiedAt => recoveryEmailVerifiedAtValue;
+
+  @override
+  String? get recoveryEmailPending => recoveryEmailPendingValue;
+
+  @override
+  DateTime? get recoveryEmailOtpExpiresAt => recoveryEmailOtpExpiresAtValue;
 
   @override
   Future<bool> deleteAccount() async {
@@ -3892,6 +4348,121 @@ class _FakeAccountSecurityController extends AppController {
       gender: gender,
     );
     return true;
+  }
+
+  @override
+  Future<bool> requestRecoveryEmailChange(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    final atIndex = normalizedEmail.indexOf('@');
+    if (atIndex <= 0 || atIndex >= normalizedEmail.length - 1) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        recoveryEmail: recoveryEmailValue,
+        recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+        recoveryEmailPending: recoveryEmailPendingValue,
+        recoveryEmailOtpExpiresAt: recoveryEmailOtpExpiresAtValue,
+        bindingErrorCode: 'invalid_email',
+      );
+      return false;
+    }
+    if (normalizedEmail == emailValue?.trim().toLowerCase() ||
+        normalizedEmail == recoveryEmailValue?.trim().toLowerCase()) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        recoveryEmail: recoveryEmailValue,
+        recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+        recoveryEmailPending: recoveryEmailPendingValue,
+        recoveryEmailOtpExpiresAt: recoveryEmailOtpExpiresAtValue,
+        bindingErrorCode: 'same_recovery_email',
+      );
+      return false;
+    }
+    requestedRecoveryEmails.add(normalizedEmail);
+    if (conflictOnRecoveryEmailRequest) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        recoveryEmail: recoveryEmailValue,
+        recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+        bindingErrorCode: 'recovery_email_in_use',
+      );
+      return false;
+    }
+    recoveryEmailPendingValue = normalizedEmail;
+    recoveryEmailOtpExpiresAtValue = DateTime(2026, 6, 9, 16, 0);
+    debugSetAuthState(
+      status: authStatus,
+      supabaseReady: supabaseReady,
+      displayName: displayName,
+      gender: gender,
+      recoveryEmail: recoveryEmailValue,
+      recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+      recoveryEmailPending: recoveryEmailPendingValue,
+      recoveryEmailOtpExpiresAt: recoveryEmailOtpExpiresAtValue,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> verifyRecoveryEmailChange(String token) async {
+    final normalizedToken = token.trim();
+    if (normalizedToken.length != 6) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        recoveryEmail: recoveryEmailValue,
+        recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+        recoveryEmailPending: recoveryEmailPendingValue,
+        recoveryEmailOtpExpiresAt: recoveryEmailOtpExpiresAtValue,
+        bindingErrorCode: 'invalid_token_length',
+      );
+      return false;
+    }
+    if (failRecoveryEmailVerify) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        recoveryEmail: recoveryEmailValue,
+        recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+        recoveryEmailPending: recoveryEmailPendingValue,
+        recoveryEmailOtpExpiresAt: recoveryEmailOtpExpiresAtValue,
+        bindingErrorCode: 'recovery_email_verify_failed',
+      );
+      return false;
+    }
+    verifiedRecoveryEmailTokens.add(normalizedToken);
+    recoveryEmailValue = recoveryEmailPendingValue;
+    recoveryEmailVerifiedAtValue = DateTime(2026, 6, 9, 16, 1);
+    recoveryEmailPendingValue = null;
+    recoveryEmailOtpExpiresAtValue = null;
+    debugSetAuthState(
+      status: authStatus,
+      supabaseReady: supabaseReady,
+      displayName: displayName,
+      gender: gender,
+      recoveryEmail: recoveryEmailValue,
+      recoveryEmailVerifiedAt: recoveryEmailVerifiedAtValue,
+    );
+    return true;
+  }
+
+  @override
+  void clearRecoveryEmailPendingForChange() {
+    recoveryEmailPendingValue = null;
+    recoveryEmailOtpExpiresAtValue = null;
+    super.clearRecoveryEmailPendingForChange();
   }
 }
 

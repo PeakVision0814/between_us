@@ -531,11 +531,16 @@ App 启动 → 初始化 Supabase → 检查 session
 已登录用户可从个人资料页进入“账号与安全”。该入口属于当前用户自己的账号信息，不放在“设置与更多”第一层，也不放入 TA 资料展示。该页面只管理登录凭证和账号安全状态：
 
 - 展示当前账号已绑定的邮箱和手机号
+- 展示辅助邮箱：辅助邮箱不是 Supabase Auth 登录邮箱，第一版不用于登录，只用于账号安全和后续账号恢复能力
 - 邮箱账号可绑定手机号，手机号账号可绑定邮箱
 - 绑定手机号使用 Supabase Auth 的 user update / phone change 能力，验证码校验使用 `OtpType.phoneChange`
 - 绑定邮箱使用 Supabase Auth 的 user update / email change 能力，验证码校验使用 `OtpType.emailChange`，或按 Supabase 项目配置进入邮件确认流程
 - 如果目标邮箱或手机号已属于另一个账号，必须阻止并提示，不做自动合并
-- 手机号用于登录和账号安全，不默认展示给 TA，也不混入伴侣资料展示
+- 辅助邮箱通过业务数据层 RPC 绑定 / 更换 / 验证，不调用 `updateUser(UserAttributes(email: ...))`，不写入 `auth.users.email`
+- 辅助邮箱必须验证后才有效；待验证状态可重新发送验证码，也可更换邮箱
+- 已验证辅助邮箱通过部分唯一索引保证不能被多个未注销账号占用；pending 邮箱不做唯一锁定，验证时再次抢占唯一性
+- 验证 token 由服务端生成；hash 和过期时间只保存在 `private.account_recovery_email_challenges`，不放在客户端可读的 `profiles` 列里。Flutter 不生成真正安全验证码，也不保存明文验证码
+- 手机号用于登录和账号安全；辅助邮箱用于账号安全和后续找回。二者都不默认展示给 TA，也不混入伴侣资料展示
 - 邮箱和手机号属于登录凭证，不属于昵称、性别、生日等展示给 TA 的情侣资料字段
 - 页面底部提供“危险操作 / 注销账号”入口，真实删除由服务端 Edge Function 安全执行
 
@@ -547,7 +552,7 @@ App 启动 → 初始化 Supabase → 检查 session
 - 客户端不得放置 service role / secret key，不调用 `deleteUser`，不做共享数据批量删除
 - 注销成功后客户端清理 Supabase session / 本地登录态并回到登录页
 
-“账号与安全”不新增业务数据表，不改变 RLS，不改变四个主 Tab 的信息架构。
+“账号与安全”不改变四个主 Tab 的信息架构，不改变情侣空间业务逻辑、短信服务商、邀请码、Realtime 或日历动画。辅助邮箱第一版新增 `profiles` 可见账号安全字段、私有 OTP challenge 表和 RPC，私测前还需要把验证码交付接入服务端邮件发送能力。
 
 ### 资料设置引导页要求
 

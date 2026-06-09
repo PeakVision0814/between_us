@@ -379,9 +379,9 @@ class AppStrings {
   String get profileAccountSecuritySectionTitle =>
       _resolve(zhCn: '账号与安全', zhTw: '帳號與安全', en: 'Account & security');
   String get profileAccountSecuritySectionSubtitle => _resolve(
-    zhCn: '登录邮箱和手机号只用于当前账号，不会默认展示给 TA。',
-    zhTw: '登入電子郵件和手機號只用於目前帳號，不會預設展示給 TA。',
-    en: 'Login email and phone are for this account only and are not shown by default.',
+    zhCn: '登录邮箱、手机号和辅助邮箱只用于当前账号安全，不会默认展示给 TA。',
+    zhTw: '登入電子郵件、手機號和輔助電子郵件只用於目前帳號安全，不會預設展示給 TA。',
+    en: 'Login email, phone, and recovery email are for this account security only and are not shown by default.',
   );
   String get profileAccountSecurityBothBound => _resolve(
     zhCn: '已绑定邮箱和手机号',
@@ -1153,33 +1153,43 @@ class AppStrings {
   String get accountSecurityTitle =>
       _resolve(zhCn: '账号与安全', zhTw: '帳號與安全', en: 'Account & security');
   String get accountSecuritySettingsSubtitle => _resolve(
-    zhCn: '登录邮箱、手机号和账号凭证',
-    zhTw: '登入電子郵件、手機號和帳號憑證',
-    en: 'Login email, phone, and account credentials',
+    zhCn: '登录邮箱、手机号和辅助邮箱',
+    zhTw: '登入電子郵件、手機號和輔助電子郵件',
+    en: 'Login email, phone, and recovery email',
   );
   String get accountSecuritySubtitle => _resolve(
-    zhCn: '管理可以登录这个账号的邮箱和手机号。',
-    zhTw: '管理可以登入這個帳號的電子郵件和手機號。',
-    en: 'Manage the email and phone number that can sign in to this account.',
+    zhCn: '管理登录方式和用于账号安全的辅助邮箱。',
+    zhTw: '管理登入方式和用於帳號安全的輔助電子郵件。',
+    en: 'Manage sign-in methods and the recovery email for account security.',
   );
   String get accountSecurityEmailTitle =>
       _resolve(zhCn: '登录邮箱', zhTw: '登入電子郵件', en: 'Login email');
   String get accountSecurityPhoneTitle =>
       _resolve(zhCn: '登录手机号', zhTw: '登入手機號', en: 'Login phone');
+  String get accountSecurityRecoveryEmailTitle =>
+      _resolve(zhCn: '辅助邮箱', zhTw: '輔助電子郵件', en: 'Recovery email');
   String get accountSecurityEmailUnbound =>
       _resolve(zhCn: '未绑定邮箱', zhTw: '未綁定電子郵件', en: 'No email bound');
   String get accountSecurityPhoneUnbound =>
       _resolve(zhCn: '未绑定手机号', zhTw: '未綁定手機號', en: 'No phone bound');
+  String get accountSecurityRecoveryEmailUnbound =>
+      _resolve(zhCn: '未绑定', zhTw: '未綁定', en: 'Not bound');
   String get accountSecurityBindEmailLabel =>
       _resolve(zhCn: '绑定邮箱', zhTw: '綁定電子郵件', en: 'Bind email');
   String get accountSecurityBindPhoneLabel =>
       _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone');
+  String get accountSecurityBindRecoveryEmailLabel =>
+      _resolve(zhCn: '绑定辅助邮箱', zhTw: '綁定輔助電子郵件', en: 'Bind recovery email');
   String get accountSecurityChangeLabel =>
       _resolve(zhCn: '更换', zhTw: '更換', en: 'Change');
+  String get accountSecurityContinueVerifyLabel =>
+      _resolve(zhCn: '继续验证', zhTw: '繼續驗證', en: 'Continue');
   String get accountSecurityPrivacyHint => _resolve(
-    zhCn: '手机号只用于登录和账号安全。当前版本仅支持中国大陆手机号，输入时不需要填写 +86。',
-    zhTw: '手機號只用於登入和帳號安全。目前版本僅支援中國大陸手機號，輸入時不需要填寫 +86。',
-    en: 'Your phone number is only for sign-in and account security. This version only supports mainland China phone numbers, without +86.',
+    zhCn:
+        '登录邮箱用于登录当前账号；辅助邮箱用于账号安全和后续找回，不会默认展示给 TA。手机号只用于登录和账号安全，当前版本仅支持中国大陆手机号。',
+    zhTw:
+        '登入電子郵件用於登入目前帳號；輔助電子郵件用於帳號安全和後續找回，不會預設展示給 TA。手機號只用於登入和帳號安全，目前版本僅支援中國大陸手機號。',
+    en: 'Login email signs in to this account. Recovery email is for account security and future recovery, and is not shown to your partner by default. Phone is only for sign-in and account security.',
   );
   String get accountSecurityBindPhoneTitle =>
       _resolve(zhCn: '绑定手机号', zhTw: '綁定手機號', en: 'Bind phone number');
@@ -1189,6 +1199,10 @@ class AppStrings {
       _resolve(zhCn: '更换手机号', zhTw: '更換手機號', en: 'Change phone number');
   String get accountSecurityChangeEmailTitle =>
       _resolve(zhCn: '更换邮箱', zhTw: '更換電子郵件', en: 'Change email');
+  String get accountSecurityBindRecoveryEmailTitle =>
+      _resolve(zhCn: '绑定辅助邮箱', zhTw: '綁定輔助電子郵件', en: 'Bind recovery email');
+  String get accountSecurityChangeRecoveryEmailTitle =>
+      _resolve(zhCn: '更换辅助邮箱', zhTw: '更換輔助電子郵件', en: 'Change recovery email');
   String get accountSecurityBindPhoneHint => _resolve(
     zhCn: '请输入 11 位大陆手机号。绑定后，它会成为当前账号的登录方式。',
     zhTw: '請輸入 11 位大陸手機號。綁定後，它會成為目前帳號的登入方式。',
@@ -1209,6 +1223,16 @@ class AppStrings {
     zhTw: '請輸入新的電子郵件。驗證後，它會取代目前登入電子郵件。',
     en: 'Enter a new email. After verification, it replaces the current login email.',
   );
+  String get accountSecurityBindRecoveryEmailHint => _resolve(
+    zhCn: '请输入辅助邮箱。验证后，它会用于账号安全和后续找回，不会成为登录邮箱。',
+    zhTw: '請輸入輔助電子郵件。驗證後，它會用於帳號安全和後續找回，不會成為登入電子郵件。',
+    en: 'Enter a recovery email. After verification, it is used for account security and future recovery, not sign-in.',
+  );
+  String get accountSecurityChangeRecoveryEmailHint => _resolve(
+    zhCn: '请输入新的辅助邮箱。验证后，它会替换当前辅助邮箱，不会成为登录邮箱。',
+    zhTw: '請輸入新的輔助電子郵件。驗證後，它會取代目前輔助電子郵件，不會成為登入電子郵件。',
+    en: 'Enter a new recovery email. After verification, it replaces the current recovery email and does not become a login email.',
+  );
   String get accountSecuritySendBindingCodeLabel =>
       _resolve(zhCn: '发送绑定验证码', zhTw: '發送綁定驗證碼', en: 'Send binding code');
   String get accountSecurityVerifyBindingLabel =>
@@ -1217,6 +1241,16 @@ class AppStrings {
     zhCn: '验证码已发送至 $target',
     zhTw: '驗證碼已發送至 $target',
     en: 'A code has been sent to $target',
+  );
+  String accountSecurityRecoveryEmailPendingValue(String email) => _resolve(
+    zhCn: '$email · 待验证',
+    zhTw: '$email · 待驗證',
+    en: '$email · Pending',
+  );
+  String accountSecurityRecoveryEmailVerifiedValue(String email) => _resolve(
+    zhCn: '$email · 已验证',
+    zhTw: '$email · 已驗證',
+    en: '$email · Verified',
   );
   String get accountSecurityNotAuthenticatedMessage => _resolve(
     zhCn: '请先登录后再管理账号安全。',
@@ -1228,10 +1262,20 @@ class AppStrings {
     zhTw: '這個電子郵件或手機號已經屬於另一個帳號，不能直接綁定。',
     en: 'This email or phone number already belongs to another account.',
   );
+  String get accountSecurityRecoveryEmailConflictMessage => _resolve(
+    zhCn: '这个邮箱已经属于另一个账号，不能直接绑定。',
+    zhTw: '這個電子郵件已經屬於另一個帳號，不能直接綁定。',
+    en: 'This email already belongs to another account.',
+  );
   String get accountSecuritySameCredentialMessage => _resolve(
     zhCn: '请输入新的邮箱或手机号。',
     zhTw: '請輸入新的電子郵件或手機號。',
     en: 'Enter a new email or phone number.',
+  );
+  String get accountSecuritySameRecoveryEmailMessage => _resolve(
+    zhCn: '请输入新的辅助邮箱。',
+    zhTw: '請輸入新的輔助電子郵件。',
+    en: 'Enter a new recovery email.',
   );
   String get accountSecurityPhoneBindingSendFailedMessage => _resolve(
     zhCn: '手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。',
@@ -1243,10 +1287,30 @@ class AppStrings {
     zhTw: '電子郵件綁定驗證碼發送失敗，請稍後重試。',
     en: 'Failed to send the email binding code. Please try again later.',
   );
+  String get accountSecurityRecoveryEmailSendFailedMessage => _resolve(
+    zhCn: '辅助邮箱验证码发送失败，请稍后重试。',
+    zhTw: '輔助電子郵件驗證碼發送失敗，請稍後重試。',
+    en: 'Failed to send the recovery email code. Please try again later.',
+  );
+  String get accountSecurityMissingPendingRecoveryEmailMessage => _resolve(
+    zhCn: '请先输入辅助邮箱并发送验证码。',
+    zhTw: '請先輸入輔助電子郵件並發送驗證碼。',
+    en: 'Enter a recovery email and request a code first.',
+  );
+  String get accountSecurityRecoveryEmailTokenExpiredMessage => _resolve(
+    zhCn: '验证码已过期，请重新发送。',
+    zhTw: '驗證碼已過期，請重新發送。',
+    en: 'The code has expired. Please send it again.',
+  );
   String get accountSecurityBindingVerifyFailedMessage => _resolve(
     zhCn: '绑定验证码校验失败，请确认后重试。',
     zhTw: '綁定驗證碼校驗失敗，請確認後重試。',
     en: 'Binding verification failed. Check the code and try again.',
+  );
+  String get accountSecurityRecoveryEmailVerifyFailedMessage => _resolve(
+    zhCn: '辅助邮箱验证码校验失败，请确认后重试。',
+    zhTw: '輔助電子郵件驗證碼校驗失敗，請確認後重試。',
+    en: 'Recovery email verification failed. Check the code and try again.',
   );
   String get accountSecurityDangerSectionTitle =>
       _resolve(zhCn: '危险操作', zhTw: '危險操作', en: 'Dangerous actions');

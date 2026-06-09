@@ -18,6 +18,13 @@ path for Between Us.
   - Bind / change email: `updateUser(UserAttributes(email: ...))`
   - Verify email change when the project uses in-app OTP confirmation:
     `verifyOTP(email: ..., token: ..., type: OtpType.emailChange)`
+- Recovery email is intentionally separate from Supabase Auth login email:
+  - Request: `rpc('request_recovery_email_change', p_email)`
+  - Verify: `rpc('verify_recovery_email_change', p_token)`
+  - Storage: visible state in `profiles.recovery_email*`, OTP challenge state
+    in `private.account_recovery_email_challenges`
+  - It does not call `updateUser(UserAttributes(email: ...))` and does not
+    write `auth.users.email`.
 - Phone numbers are lightly validated as E.164 strings, for example `+8613812345678`.
 - Local Supabase CLI config now pins the `magic_link` email template to `supabase/templates/magic_link.html`, and that template renders `{{ .Token }}` as the primary content.
 - The checked-in Flutter defaults still point to the local emulator:
@@ -138,6 +145,40 @@ similar domestic provider configured outside the Flutter client.
 - Login credentials are account security information. They are not shared with
   the partner profile and should not be exposed through couple-space profile
   reads.
+- Recovery email is account security information, not a login credential in
+  this version. It is verified before becoming effective and is not shared with
+  the partner profile by default.
+
+## Recovery email delivery boundary
+
+Recovery email first version is implemented as a server-side request / verify
+RPC flow, but real email delivery is not complete yet.
+
+Current behavior:
+
+- PostgreSQL generates a short-lived 6-digit token.
+- `private.account_recovery_email_challenges.otp_hash` stores only a SHA-256
+  hash.
+- `private.account_recovery_email_challenges.expires_at` expires the token
+  after 15 minutes.
+- The private challenge table is revoked from `anon` and `authenticated`;
+  Flutter cannot read token hashes through the Supabase Data API.
+- `get_my_profile()` returns recovery email state and pending email. It does
+  not return token hash, plaintext token, or challenge expiration.
+- The RPC does not write plaintext tokens to database logs. Local QA must use a
+  controlled server-side test path or service-role/local DB inspection until
+  real mail delivery is connected.
+
+Before private Beta:
+
+- Add a Supabase Edge Function or another trusted server-side mail sender to
+  deliver the token to `recovery_email_pending`.
+- Keep SMTP / Resend / SendGrid / other mail-provider secrets server-side.
+- Do not put mail-provider credentials or real token generation in Flutter.
+- Do not reintroduce permanent plaintext token logging for private Beta or
+  production.
+- Future account recovery should start from verified `profiles.recovery_email`;
+  this field still must not become the Auth login email implicitly.
 
 ## Account deletion boundary
 
@@ -166,6 +207,9 @@ Confirmed from code/config:
   OTP methods.
 - The app has a reserved account security path for binding email and phone to
   the current Supabase Auth user through native update-user flows.
+- The app has a recovery email request / verify path backed by `profiles`
+  visible state, a private OTP challenge table, and RPCs. Recovery email is not
+  a login method in this version.
 - The app has a deletion entry and confirmation rules, but does not perform
   real Supabase Auth user deletion.
 - The local Supabase template now renders a 6-digit token as the primary email content.
@@ -180,6 +224,8 @@ Not confirmed from this repo alone:
 - Which SMS Provider or Send SMS Hook will deliver real phone codes
 - Whether hosted email-change confirmation is configured for OTP input inside
   the app, or for email-link confirmation in the mailbox
+- Whether recovery email delivery has been connected to a trusted server-side
+  mail sender before private Beta
 
 ## Verification steps for the product manager session
 
@@ -198,3 +244,6 @@ Use the target hosted Supabase project and verify these facts directly:
    it remains the same `auth.users.id`.
 9. Try binding an email or phone already owned by another account and confirm
    the app blocks the operation without merging accounts.
+10. Request a recovery email change through a trusted local/server-side test
+    path, verify it in the app, and confirm the email becomes verified without
+    changing the Supabase Auth login email.
