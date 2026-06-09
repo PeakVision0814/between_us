@@ -33,6 +33,8 @@ class AppController extends ChangeNotifier {
   String? _pendingPhone;
   String? _authErrorCode;
   bool _authBusy = false;
+  String? _accountDeletionErrorCode;
+  bool _accountDeletionBusy = false;
   String? _pendingBindingEmail;
   String? _pendingBindingPhone;
   String? _bindingErrorCode;
@@ -52,6 +54,7 @@ class AppController extends ChangeNotifier {
   StreamSubscription<AuthState>? _authStateSubscription;
   Future<void> _sessionSyncQueue = Future<void>.value();
   Future<void> Function()? _debugSignOutAction;
+  Future<String?> Function()? _debugDeleteAccountAction;
   RealtimeChannel? _realtimeChannel;
 
   AppLanguage get language => _language;
@@ -64,6 +67,8 @@ class AppController extends ChangeNotifier {
   String? get pendingPhone => _pendingPhone;
   String? get authErrorCode => _authErrorCode;
   bool get authBusy => _authBusy;
+  bool get accountDeletionBusy => _accountDeletionBusy;
+  String? get accountDeletionErrorCode => _accountDeletionErrorCode;
   String? get pendingBindingEmail => _pendingBindingEmail;
   String? get pendingBindingPhone => _pendingBindingPhone;
   String? get bindingErrorCode => _bindingErrorCode;
@@ -129,6 +134,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     _authBusy = false;
+    _accountDeletionBusy = false;
+    _accountDeletionErrorCode = null;
     _authErrorCode = null;
     _pendingEmail = null;
     _pendingPhone = null;
@@ -618,6 +625,51 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteAccount() async {
+    if (!_supabaseReady) {
+      _setAccountDeletionError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setAccountDeletionError('not_authenticated');
+      return false;
+    }
+    if (_accountDeletionBusy) {
+      return false;
+    }
+
+    _setAccountDeletionBusy(true);
+    _accountDeletionErrorCode = null;
+    notifyListeners();
+
+    try {
+      final errorCode = _debugDeleteAccountAction != null
+          ? await _debugDeleteAccountAction!()
+          : await _invokeDeleteAccountFunction();
+
+      if (errorCode != null) {
+        _accountDeletionErrorCode = errorCode;
+        notifyListeners();
+        return false;
+      }
+
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (error) {
+        debugPrint('[Auth] Sign out after account deletion failed: $error');
+      }
+      await _syncSession(null);
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Delete account failed: $error');
+      _accountDeletionErrorCode = 'delete_account_failed';
+      notifyListeners();
+      return false;
+    } finally {
+      _setAccountDeletionBusy(false);
+    }
+  }
+
   void returnToEmailEntry() {
     _pendingEmail = null;
     _pendingPhone = null;
@@ -628,6 +680,12 @@ class AppController extends ChangeNotifier {
     } else {
       notifyListeners();
     }
+  }
+
+  void clearAccountDeletionError() {
+    if (_accountDeletionErrorCode == null) return;
+    _accountDeletionErrorCode = null;
+    notifyListeners();
   }
 
   void returnToPhoneEntry() {
@@ -1212,6 +1270,17 @@ class AppController extends ChangeNotifier {
     _debugSignOutAction = action;
   }
 
+  @visibleForTesting
+  void debugSetDeleteAccountAction(Future<String?> Function()? action) {
+    _debugDeleteAccountAction = action;
+  }
+
+  @visibleForTesting
+  void debugSetAccountDeletionErrorForTest(String? errorCode) {
+    _accountDeletionErrorCode = errorCode;
+    notifyListeners();
+  }
+
   /// 清理已登录态数据，将 authStatus 设为 unauthenticated。
   /// 供 userId == null 和 JWT expired 两条路径共用。
   void _clearAuthenticatedState() {
@@ -1220,6 +1289,8 @@ class AppController extends ChangeNotifier {
     _pendingEmail = null;
     _pendingPhone = null;
     _authErrorCode = null;
+    _accountDeletionErrorCode = null;
+    _accountDeletionBusy = false;
     _pendingBindingEmail = null;
     _pendingBindingPhone = null;
     _bindingErrorCode = null;
@@ -1277,6 +1348,34 @@ class AppController extends ChangeNotifier {
   void _setBindingError(String errorCode) {
     _bindingErrorCode = errorCode;
     notifyListeners();
+  }
+
+  void _setAccountDeletionBusy(bool busy) {
+    if (_accountDeletionBusy == busy) {
+      return;
+    }
+    _accountDeletionBusy = busy;
+    notifyListeners();
+  }
+
+  void _setAccountDeletionError(String errorCode) {
+    _accountDeletionErrorCode = errorCode;
+    notifyListeners();
+  }
+
+  Future<String?> _invokeDeleteAccountFunction() async {
+    try {
+      await Supabase.instance.client.functions.invoke('delete-account');
+      return null;
+    } on FunctionException catch (error) {
+      final details = error.details;
+      if (details is Map && details['code'] is String) {
+        return details['code'] as String;
+      }
+      return error.status == 409
+          ? 'active_couple_space_required_exit'
+          : 'delete_account_failed';
+    }
   }
 
   void _setProfileError(String errorCode) {

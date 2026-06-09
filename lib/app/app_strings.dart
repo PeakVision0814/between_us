@@ -1258,9 +1258,9 @@ class AppStrings {
   String get accountSecurityDeleteAccountTitle =>
       _resolve(zhCn: '注销账号', zhTw: '註銷帳號', en: 'Delete account');
   String get accountSecurityDeleteAccountSubtitle => _resolve(
-    zhCn: '当前阶段只提供规则确认，不会真正删除账号。',
-    zhTw: '目前階段只提供規則確認，不會真正刪除帳號。',
-    en: 'For now, this only checks the rules and does not delete the account.',
+    zhCn: '单人态可注销账号，历史共享数据不会批量删除。',
+    zhTw: '單人狀態可註銷帳號，歷史共享資料不會批量刪除。',
+    en: 'Available in solo mode. Historical shared data is not batch-deleted.',
   );
   String get accountSecurityDeleteBlockedTitle => _resolve(
     zhCn: '暂时不能注销账号',
@@ -1289,21 +1289,18 @@ class AppStrings {
   String get accountSecurityDeleteSecondConfirmTitle =>
       _resolve(zhCn: '再次确认注销', zhTw: '再次確認註銷', en: 'Confirm deletion again');
   String get accountSecurityDeleteSecondConfirmBody => _resolve(
-    zhCn: '真正注销需要服务端安全能力处理。当前客户端不会删除 Auth 用户，也不会批量删除共享数据。',
-    zhTw: '真正註銷需要服務端安全能力處理。目前客戶端不會刪除 Auth 使用者，也不會批量刪除共享資料。',
-    en: 'Real deletion requires server-side security handling. This client will not delete the Auth user or batch-delete shared data.',
+    zhCn: '确认后将由服务端安全注销当前账号，并清理本地会话。客户端不会批量删除共享数据。',
+    zhTw: '確認後將由服務端安全註銷目前帳號，並清理本地工作階段。客戶端不會批量刪除共享資料。',
+    en: 'After confirmation, the server will delete this account and clear the local session. The client will not batch-delete shared data.',
   );
   String get accountSecurityDeleteSecondConfirmLabel =>
       _resolve(zhCn: '确认注销', zhTw: '確認註銷', en: 'Confirm deletion');
-  String get accountSecurityDeleteUnavailableTitle => _resolve(
-    zhCn: '还不能完成注销',
-    zhTw: '還不能完成註銷',
-    en: 'Deletion is not available yet',
-  );
-  String get accountSecurityDeleteUnavailableBody => _resolve(
-    zhCn: '注销账号功能将在服务端注销能力接入后完成。当前账号不会被删除。',
-    zhTw: '註銷帳號功能將在服務端註銷能力接入後完成。目前帳號不會被刪除。',
-    en: 'Account deletion will be completed after the server-side deletion capability is added. This account was not deleted.',
+  String get accountSecurityDeleteFailedTitle =>
+      _resolve(zhCn: '注销失败', zhTw: '註銷失敗', en: 'Deletion failed');
+  String get accountSecurityDeleteFailedBody => _resolve(
+    zhCn: '账号没有被删除。请稍后重试，或先确认你已经解除当前双人空间。',
+    zhTw: '帳號沒有被刪除。請稍後重試，或先確認你已解除目前雙人空間。',
+    en: 'The account was not deleted. Try again later, or make sure you have left the current couple space.',
   );
   String get accountSecurityDeleteDialogOkLabel =>
       _resolve(zhCn: '知道了', zhTw: '知道了', en: 'OK');

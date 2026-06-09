@@ -122,6 +122,10 @@ file_size_limit = "50MiB"
 [storage.s3_protocol]
 enabled = true
 
+[functions.delete-account]
+enabled = true
+verify_jwt = true
+
 # Image transformation API is available to Supabase Pro plan.
 # [storage.image_transformation]
 # enabled = true

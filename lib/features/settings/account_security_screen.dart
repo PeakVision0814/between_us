@@ -98,6 +98,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     AppController controller,
     AppStrings strings,
   ) async {
+    controller.clearAccountDeletionError();
     if (controller.hasActiveCoupleSpace) {
       await _showCoupleSpaceBlockDialog(controller, strings);
       return;
@@ -120,14 +121,31 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     );
     if (secondConfirmed != true || !mounted) return;
 
-    await showDialog<void>(
+    final success = await controller.deleteAccount();
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    if (controller.accountDeletionErrorCode ==
+        'active_couple_space_required_exit') {
+      await _showCoupleSpaceBlockDialog(controller, strings);
+      return;
+    }
+
+    await _showDeleteFailureDialog(strings);
+  }
+
+  Future<void> _showDeleteFailureDialog(AppStrings strings) {
+    return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(strings.accountSecurityDeleteUnavailableTitle),
-        content: Text(strings.accountSecurityDeleteUnavailableBody),
+        title: Text(strings.accountSecurityDeleteFailedTitle),
+        content: Text(strings.accountSecurityDeleteFailedBody),
         actions: [
           FilledButton(
-            key: const ValueKey('account-delete-unavailable-ok-button'),
+            key: const ValueKey('account-delete-failed-ok-button'),
             onPressed: () => Navigator.pop(context),
             child: Text(strings.accountSecurityDeleteDialogOkLabel),
           ),
@@ -196,8 +214,16 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                     foregroundColor: Theme.of(context).colorScheme.onError,
                   )
                 : null,
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(confirmLabel),
+            onPressed: AppScope.of(context).accountDeletionBusy
+                ? null
+                : () => Navigator.pop(context, true),
+            child: AppScope.of(context).accountDeletionBusy && destructive
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(confirmLabel),
           ),
         ],
       ),

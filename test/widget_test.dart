@@ -681,6 +681,34 @@ void main() {
     }
   });
 
+  test('Flutter client does not call Auth Admin delete user', () async {
+    final controllerSource = await File(
+      'lib/app/app_controller.dart',
+    ).readAsString();
+    final pubspec = await File('pubspec.yaml').readAsString();
+    final clientText =
+        '${controllerSource.toLowerCase()}\n${pubspec.toLowerCase()}';
+
+    expect(clientText, isNot(contains('auth.admin.deleteuser')));
+    expect(clientText, isNot(contains('service_role')));
+    expect(clientText, isNot(contains('service-role')));
+  });
+
+  test(
+    'delete-account Edge Function rejects caller-supplied user id',
+    () async {
+      final functionSource = await File(
+        'supabase/functions/delete-account/index.ts',
+      ).readAsString();
+
+      expect(functionSource, contains('user_id_not_allowed'));
+      expect(functionSource, contains('getUser'));
+      expect(functionSource, contains('admin.deleteUser'));
+      expect(functionSource, contains('user.id,\n      true'));
+      expect(functionSource, contains('prepare_account_deletion'));
+    },
+  );
+
   testWidgets('current email change target is rejected before sending', (
     tester,
   ) async {
@@ -877,11 +905,12 @@ void main() {
     expect(find.text('空间状态'), findsOneWidget);
   });
 
-  testWidgets('single account deletion confirms twice without deleting', (
+  testWidgets('single account deletion confirms twice and returns to sign-in', (
     tester,
   ) async {
     final controller = _FakeAccountSecurityController(
       emailValue: 'me@example.com',
+      deleteAccountResult: _FakeDeleteAccountResult.success,
     );
     controller.debugSetAuthState(
       status: AppAuthStatus.authenticated,
@@ -907,15 +936,92 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('再次确认注销'), findsOneWidget);
-    expect(find.textContaining('当前客户端不会删除 Auth 用户'), findsOneWidget);
+    expect(find.textContaining('服务端安全注销当前账号'), findsOneWidget);
 
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-second-confirm-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(controller.deleteAccountCalls, 1);
+    expect(controller.isAuthenticated, isFalse);
+    expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+  });
+
+  testWidgets('server active couple space block shows matching prompt', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      deleteAccountResult: _FakeDeleteAccountResult.activeCoupleSpace,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    await tester.pumpWidget(
+      _accountSecurityHarness(
+        controller: controller,
+        spaceStatusRouteBuilder: (_, _) => const _FakeSpaceStatusScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('account-security-entry')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-first-confirm-button')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('account-delete-second-confirm-button')),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('还不能完成注销'), findsOneWidget);
-    expect(find.textContaining('当前账号不会被删除'), findsOneWidget);
+    expect(controller.deleteAccountCalls, 1);
+    expect(find.text('暂时不能注销账号'), findsOneWidget);
+    expect(find.textContaining('请先解除当前双人空间'), findsOneWidget);
+    expect(controller.isAuthenticated, isTrue);
+  });
+
+  testWidgets('account deletion failure keeps account state', (tester) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      deleteAccountResult: _FakeDeleteAccountResult.failure,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+      memberCount: 1,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+
+    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-first-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('account-delete-second-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.deleteAccountCalls, 1);
+    expect(find.text('注销失败'), findsOneWidget);
+    expect(find.textContaining('账号没有被删除'), findsOneWidget);
     expect(controller.isAuthenticated, isTrue);
   });
 
@@ -3294,6 +3400,8 @@ class _CurrentPhoneController extends AppController {
   String? get phone => phoneValue;
 }
 
+enum _FakeDeleteAccountResult { success, activeCoupleSpace, failure }
+
 class _FakeAccountSecurityController extends AppController {
   _FakeAccountSecurityController({
     this.emailValue,
@@ -3301,6 +3409,7 @@ class _FakeAccountSecurityController extends AppController {
     this.conflictOnPhoneRequest = false,
     this.conflictOnEmailRequest = false,
     this.failPhoneRequest = false,
+    this.deleteAccountResult = _FakeDeleteAccountResult.success,
   });
 
   String? emailValue;
@@ -3308,6 +3417,8 @@ class _FakeAccountSecurityController extends AppController {
   bool conflictOnPhoneRequest;
   bool conflictOnEmailRequest;
   bool failPhoneRequest;
+  _FakeDeleteAccountResult deleteAccountResult;
+  int deleteAccountCalls = 0;
   final List<String> requestedPhones = [];
   final List<String> requestedEmails = [];
   final List<String> verifiedPhoneTokens = [];
@@ -3318,6 +3429,42 @@ class _FakeAccountSecurityController extends AppController {
 
   @override
   String? get phone => phoneValue;
+
+  @override
+  Future<bool> deleteAccount() async {
+    deleteAccountCalls += 1;
+    switch (deleteAccountResult) {
+      case _FakeDeleteAccountResult.success:
+        debugSetAuthState(status: AppAuthStatus.unauthenticated);
+        return true;
+      case _FakeDeleteAccountResult.activeCoupleSpace:
+        debugSetAuthState(
+          status: authStatus,
+          supabaseReady: supabaseReady,
+          displayName: displayName,
+          gender: gender,
+          currentSpaceId: currentSpaceId,
+          memberCount: memberCount,
+          partnerDisplayName: partnerDisplayName,
+        );
+        debugSetAccountDeletionErrorForTest(
+          'active_couple_space_required_exit',
+        );
+        return false;
+      case _FakeDeleteAccountResult.failure:
+        debugSetAuthState(
+          status: authStatus,
+          supabaseReady: supabaseReady,
+          displayName: displayName,
+          gender: gender,
+          currentSpaceId: currentSpaceId,
+          memberCount: memberCount,
+          partnerDisplayName: partnerDisplayName,
+        );
+        debugSetAccountDeletionErrorForTest('delete_account_failed');
+        return false;
+    }
+  }
 
   @override
   Future<bool> requestPhoneBindingOtp(String phone) async {
