@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:between_us/app/app_controller.dart';
 import 'package:between_us/app/between_us_app.dart';
@@ -13,6 +14,8 @@ import 'package:between_us/features/timeline/timeline_screen.dart'
     show resolveNoteAuthorName;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+const _phoneOtpEnvironmentMessage = '手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。';
 
 void main() {
   testWidgets(
@@ -152,6 +155,32 @@ void main() {
     expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
+  testWidgets('phone sign-in send failure shows environment hint', (
+    tester,
+  ) async {
+    final controller = _FailingPhoneOtpController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-phone-field')),
+      '13812345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(controller.signInPhones, ['+8613812345678']);
+    expect(controller.signUpPhones, isEmpty);
+    expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
+  });
+
   testWidgets('successful phone sign-in code send shows otp step', (
     tester,
   ) async {
@@ -227,6 +256,56 @@ void main() {
     expect(controller.signInPhones, isEmpty);
     expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
+  });
+
+  testWidgets('phone registration send failure shows environment hint', (
+    tester,
+  ) async {
+    final controller = _FailingPhoneOtpController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-phone-field')),
+      '13912345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-send-phone-code-button')));
+    await tester.pumpAndSettle();
+
+    expect(controller.signInPhones, isEmpty);
+    expect(controller.signUpPhones, ['+8613912345678']);
+    expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
+  });
+
+  testWidgets('email OTP flow is not changed by phone SMS boundary copy', (
+    tester,
+  ) async {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.otpSent,
+      supabaseReady: true,
+      pendingEmail: 'new@example.com',
+    );
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: const MaterialApp(home: EmailRegisterScreen()),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
+    expect(find.text('验证码已发送至 new@example.com'), findsOneWidget);
+    expect(find.text(_phoneOtpEnvironmentMessage), findsNothing);
   });
 
   testWidgets('register verification success returns to app root', (
@@ -412,6 +491,37 @@ void main() {
     expect(controller.requestedPhones, isEmpty);
   });
 
+  testWidgets('phone binding send failure shows environment hint', (
+    tester,
+  ) async {
+    final controller = _FakeAccountSecurityController(
+      emailValue: 'me@example.com',
+      failPhoneRequest: true,
+    );
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: 'Xiaoman',
+      gender: AppController.genderFemale,
+    );
+
+    await tester.pumpWidget(BetweenUsApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _openAccountSecurityFromProfile(tester);
+    await tester.tap(find.text('绑定手机号'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('bind-phone-field')),
+      '13812345678',
+    );
+    await tester.tap(find.byKey(const ValueKey('bind-phone-send-button')));
+    await tester.pumpAndSettle();
+
+    expect(controller.requestedPhones, ['+8613812345678']);
+    expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
+    expect(find.byKey(const ValueKey('bind-phone-otp-field')), findsNothing);
+  });
+
   testWidgets('invalid phone change otp length shows an error', (tester) async {
     final controller = _FakeAccountSecurityController(
       emailValue: 'me@example.com',
@@ -542,6 +652,34 @@ void main() {
       expect(controller.bindingErrorCode, 'same_credential');
     },
   );
+
+  test('mainland China phone auth normalization keeps +86 conversion', () {
+    expect(
+      AppController.normalizeMainlandChinaPhoneForAuth('13812345678'),
+      '+8613812345678',
+    );
+    expect(
+      AppController.normalizeMainlandChinaPhoneForAuth('23812345678'),
+      isNull,
+    );
+  });
+
+  test('real SMS provider SDKs are not dependencies', () async {
+    final pubspec = await File('pubspec.yaml').readAsString();
+    final dependencyText = pubspec.toLowerCase();
+    final forbiddenProviders = [
+      'aliyun',
+      'alibaba_cloud',
+      'tencent',
+      'qcloud',
+      'twilio',
+      'sms_provider',
+    ];
+
+    for (final provider in forbiddenProviders) {
+      expect(dependencyText, isNot(contains(provider)));
+    }
+  });
 
   testWidgets('current email change target is rejected before sending', (
     tester,
@@ -3119,6 +3257,34 @@ class _SuccessfulPhoneSignInController extends AppController {
 class _SuccessfulPhoneRegisterController
     extends _SuccessfulPhoneSignInController {}
 
+class _FailingPhoneOtpController extends _SuccessfulPhoneSignInController {
+  @override
+  Future<bool> sendPhoneOtpForSignIn(String phone) async {
+    final normalizedPhone =
+        AppController.normalizeMainlandChinaPhoneForAuth(phone) ?? phone.trim();
+    signInPhones.add(normalizedPhone);
+    debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+      authErrorCode: 'phone_otp_send_failed',
+    );
+    return false;
+  }
+
+  @override
+  Future<bool> sendPhoneOtpForSignUp(String phone) async {
+    final normalizedPhone =
+        AppController.normalizeMainlandChinaPhoneForAuth(phone) ?? phone.trim();
+    signUpPhones.add(normalizedPhone);
+    debugSetAuthState(
+      status: AppAuthStatus.unauthenticated,
+      supabaseReady: true,
+      authErrorCode: 'phone_signup_send_failed',
+    );
+    return false;
+  }
+}
+
 class _CurrentPhoneController extends AppController {
   _CurrentPhoneController(this.phoneValue);
 
@@ -3134,12 +3300,14 @@ class _FakeAccountSecurityController extends AppController {
     this.phoneValue,
     this.conflictOnPhoneRequest = false,
     this.conflictOnEmailRequest = false,
+    this.failPhoneRequest = false,
   });
 
   String? emailValue;
   String? phoneValue;
   bool conflictOnPhoneRequest;
   bool conflictOnEmailRequest;
+  bool failPhoneRequest;
   final List<String> requestedPhones = [];
   final List<String> requestedEmails = [];
   final List<String> verifiedPhoneTokens = [];
@@ -3188,6 +3356,16 @@ class _FakeAccountSecurityController extends AppController {
         displayName: displayName,
         gender: gender,
         bindingErrorCode: 'binding_target_in_use',
+      );
+      return false;
+    }
+    if (failPhoneRequest) {
+      debugSetAuthState(
+        status: authStatus,
+        supabaseReady: supabaseReady,
+        displayName: displayName,
+        gender: gender,
+        bindingErrorCode: 'binding_phone_send_failed',
       );
       return false;
     }

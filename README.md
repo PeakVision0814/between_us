@@ -38,7 +38,9 @@ The repository currently contains an Android-first Flutter app with:
 - Material 3 app shell
 - Implemented primary navigation: `Home`, `Calendar`, `Plans & Notes`, and
   `We`
-- Email OTP login with separated login and registration flows
+- Email OTP login with separated login and registration flows; Phone OTP login
+  and registration entries keep the Supabase Auth call chain reserved, but real
+  SMS delivery is not configured in development
 - Post-registration profile setup for display name, gender, and optional
   birthday
 - Shared Alpha on Supabase: calendar events, plans, notes, and invitations are
@@ -73,7 +75,10 @@ The current MVP centers on the logged-in shared life-space loop:
 
 Authentication, invitations, shared sync, Row Level Security, the profile loop,
 solo-mode capability boundaries, first-pass multi-language infrastructure, and
-the couple-space exit MVP are now part of the foundation. Before moving into
+the couple-space exit MVP are now part of the foundation. Phone OTP can
+currently verify UI, state flow, mainland China phone validation, `+86`
+normalization, and the Supabase Auth API boundary only; real SMS delivery needs
+a Supabase SMS Provider or Send SMS Hook before private Beta. Before moving into
 sensitive data or private beta work, use two real accounts to manually verify
 invite pairing, space exit, and language preference recovery.
 

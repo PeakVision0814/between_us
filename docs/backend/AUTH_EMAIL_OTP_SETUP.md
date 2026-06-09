@@ -71,17 +71,59 @@ Notes:
 
 ## Phone OTP delivery boundary
 
-This development stage only implements the Flutter product entry, pending state,
-Supabase Auth API calls, and widget tests for Phone OTP. It does not add an SMS
-provider SDK, does not commit provider credentials, does not implement a custom
-verification-code backend, and does not generate verification codes in the
-Flutter client.
+The current development stage does not connect a real SMS Provider. Real SMS
+testing creates provider cost and operational work, so phone delivery is
+intentionally deferred until before private Beta.
+
+This repo keeps the Supabase Phone OTP call chain reserved:
+
+- Sign-in still calls `signInWithOtp(phone: ..., shouldCreateUser: false)`.
+- Sign-up still calls `signInWithOtp(phone: ..., shouldCreateUser: true)`.
+- Phone-code verification still uses `verifyOTP(phone: ..., type: OtpType.sms)`.
+- Bind / change phone still uses `updateUser(UserAttributes(phone: ...))` and
+  `verifyOTP(phone: ..., type: OtpType.phoneChange)`.
+
+During development and QA, Phone OTP can verify:
+
+- 11-digit mainland China phone input validation.
+- Conversion from `13812345678` to `+8613812345678` before Supabase calls.
+- Sign-in, registration, bind, and change-phone UI/state flows.
+- The boundary where Flutter asks Supabase Auth to send or verify a phone OTP.
+- User-facing error copy when sending fails.
+
+During development and QA, Phone OTP cannot verify:
+
+- Real SMS delivery to a handset.
+- Domestic SMS signature and template approval.
+- SMS cost.
+- Provider rate limiting and failure callbacks.
+- Private Beta success rate for real phone-code receipt.
+
+Before private Beta, the team must add and validate:
+
+- Supabase Phone Auth delivery through either an SMS Provider or Send SMS Hook.
+- A domestic SMS provider choice for mainland China testing.
+- Approved SMS signature and message templates.
+- Real-phone E2E acceptance for sign-in, registration, bind, and change-phone.
+- Cost, quota, rate-limit, retry, and failure-handling policy.
+
+The Flutter client must not hold Aliyun SMS, Tencent Cloud SMS, Twilio, or other
+SMS provider secrets. It must not add provider SDKs for direct client-side SMS
+delivery. It must not build a custom client verification-code system or bypass
+Supabase Auth with locally generated codes.
+
+When phone sending fails in this stage, the product copy should avoid promising
+that a code was delivered. The Chinese fallback is:
+`手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。`
+
+The English fallback is:
+`Phone code could not be sent. SMS delivery may not be configured for this environment. Try again later or use email.`
 
 Real SMS delivery depends on configuring Supabase Phone Auth for the target
 hosted project before private Beta. Use either Supabase's supported SMS Provider
 configuration or a Send SMS Hook. For domestic private testing in China, the
 recommended follow-up is Send SMS Hook plus Aliyun SMS, Tencent Cloud SMS, or a
-similar domestic provider.
+similar domestic provider configured outside the Flutter client.
 
 ## Registration, sign-in, and binding boundaries
 

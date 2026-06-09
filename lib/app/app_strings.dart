@@ -242,14 +242,14 @@ class AppStrings {
     ko: '계정 생성에 실패했습니다. 나중에 다시 시도하세요.',
   );
   String get authPhoneOtpSendFailedMessage => _resolve(
-    zhCn: '手机号验证码发送失败，请稍后重试。',
-    zhTw: '手機號驗證碼發送失敗，請稍後重試。',
-    en: 'Failed to send the phone verification code. Please try again later.',
+    zhCn: '手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。',
+    zhTw: '手機號驗證碼暫時無法發送。當前環境可能尚未設定簡訊服務，請稍後重試或改用電子郵件。',
+    en: 'Phone code could not be sent. SMS delivery may not be configured for this environment. Try again later or use email.',
   );
   String get authPhoneSignUpSendFailedMessage => _resolve(
-    zhCn: '手机号创建账号失败，请稍后重试。',
-    zhTw: '手機號建立帳號失敗，請稍後重試。',
-    en: 'Failed to create the phone account. Please try again later.',
+    zhCn: '手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。',
+    zhTw: '手機號驗證碼暫時無法發送。當前環境可能尚未設定簡訊服務，請稍後重試或改用電子郵件。',
+    en: 'Phone code could not be sent. SMS delivery may not be configured for this environment. Try again later or use email.',
   );
   String get authUserNotRegisteredMessage => _resolve(
     zhCn: '该邮箱尚未注册，请先创建账号。',
@@ -1234,9 +1234,9 @@ class AppStrings {
     en: 'Enter a new email or phone number.',
   );
   String get accountSecurityPhoneBindingSendFailedMessage => _resolve(
-    zhCn: '手机号绑定验证码发送失败，请稍后重试。',
-    zhTw: '手機號綁定驗證碼發送失敗，請稍後重試。',
-    en: 'Failed to send the phone binding code. Please try again later.',
+    zhCn: '手机号验证码暂时无法发送。当前环境可能尚未配置短信服务，请稍后重试或改用邮箱。',
+    zhTw: '手機號驗證碼暫時無法發送。當前環境可能尚未設定簡訊服務，請稍後重試或改用電子郵件。',
+    en: 'Phone code could not be sent. SMS delivery may not be configured for this environment. Try again later or use email.',
   );
   String get accountSecurityEmailBindingSendFailedMessage => _resolve(
     zhCn: '邮箱绑定验证码发送失败，请稍后重试。',
