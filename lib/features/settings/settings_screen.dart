@@ -1901,14 +1901,12 @@ class _SpaceModule extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 12,
                     children: [
-                      for (var index = 0; index < entries.length; index++) ...[
-                        _SpaceModuleEntry(data: entries[index], isDark: isDark),
-                        if (index != entries.length - 1)
-                          const SizedBox(width: 10),
-                      ],
+                      for (final entry in entries)
+                        _SpaceModuleEntry(data: entry, isDark: isDark),
                     ],
                   ),
                 ),
@@ -1957,64 +1955,71 @@ class _SpaceModuleEntry extends StatelessWidget {
           key: ValueKey('us-space-entry-${data.label}'),
           onTap: data.onTap,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Opacity(
-              opacity: enabled ? 1.0 : disabledOpacity,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: isDark
-                            ? [
-                                iconColor.withValues(alpha: 0.24),
-                                AppTheme.heroGlowPurple.withValues(alpha: 0.16),
-                                Colors.white.withValues(alpha: 0.04),
-                              ]
-                            : [
-                                Colors.white.withValues(alpha: 0.9),
-                                iconColor.withValues(alpha: 0.14),
-                                AppTheme.heroPeachLight.withValues(alpha: 0.3),
-                              ],
-                      ),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                      border: Border.all(
-                        color: isDark
-                            ? iconColor.withValues(alpha: 0.24)
-                            : Colors.white.withValues(alpha: 0.82),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: iconColor.withValues(
-                            alpha: isDark ? 0.18 : 0.1,
-                          ),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
-                          spreadRadius: -12,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 72, maxWidth: 120),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Opacity(
+                opacity: enabled ? 1.0 : disabledOpacity,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? [
+                                  iconColor.withValues(alpha: 0.24),
+                                  AppTheme.heroGlowPurple.withValues(
+                                    alpha: 0.16,
+                                  ),
+                                  Colors.white.withValues(alpha: 0.04),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.9),
+                                  iconColor.withValues(alpha: 0.14),
+                                  AppTheme.heroPeachLight.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ],
                         ),
-                      ],
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(
+                          color: isDark
+                              ? iconColor.withValues(alpha: 0.24)
+                              : Colors.white.withValues(alpha: 0.82),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: iconColor.withValues(
+                              alpha: isDark ? 0.18 : 0.1,
+                            ),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                            spreadRadius: -12,
+                          ),
+                        ],
+                      ),
+                      child: Icon(data.icon, color: iconColor, size: 26),
                     ),
-                    child: Icon(data.icon, color: iconColor, size: 26),
-                  ),
-                  const SizedBox(height: 9),
-                  Text(
-                    data.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: isDark
-                          ? AppTheme.warmWhite90
-                          : colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 9),
+                    Text(
+                      data.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: isDark
+                            ? AppTheme.warmWhite90
+                            : colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -1144,6 +1144,8 @@ class _MonthView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final dayCellHeight = 46.0 + ((textScale - 1) * 48).clamp(0, 34).toDouble();
 
     return Column(
       children: [
@@ -1213,6 +1215,7 @@ class _MonthView extends StatelessWidget {
                   displayMonth: displayMonth,
                   selectedDate: selectedDate,
                   isDark: isDark,
+                  cellHeight: dayCellHeight,
                 ),
                 Row(
                   children: [
@@ -1225,6 +1228,7 @@ class _MonthView extends StatelessWidget {
                           hasEntries: entriesByDay.containsKey(_dateKey(day)),
                           onTap: () => onSelectDate(day),
                           isDark: isDark,
+                          height: dayCellHeight,
                         ),
                       ),
                   ],
@@ -1252,6 +1256,7 @@ class _DayCell extends StatelessWidget {
     required this.hasEntries,
     required this.onTap,
     required this.isDark,
+    required this.height,
   });
 
   final DateTime date;
@@ -1260,6 +1265,7 @@ class _DayCell extends StatelessWidget {
   final bool hasEntries;
   final VoidCallback onTap;
   final bool isDark;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -1297,33 +1303,37 @@ class _DayCell extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           onTap: onTap,
-          child: Container(
-            height: 46,
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: borderColor),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${date.day}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: selected || hasEntries
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+          child: SizedBox(
+            height: height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${date.day}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: selected || hasEntries
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                _DayMarkerDot(
-                  visible: hasEntries,
-                  color: selected
-                      ? colorScheme.onPrimary
-                      : (isDark ? AppTheme.heroGlowBlush : colorScheme.primary),
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  _DayMarkerDot(
+                    visible: hasEntries,
+                    color: selected
+                        ? colorScheme.onPrimary
+                        : (isDark
+                              ? AppTheme.heroGlowBlush
+                              : colorScheme.primary),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1361,6 +1371,7 @@ class _CycleBandRow extends StatelessWidget {
     required this.displayMonth,
     required this.selectedDate,
     required this.isDark,
+    required this.cellHeight,
   });
 
   final List<DateTime> weekDays;
@@ -1368,6 +1379,7 @@ class _CycleBandRow extends StatelessWidget {
   final DateTime displayMonth;
   final DateTime selectedDate;
   final bool isDark;
+  final double cellHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -1411,7 +1423,7 @@ class _CycleBandRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: Container(
-              height: 46,
+              height: cellHeight,
               decoration: BoxDecoration(
                 color: bandColor,
                 borderRadius: BorderRadius.horizontal(
@@ -1502,12 +1514,12 @@ class _FilterChipRow extends StatelessWidget {
       if (canUseCycleRecords) CalendarFilter.cycle,
     ];
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        for (var i = 0; i < filters.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          _buildChip(context, strings, colorScheme, isDark, filters[i]),
-        ],
+        for (final filter in filters)
+          _buildChip(context, strings, colorScheme, isDark, filter),
       ],
     );
   }
@@ -1587,22 +1599,29 @@ class _SelectedEntryCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 PageIconBadge(
                   icon: _iconForType(entry.type),
                   color: _colorForType(entry.type),
                   size: 28,
                 ),
-                const Spacer(),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _MetaChip(label: strings.calendarTypeLabel(entry.type)),
-                    _MetaChip(
-                      label: strings.calendarRepeatLabel(entry.repeatRule),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        _MetaChip(label: strings.calendarTypeLabel(entry.type)),
+                        _MetaChip(
+                          label: strings.calendarRepeatLabel(entry.repeatRule),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 if (onDelete != null) ...[
                   const SizedBox(width: 4),
@@ -1624,12 +1643,16 @@ class _SelectedEntryCard extends StatelessWidget {
             Text(
               entry.title,
               key: ValueKey('calendar-detail-title-${entry.id}'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium,
             ),
             if (entry.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 entry.description,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark
                       ? AppTheme.warmWhite60
@@ -1667,6 +1690,8 @@ class _SelectedEntryCard extends StatelessWidget {
 
     return Text(
       strings.createdByLabel(name),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodySmall?.copyWith(
         color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
       ),
@@ -1712,17 +1737,28 @@ class _SelectedCycleRecordCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 PageIconBadge(
                   icon: Icons.water_drop_outlined,
                   color: _cycleMarkerColor(isDark),
                   size: 28,
                 ),
-                const Spacer(),
-                if (!isOwner)
-                  Flexible(
-                    child: _MetaChip(label: strings.cyclePartnerRecordLabel),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        if (!isOwner)
+                          _MetaChip(label: strings.cyclePartnerRecordLabel),
+                      ],
+                    ),
                   ),
+                ),
                 if (onEdit != null) ...[
                   const SizedBox(width: 4),
                   IconButton(
@@ -1757,14 +1793,23 @@ class _SelectedCycleRecordCard extends StatelessWidget {
             Text(
               strings.calendarTypeLabel(CalendarEntryType.cycle),
               key: ValueKey('cycle-detail-title-${record.id}'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 10),
-            Text(range, style: theme.textTheme.bodyMedium),
+            Text(
+              range,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium,
+            ),
             if (record.note != null && record.note!.trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 record.note!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark
                       ? AppTheme.warmWhite60
@@ -1888,11 +1933,18 @@ class _UpcomingEventCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(entry.title, style: theme.textTheme.titleMedium),
+                  Text(
+                    entry.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
                   if (entry.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       entry.description,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isDark
                             ? AppTheme.warmWhite60
@@ -1917,32 +1969,37 @@ class _UpcomingEventCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  strings.formatCountdownLabel(occurrence, DateTime.now()),
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.primary,
-                  ),
-                ),
-                if (onDelete != null) ...[
-                  const SizedBox(height: 4),
-                  IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    tooltip: strings.calendarDeleteButton,
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 96),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    strings.formatCountdownLabel(occurrence, DateTime.now()),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.primary,
                     ),
                   ),
+                  if (onDelete != null) ...[
+                    const SizedBox(height: 4),
+                    IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      tooltip: strings.calendarDeleteButton,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -1964,6 +2021,8 @@ class _UpcomingEventCard extends StatelessWidget {
 
     return Text(
       strings.createdByLabel(name),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodySmall?.copyWith(
         color: isDark ? AppTheme.warmWhite60 : colorScheme.onSurfaceVariant,
       ),

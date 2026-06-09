@@ -347,26 +347,35 @@ class _HomeHeroCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '$days',
-                          key: const ValueKey('home-hero-days'),
-                          style: theme.textTheme.displayLarge?.copyWith(
-                            color: isDark
-                                ? AppTheme.warmWhite90
-                                : colorScheme.onSurface,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
+                        Flexible(
+                          child: Text(
+                            '$days',
+                            key: const ValueKey('home-hero-days'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.displayLarge?.copyWith(
+                              color: isDark
+                                  ? AppTheme.warmWhite90
+                                  : colorScheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            strings.homeHeroDaysUnit,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: isDark
-                                  ? AppTheme.warmWhite60
-                                  : colorScheme.onSurfaceVariant,
+                        Flexible(
+                          flex: 0,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              strings.homeHeroDaysUnit,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: isDark
+                                    ? AppTheme.warmWhite60
+                                    : colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ),
@@ -460,13 +469,17 @@ class _PartnerInfo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            strings.homeHeroWaitingForPartner,
-            key: const ValueKey('home-hero-waiting'),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? AppTheme.warmWhite60
-                  : colorScheme.onSurfaceVariant,
+          Expanded(
+            child: Text(
+              strings.homeHeroWaitingForPartner,
+              key: const ValueKey('home-hero-waiting'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? AppTheme.warmWhite60
+                    : colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -516,12 +529,16 @@ class _PartnerInfo extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          partnerName!,
-          key: const ValueKey('home-hero-partner-name'),
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
+        Expanded(
+          child: Text(
+            partnerName!,
+            key: const ValueKey('home-hero-partner-name'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: isDark ? AppTheme.warmWhite90 : colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

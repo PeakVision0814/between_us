@@ -619,6 +619,8 @@ class _ToggleChip extends StatelessWidget {
         child: Center(
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               color: active
@@ -957,7 +959,11 @@ class _CreatePlanButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: const Icon(Icons.add, size: 20),
-        label: Text(isChinese ? '加一个计划' : 'Add a plan'),
+        label: Text(
+          isChinese ? '加一个计划' : 'Add a plan',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: isDark
@@ -992,7 +998,11 @@ class _WriteNoteButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: const Icon(Icons.edit_outlined, size: 20),
-        label: Text(isChinese ? '写随记' : 'Write a note'),
+        label: Text(
+          isChinese ? '写随记' : 'Write a note',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: isDark
@@ -1054,14 +1064,18 @@ class _SecondaryHint extends StatelessWidget {
                     ).colorScheme.onSurface.withValues(alpha: 0.45),
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: isDark
-                    ? AppTheme.warmWhite60
-                    : Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.55),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppTheme.warmWhite60
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
               ),
             ),
           ],

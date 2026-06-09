@@ -566,6 +566,71 @@ void main() {
     expect(find.text('同日约会'), findsOneWidget);
     expect(find.text('经期'), findsWidgets);
   });
+
+  testWidgets(
+    'calendar avoids horizontal overflow on narrow large-text screens',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final overflowMessages = <String>[];
+      final previousOnError = FlutterError.onError;
+      FlutterError.onError = (details) {
+        final message = details.exceptionAsString();
+        if (message.contains('overflowed')) {
+          overflowMessages.add(message);
+          return;
+        }
+        previousOnError?.call(details);
+      };
+      addTearDown(() => FlutterError.onError = previousOnError);
+
+      await _pumpCalendar(
+        tester,
+        memberCount: 2,
+        currentSpaceId: 'test-space-id',
+        partnerDisplayName: '一个非常非常长的伴侣昵称用于测试横向布局',
+        textScaler: const TextScaler.linear(1.45),
+      );
+
+      // ignore: avoid_dynamic_calls
+      final state = tester.state(find.byType(CalendarScreen)) as dynamic;
+      final now = DateTime.now();
+      final selectedDate = DateTime(now.year, now.month, now.day);
+
+      state.debugSetEvents([
+        CalendarEventRecord(
+          id: 'event-responsive',
+          coupleSpaceId: 'test-space-id',
+          createdBy: 'partner-user',
+          eventType: 'date_plan',
+          title: '这是一条很长很长的约会标题用来模拟窄屏和大字体下的真实文案',
+          description: '这是一段较长的备注，用来确认详情卡片、作者标签和即将到来区域不会把右侧内容挤出父容器。',
+          startsAt: selectedDate,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+      state.debugSetCycleRecords([
+        CycleRecord(
+          id: 'cycle-responsive',
+          coupleSpaceId: 'test-space-id',
+          ownerProfileId: 'test-user',
+          periodStartDate: selectedDate,
+          periodEndDate: selectedDate.add(const Duration(days: 4)),
+          note: '一段偏长的经期记录备注，用来验证标签、日期范围和操作按钮不会在窄屏下横向溢出。',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+      await tester.pump();
+      await tester.pump();
+
+      expect(overflowMessages, isEmpty);
+    },
+  );
 }
 
 Future<void> _pumpCalendar(
@@ -574,6 +639,7 @@ Future<void> _pumpCalendar(
   String? currentSpaceId,
   bool supabaseReady = false,
   String? partnerDisplayName,
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   final controller = AppController();
   controller.debugSetAuthState(
@@ -600,7 +666,10 @@ Future<void> _pumpCalendar(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const Scaffold(body: SafeArea(child: CalendarScreen())),
+        home: MediaQuery(
+          data: MediaQueryData(textScaler: textScaler),
+          child: const Scaffold(body: SafeArea(child: CalendarScreen())),
+        ),
       ),
     ),
   );
