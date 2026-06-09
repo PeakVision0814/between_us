@@ -709,6 +709,96 @@ void main() {
     },
   );
 
+  test('deleted profiles are blocked by server-side account lifecycle guards', () async {
+    final migrationSource = await File(
+      'supabase/migrations/20260609090000_block_deleted_profiles_access.sql',
+    ).readAsString();
+
+    expect(migrationSource, contains('public.is_active_profile'));
+    expect(migrationSource, contains('profiles.deleted_at is null'));
+    expect(migrationSource, contains('public.get_my_profile()'));
+    expect(migrationSource, contains('cycle_sharing_enabled boolean'));
+    expect(migrationSource, contains('profiles.cycle_sharing_enabled'));
+    expect(migrationSource, contains('public.create_couple_space'));
+    expect(
+      migrationSource,
+      contains('grant execute on function public.create_couple_space(text) to authenticated'),
+    );
+    expect(
+      migrationSource,
+      contains('revoke all on function public.create_couple_space(text) from public'),
+    );
+    expect(
+      migrationSource,
+      contains('revoke all on function public.create_couple_space(text) from anon'),
+    );
+    expect(migrationSource, isNot(contains('create_couple_space(text, date)')));
+    expect(migrationSource, isNot(contains('p_relationship_start_date')));
+    expect(migrationSource, contains('public.create_couple_invite'));
+    expect(migrationSource, contains('public.accept_couple_invite'));
+    expect(migrationSource, contains('public.revoke_couple_invite'));
+    expect(migrationSource, contains('public.request_couple_space_exit'));
+    expect(migrationSource, contains('public.approve_couple_space_exit'));
+    expect(migrationSource, contains('profiles_update_self'));
+    expect(
+      migrationSource,
+      contains(
+        'drop policy if exists "calendar_events_insert_active_members"',
+      ),
+    );
+    expect(migrationSource, contains('calendar_events_insert_active_couple'));
+    expect(
+      migrationSource,
+      contains(
+        'drop policy if exists "calendar_events_update_active_members"',
+      ),
+    );
+    expect(
+      migrationSource,
+      contains('calendar_events_update_active_couple'),
+    );
+    expect(
+      migrationSource,
+      contains('drop policy if exists "plans_insert_active_members"'),
+    );
+    expect(migrationSource, contains('plans_insert_active_couple'));
+    expect(
+      migrationSource,
+      contains('drop policy if exists "plans_update_active_members"'),
+    );
+    expect(migrationSource, contains('plans_update_active_couple'));
+    expect(
+      migrationSource,
+      contains('drop policy if exists "notes_insert_author_only"'),
+    );
+    expect(migrationSource, contains('notes_insert_active_couple_author'));
+    expect(
+      migrationSource,
+      contains('drop policy if exists "notes_update_author_only"'),
+    );
+    expect(migrationSource, contains('notes_update_active_couple_author'));
+    expect(migrationSource, contains('anniversaries_insert_active_couple'));
+    expect(migrationSource, contains('cycle_records_owner_insert'));
+  });
+
+  test('account deletion SQL still blocks active spaces and closes solo shell', () async {
+    final deletionMigration = await File(
+      'supabase/migrations/20260609064043_add_account_deletion_server_flow.sql',
+    ).readAsString();
+
+    expect(
+      deletionMigration,
+      contains('active_couple_space_required_exit'),
+    );
+    expect(deletionMigration, contains("spaces.status = 'active'"));
+    expect(deletionMigration, contains("spaces.status = 'pending_partner'"));
+    expect(deletionMigration, contains("set status = 'closed'"));
+    expect(
+      deletionMigration,
+      contains("set deleted_at = timezone('utc', now())"),
+    );
+  });
+
   testWidgets('current email change target is rejected before sending', (
     tester,
   ) async {
@@ -2013,6 +2103,69 @@ void main() {
     );
 
     expect(controller.authStatus, AppAuthStatus.authenticated);
+    expect(controller.requiresProfileSetup, isFalse);
+  });
+
+  test(
+    'profile load failure due to refresh token/session error returns to login',
+    () async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          throw Exception('error finding refresh token: session_not_found');
+        },
+        forceBlockingProfileCheck: true,
+      );
+
+      expect(controller.authStatus, AppAuthStatus.unauthenticated);
+      expect(controller.requiresProfileSetup, isFalse);
+    },
+  );
+
+  testWidgets(
+    'bad old session returns to login instead of profile setup',
+    (tester) async {
+      final controller = AppController();
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await controller.debugSyncSessionUser(
+        'user-1',
+        onReloadProfile: ({bool force = false}) async {
+          throw Exception('invalid_grant refresh token session_not_found');
+        },
+        forceBlockingProfileCheck: true,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-display-name-field')),
+        findsNothing,
+      );
+    },
+  );
+
+  test('valid loaded incomplete profile still requires setup', () {
+    final controller = AppController();
+    controller.debugSetAuthState(
+      status: AppAuthStatus.authenticated,
+      supabaseReady: true,
+      displayName: AppController.defaultDisplayNamePlaceholder,
+      gender: AppController.genderUnset,
+      selfProfileId: 'user-1',
+    );
+
+    expect(controller.requiresProfileSetup, isTrue);
   });
 
   test('requiresProfileSetup is false when profile check is in progress', () {

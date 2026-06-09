@@ -49,6 +49,7 @@ class AppController extends ChangeNotifier {
   int _memberCount = 0;
   String? _partnerDisplayName;
   bool _profileCheckInProgress = false;
+  bool _profileLoadedForCurrentSession = false;
   bool _profileSaveInProgress = false;
   String? _profileErrorCode;
   StreamSubscription<AuthState>? _authStateSubscription;
@@ -112,6 +113,7 @@ class AppController extends ChangeNotifier {
   bool get requiresProfileSetup =>
       isAuthenticated &&
       !_profileCheckInProgress &&
+      _profileLoadedForCurrentSession &&
       (!_hasCompletedDisplayName(_displayName) ||
           !_hasCompletedGender(_gender));
 
@@ -768,7 +770,8 @@ class AppController extends ChangeNotifier {
         }
       }
       if (profile == null) {
-        return;
+        _profileLoadedForCurrentSession = false;
+        throw StateError('session_not_found_profile');
       }
 
       String? currentSpaceId;
@@ -873,11 +876,12 @@ class AppController extends ChangeNotifier {
         changed = true;
       }
       _loadedPreferencesUserId = userId;
+      _profileLoadedForCurrentSession = true;
       // 订阅 Realtime（如果空间 ID 变化或首次加载）
       _subscribeToRealtime();
       if (changed) notifyListeners();
     } catch (error) {
-      if (_isJwtExpired(error)) {
+      if (_isAuthSessionInvalid(error)) {
         rethrow;
       }
       // Supabase not initialized or query failed; keep defaults.
@@ -934,7 +938,7 @@ class AppController extends ChangeNotifier {
       return true;
     } catch (error) {
       debugPrint('[Profile] Save setup failed: $error');
-      if (_isJwtExpired(error)) {
+      if (_isAuthSessionInvalid(error)) {
         _profileErrorCode = 'session_expired';
         notifyListeners();
         await _handleExpiredSession();
@@ -1206,12 +1210,15 @@ class AppController extends ChangeNotifier {
     if (!_profileCheckInProgress) {
       _profileCheckInProgress = true;
     }
+    if (_profileLoadedForCurrentSession) {
+      _profileLoadedForCurrentSession = false;
+    }
 
     try {
       await reloadProfile(force: true);
     } catch (error) {
       debugPrint('[Auth] Profile reload failed: $error');
-      if (_isJwtExpired(error)) {
+      if (_isAuthSessionInvalid(error)) {
         await _handleExpiredSession();
         return;
       }
@@ -1235,6 +1242,7 @@ class AppController extends ChangeNotifier {
   }) {
     _loadedPreferencesUserId = userId;
     _selfProfileId = userId;
+    _profileLoadedForCurrentSession = userId != null;
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
@@ -1282,7 +1290,7 @@ class AppController extends ChangeNotifier {
   }
 
   /// 清理已登录态数据，将 authStatus 设为 unauthenticated。
-  /// 供 userId == null 和 JWT expired 两条路径共用。
+  /// 供 userId == null 和 auth session invalid 两条路径共用。
   void _clearAuthenticatedState() {
     _unsubscribeFromRealtime();
     _authStatus = AppAuthStatus.unauthenticated;
@@ -1296,6 +1304,7 @@ class AppController extends ChangeNotifier {
     _bindingErrorCode = null;
     _bindingBusy = false;
     _loadedPreferencesUserId = null;
+    _profileLoadedForCurrentSession = false;
     _displayName = null;
     _gender = null;
     _birthday = null;
@@ -1484,10 +1493,18 @@ class AppController extends ChangeNotifier {
         message.contains('belongs to another');
   }
 
-  bool _isJwtExpired(Object error) {
+  bool _isAuthSessionInvalid(Object error) {
     final message = error.toString().toLowerCase();
     return message.contains('jwt expired') ||
         message.contains('pgrst303') ||
+        message.contains('invalid_grant') ||
+        message.contains('session_not_found') ||
+        message.contains('error finding refresh token') ||
+        message.contains('authretryablefetchexception') ||
+        (message.contains('refresh token') &&
+            !message.contains('network') &&
+            !message.contains('timeout') &&
+            !message.contains('timed out')) ||
         (message.contains('unauthorized') && message.contains('jwt'));
   }
 
@@ -1571,6 +1588,8 @@ class AppController extends ChangeNotifier {
     _memberCount = memberCount;
     _partnerDisplayName = partnerDisplayName;
     _profileCheckInProgress = profileCheckInProgress;
+    _profileLoadedForCurrentSession =
+        status == AppAuthStatus.authenticated && !profileCheckInProgress;
     _profileErrorCode = profileErrorCode;
     notifyListeners();
   }
