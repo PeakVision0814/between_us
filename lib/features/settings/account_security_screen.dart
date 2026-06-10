@@ -670,7 +670,9 @@ class _BindingPanel extends StatelessWidget {
             ),
           ] else ...[
             Text(
-              strings.accountSecurityBindingCodeSentTo(pending),
+              isRecoveryEmail
+                  ? strings.accountSecurityRecoveryEmailCodeSentTo(pending)
+                  : strings.accountSecurityBindingCodeSentTo(pending),
               key: const ValueKey('account-security-pending-target'),
               style: theme.textTheme.titleSmall,
             ),

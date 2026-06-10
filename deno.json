@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom", "dom.iterable"],
+    "strict": true
+  },
+  "tasks": {
+    "check:functions": "deno check supabase/functions/send-recovery-email-otp/index.ts supabase/functions/send-recovery-email-otp/index_test.ts",
+    "test:functions": "deno test --allow-read --allow-env --allow-net supabase/functions/send-recovery-email-otp/index_test.ts"
+  }
+}

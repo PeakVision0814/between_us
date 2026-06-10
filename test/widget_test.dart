@@ -697,6 +697,8 @@ void main() {
       find.byKey(const ValueKey('bind-recovery-email-resend-button')),
       findsOneWidget,
     );
+    expect(find.textContaining('Inbucket'), findsOneWidget);
+    expect(find.textContaining('123456'), findsNothing);
   });
 
   testWidgets('recovery email verify failure shows an error', (tester) async {

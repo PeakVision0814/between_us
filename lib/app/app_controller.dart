@@ -632,11 +632,11 @@ class AppController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await Supabase.instance.client.rpc(
-        'request_recovery_email_change',
-        params: {'p_email': normalizedEmail},
+      final response = await Supabase.instance.client.functions.invoke(
+        'send-recovery-email-otp',
+        body: {'email': normalizedEmail},
       );
-      final row = _firstRpcRow(response);
+      final row = _firstRpcRow(response.data);
       _recoveryEmailPending =
           (row?['recovery_email_pending'] as String?) ?? normalizedEmail;
       _recoveryEmailOtpExpiresAt = _parseDateTime(row?['expires_at']);
@@ -1578,6 +1578,12 @@ class AppController extends ChangeNotifier {
   }
 
   String _recoveryEmailErrorCode(Object error, {required String fallback}) {
+    if (error is FunctionException) {
+      final details = error.details;
+      if (details is Map && details['code'] is String) {
+        return details['code'] as String;
+      }
+    }
     final message = error.toString().toLowerCase();
     if (message.contains('invalid_email')) return 'invalid_email';
     if (message.contains('same_recovery_email')) {

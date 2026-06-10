@@ -19,10 +19,11 @@ path for Between Us.
   - Verify email change when the project uses in-app OTP confirmation:
     `verifyOTP(email: ..., token: ..., type: OtpType.emailChange)`
 - Recovery email is intentionally separate from Supabase Auth login email:
-  - Request: `rpc('request_recovery_email_change', p_email)`
+  - Request from Flutter: `functions.invoke('send-recovery-email-otp', body: { email })`
   - Verify: `rpc('verify_recovery_email_change', p_token)`
   - Storage: visible state in `profiles.recovery_email*`, OTP challenge state
     in `private.account_recovery_email_challenges`
+  - Local delivery: the Edge Function sends the OTP to Supabase local Inbucket.
   - It does not call `updateUser(UserAttributes(email: ...))` and does not
     write `auth.users.email`.
 - Phone numbers are lightly validated as E.164 strings, for example `+8613812345678`.
@@ -151,11 +152,23 @@ similar domestic provider configured outside the Flutter client.
 
 ## Recovery email delivery boundary
 
-Recovery email first version is implemented as a server-side request / verify
-RPC flow, but real email delivery is not complete yet.
+Recovery email OTP is a server-side request / verify flow. It is separate from
+Supabase Auth's login email OTP:
+
+- Login email OTP uses Supabase Auth (`signInWithOtp` / `verifyOTP`) and can
+  sign the user in.
+- Recovery email OTP verifies `profiles.recovery_email` only. It never becomes
+  `auth.users.email`, never signs the user in, and never changes login
+  credentials.
 
 Current behavior:
 
+- Flutter calls `send-recovery-email-otp` instead of directly calling
+  `request_recovery_email_change`.
+- The Edge Function verifies the current JWT with `auth.getUser`; it rejects
+  caller-supplied `user_id` / `userId`.
+- The Edge Function uses the service role key server-side to call
+  `create_recovery_email_challenge_for_service(p_user_id, p_email)`.
 - PostgreSQL generates a short-lived 6-digit token.
 - `private.account_recovery_email_challenges.otp_hash` stores only a SHA-256
   hash.
@@ -165,15 +178,40 @@ Current behavior:
   Flutter cannot read token hashes through the Supabase Data API.
 - `get_my_profile()` returns recovery email state and pending email. It does
   not return token hash, plaintext token, or challenge expiration.
-- The RPC does not write plaintext tokens to database logs. Local QA must use a
-  controlled server-side test path or service-role/local DB inspection until
-  real mail delivery is connected.
+- The public `request_recovery_email_change(p_email)` RPC still does not return
+  plaintext token. It exists as a no-token compatibility path, but Flutter's
+  product flow uses the Edge Function so the token can be mailed.
+- The Edge Function response to Flutter returns only `{ ok,
+  recovery_email_pending, expires_at }`; it never returns `token`.
+- The RPC does not write plaintext tokens to database logs.
+
+Local development delivery:
+
+- Supabase local Inbucket Web UI: `http://127.0.0.1:54324/`
+- The local Supabase mail container currently runs Mailpit. Its Web UI is
+  exposed on host port `54324`, while its SMTP listener is reachable from Edge
+  Runtime on the Docker network as `inbucket:1025`.
+- `supabase/config.toml` also enables `smtp_port = 54325` under `[inbucket]`
+  for host-side local tools after a full local stack restart, but the Edge
+  Function itself does not depend on that host port.
+- `send-recovery-email-otp` sends SMTP to
+  `RECOVERY_EMAIL_SMTP_HOST` / `RECOVERY_EMAIL_SMTP_PORT`.
+- Defaults are `inbucket:1025`, matching the current Supabase Docker network
+  service discovered from the local container config.
+- The Edge Function is covered by the repo-level `deno.json`. In an environment
+  with Deno installed, run `deno task check:functions` and
+  `deno task test:functions`; VS Code is scoped to enable Deno only for
+  `supabase/functions`.
+- To complete the flow locally: request the auxiliary email code in Flutter,
+  open `http://127.0.0.1:54324/`, read the 6-digit code, and type it into the
+  app's auxiliary email verification step.
 
 Before private Beta:
 
-- Add a Supabase Edge Function or another trusted server-side mail sender to
-  deliver the token to `recovery_email_pending`.
-- Keep SMTP / Resend / SendGrid / other mail-provider secrets server-side.
+- Replace local Inbucket SMTP with a real server-side delivery provider, such
+  as hosted SMTP, Resend, SendGrid, or another approved mail service.
+- Store SMTP / Resend / SendGrid / other mail-provider secrets only in
+  Supabase Edge Function secrets or the server environment.
 - Do not put mail-provider credentials or real token generation in Flutter.
 - Do not reintroduce permanent plaintext token logging for private Beta or
   production.
@@ -207,9 +245,9 @@ Confirmed from code/config:
   OTP methods.
 - The app has a reserved account security path for binding email and phone to
   the current Supabase Auth user through native update-user flows.
-- The app has a recovery email request / verify path backed by `profiles`
-  visible state, a private OTP challenge table, and RPCs. Recovery email is not
-  a login method in this version.
+- The app has a recovery email request / verify path backed by an Edge Function,
+  `profiles` visible state, a private OTP challenge table, and RPCs. Recovery
+  email is not a login method in this version.
 - The app has a deletion entry and confirmation rules, but does not perform
   real Supabase Auth user deletion.
 - The local Supabase template now renders a 6-digit token as the primary email content.
@@ -224,8 +262,8 @@ Not confirmed from this repo alone:
 - Which SMS Provider or Send SMS Hook will deliver real phone codes
 - Whether hosted email-change confirmation is configured for OTP input inside
   the app, or for email-link confirmation in the mailbox
-- Whether recovery email delivery has been connected to a trusted server-side
-  mail sender before private Beta
+- Whether recovery email delivery has been connected to a production mail sender
+  before private Beta. Local development uses Inbucket only.
 
 ## Verification steps for the product manager session
 
@@ -244,6 +282,7 @@ Use the target hosted Supabase project and verify these facts directly:
    it remains the same `auth.users.id`.
 9. Try binding an email or phone already owned by another account and confirm
    the app blocks the operation without merging accounts.
-10. Request a recovery email change through a trusted local/server-side test
-    path, verify it in the app, and confirm the email becomes verified without
-    changing the Supabase Auth login email.
+10. Request a recovery email change in Flutter, open
+    `http://127.0.0.1:54324/`, copy the Inbucket code, verify it in the app,
+    and confirm the email becomes verified without changing the Supabase Auth
+    login email.

@@ -102,12 +102,13 @@
 - Flutter 不直接更新辅助邮箱列。
 - `authenticated` 只能列级更新公开允许的个人资料 / 偏好字段，不能直接写 `recovery_email*` 字段。
 - `private.account_recovery_email_challenges` 对 `anon` / `authenticated` revoke all，只允许服务端受控逻辑访问。
-- 绑定 / 更换必须通过 `request_recovery_email_change(p_email text)` 和 `verify_recovery_email_change(p_token text)`。
-- RPC 内部使用 `auth.uid()`，不接受客户端传入 user id。
+- 绑定 / 更换的产品入口必须通过 Edge Function `send-recovery-email-otp` 发送验证码，再通过 `verify_recovery_email_change(p_token text)` 完成验证；兼容 RPC `request_recovery_email_change(p_email text)` 仍不返回明文 token。
+- Flutter 入口不接受也不传递 user id；Edge Function 从当前 JWT 取 `auth.getUser()`，再用服务端 service role 调 `create_recovery_email_challenge_for_service(p_user_id, p_email)`。
 - `recovery_email` 对未注销账号有部分唯一索引，保证一个已验证辅助邮箱不能被多个账号占用。
 - `recovery_email_pending` 不做唯一占用，只建查询索引；验证成功写入 `recovery_email` 时再次检查唯一性，避免用户输错邮箱后长期锁住别人邮箱。
 - 验证 token 由数据库生成，私有表保存 SHA-256 hash 和 15 分钟过期时间；`get_my_profile()` 只返回已验证邮箱和 pending 邮箱，不返回 hash、过期时间或明文 token。
-- 当前开发阶段尚未接真实邮件发送服务，RPC 不再把明文验证码写入数据库日志；本地 QA 只能通过受控服务端测试路径或 service-role/local DB 检查完成验证。私测前必须接入 Supabase Edge Function 或其他服务端邮件发送能力，不能把邮件服务商密钥放进 Flutter。
+- 开发环境验证码由 `send-recovery-email-otp` 发到本地 Supabase Inbucket，地址是 `http://127.0.0.1:54324/`；Flutter 只收到 pending 邮箱和过期时间，不收到明文 token。
+- 私测 / 生产前必须把 Inbucket SMTP 替换为真实服务端邮件发送能力；邮件服务商密钥只能放在 Edge Function secrets 或服务端环境，不能进入 Flutter。
 
 ### `couple_spaces`
 

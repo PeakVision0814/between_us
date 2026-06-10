@@ -1242,6 +1242,11 @@ class AppStrings {
     zhTw: '驗證碼已發送至 $target',
     en: 'A code has been sent to $target',
   );
+  String accountSecurityRecoveryEmailCodeSentTo(String target) => _resolve(
+    zhCn: '验证码已发送至辅助邮箱 $target。开发环境可在 Inbucket 查看。',
+    zhTw: '驗證碼已發送至輔助電子郵件 $target。開發環境可在 Inbucket 查看。',
+    en: 'A code has been sent to recovery email $target. In development, view it in Inbucket.',
+  );
   String accountSecurityRecoveryEmailPendingValue(String email) => _resolve(
     zhCn: '$email · 待验证',
     zhTw: '$email · 待驗證',
