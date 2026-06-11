@@ -61,6 +61,7 @@ class AppController extends ChangeNotifier {
   Future<void> Function()? _debugSignOutAction;
   Future<String?> Function()? _debugDeleteAccountAction;
   RealtimeChannel? _realtimeChannel;
+  Timer? _realtimeSafetyTimer;
 
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
@@ -956,10 +957,18 @@ class AppController extends ChangeNotifier {
         changed = true;
       }
       if (_currentSpaceId != currentSpaceId) {
+        debugPrint(
+          '[Preferences] spaceId changed: '
+          '${_currentSpaceId ?? "null"} → ${currentSpaceId ?? "null"}',
+        );
         _currentSpaceId = currentSpaceId;
         changed = true;
       }
       if (_memberCount != memberCount) {
+        debugPrint(
+          '[Preferences] memberCount changed: '
+          '$_memberCount → $memberCount',
+        );
         _memberCount = memberCount;
         changed = true;
       }
@@ -1098,11 +1107,20 @@ class AppController extends ChangeNotifier {
   /// 订阅 Supabase Realtime，监听当前空间的数据变化。
   /// 当关系状态或空间内容发生变更时，
   /// 自动调用 loadPreferences 刷新数据并 notifyListeners。
+  ///
+  /// 包含一个安全重试机制：订阅建立后，如果空间仍处于 pending_partner
+  /// 状态且成员数 < 2，延迟 3 秒后主动刷新一次。这可以捕获 Realtime
+  /// 连接抖动或事件丢失的边缘情况（例如通道重连期间漏掉的事件）。
   void _subscribeToRealtime() {
     _unsubscribeFromRealtime();
 
     final spaceId = _currentSpaceId;
     if (spaceId == null || !_supabaseReady) return;
+
+    debugPrint(
+      '[Realtime] Subscribing to space=$spaceId '
+      'memberCount=$_memberCount',
+    );
 
     final client = Supabase.instance.client;
 
@@ -1117,7 +1135,13 @@ class AppController extends ChangeNotifier {
             column: 'id',
             value: spaceId,
           ),
-          callback: (_) => _onRealtimeDataChanged(),
+          callback: (payload) {
+            debugPrint(
+              '[Realtime] couple_spaces event=${payload.eventType} '
+              'new=${payload.newRecord}',
+            );
+            _onRealtimeDataChanged();
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -1128,7 +1152,13 @@ class AppController extends ChangeNotifier {
             column: 'couple_space_id',
             value: spaceId,
           ),
-          callback: (_) => _onRealtimeDataChanged(),
+          callback: (payload) {
+            debugPrint(
+              '[Realtime] couple_memberships event=${payload.eventType} '
+              'new=${payload.newRecord}',
+            );
+            _onRealtimeDataChanged();
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -1139,7 +1169,13 @@ class AppController extends ChangeNotifier {
             column: 'couple_space_id',
             value: spaceId,
           ),
-          callback: (_) => _onRealtimeDataChanged(),
+          callback: (payload) {
+            debugPrint(
+              '[Realtime] couple_space_exit_requests '
+              'event=${payload.eventType}',
+            );
+            _onRealtimeDataChanged();
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -1198,18 +1234,46 @@ class AppController extends ChangeNotifier {
         )
         .subscribe((status, error) {
           debugPrint(
-            '[Realtime] Channel public:space:$spaceId status=$status error=$error',
+            '[Realtime] Channel public:space:$spaceId '
+            'status=$status error=$error',
           );
         });
+
+    // 安全重试：订阅建立后，如果空间仍处于 pending_partner 且成员数 < 2，
+    // 延迟后主动拉取一次最新状态。这覆盖了以下边缘场景：
+    // - 通道重连期间漏掉的 postgres_changes 事件
+    // - 订阅完全建立前对方已完成操作
+    _scheduleSafetyRetry(spaceId);
+  }
+
+  /// 在 Realtime 订阅建立后调度一次延迟刷新。
+  /// 仅当空间仍处于待配对状态（成员数 < 2）时才执行。
+  void _scheduleSafetyRetry(String spaceId) {
+    _realtimeSafetyTimer?.cancel();
+    _realtimeSafetyTimer = Timer(const Duration(seconds: 3), () {
+      if (_currentSpaceId != spaceId) return; // 空间已变化
+      if (_memberCount >= 2) return; // 已经是双人态，无需重试
+      debugPrint(
+        '[Realtime] Safety retry: space=$spaceId still pending '
+        '(memberCount=$_memberCount), force-reloading preferences',
+      );
+      _loadedPreferencesUserId = null;
+      loadPreferences(force: true);
+    });
   }
 
   void _unsubscribeFromRealtime() {
+    _realtimeSafetyTimer?.cancel();
+    _realtimeSafetyTimer = null;
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = null;
   }
 
   void _onRealtimeDataChanged() {
-    debugPrint('[Realtime] Data changed, refreshing preferences');
+    debugPrint(
+      '[Realtime] Data changed, refreshing preferences '
+      '(currentSpaceId=$_currentSpaceId memberCount=$_memberCount)',
+    );
     _loadedPreferencesUserId = null;
     loadPreferences(force: true);
   }
