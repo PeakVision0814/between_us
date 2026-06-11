@@ -1278,6 +1278,162 @@ void main() {
   );
 
   test(
+    'space recovery migration provides reunion and cleanup functions',
+    () async {
+      final migrationSource = await File(
+        'supabase/migrations/20260612120000_space_recovery_and_cleanup.sql',
+      ).readAsString();
+
+      // delete_closed_space helper exists.
+      expect(migrationSource, contains('public.delete_closed_space'));
+      expect(migrationSource, contains('can only delete closed spaces'));
+
+      // Circular FK is broken before deletion.
+      expect(migrationSource, contains('set scheduled_event_id = null'));
+      expect(migrationSource, contains('set source_plan_id = null'));
+
+      // Child tables are deleted in FK-safe order.
+      expect(
+        migrationSource,
+        contains('delete from public.cycle_records'),
+      );
+      expect(
+        migrationSource,
+        contains('delete from public.anniversaries'),
+      );
+      expect(
+        migrationSource,
+        contains('delete from public.couple_space_exit_requests'),
+      );
+      expect(migrationSource, contains('delete from public.notes'));
+      expect(migrationSource, contains('delete from public.plans'));
+      expect(
+        migrationSource,
+        contains('delete from public.calendar_events'),
+      );
+      expect(
+        migrationSource,
+        contains('delete from public.couple_invites'),
+      );
+      expect(
+        migrationSource,
+        contains('delete from public.couple_memberships'),
+      );
+      expect(
+        migrationSource,
+        contains('delete from public.couple_spaces'),
+      );
+
+      // accept_couple_invite supports reunion.
+      expect(migrationSource, contains('v_reactivate_space_id'));
+      expect(migrationSource, contains('REUNION'));
+      expect(
+        migrationSource,
+        contains("set status = 'active'"),
+      );
+      expect(migrationSource, contains('closed_at = null'));
+      expect(
+        migrationSource,
+        contains(
+          "Preserve the inviter's pending invite space unless reunion is",
+        ),
+      );
+      expect(
+        migrationSource,
+        contains(
+          "Fresh pairing: keep the inviter's current pending invite space intact",
+        ),
+      );
+      expect(
+        migrationSource,
+        isNot(
+          contains('Close any stale pending-space membership for both'),
+        ),
+      );
+      expect(
+        migrationSource.indexOf(
+          "if v_reactivate_space_id is not null then",
+        ),
+        lessThan(
+          migrationSource.indexOf(
+            "Preserve the inviter's pending invite space unless reunion is",
+          ),
+        ),
+      );
+
+      // Auto-cleanup of old closed spaces.
+      expect(
+        migrationSource,
+        contains('delete_closed_space'),
+      );
+
+      // Grant is restricted to authenticated.
+      expect(
+        migrationSource,
+        contains(
+          'grant execute on function public.delete_closed_space(uuid) to authenticated',
+        ),
+      );
+      expect(
+        migrationSource,
+        contains(
+          'grant execute on function public.accept_couple_invite(text) to authenticated',
+        ),
+      );
+    },
+  );
+
+  test(
+    'active invite migration persists and reloads existing invite codes',
+    () async {
+      final migrationSource = await File(
+        'supabase/migrations/20260611140708_persist_active_invite_code.sql',
+      ).readAsString();
+
+      expect(
+        migrationSource,
+        contains('add column if not exists plain_code text'),
+      );
+      expect(
+        migrationSource,
+        contains("p_expires_in interval default interval '12 hours'"),
+      );
+      expect(
+        migrationSource,
+        contains(
+          'returns table (id uuid, plain_code text, expires_at timestamptz)',
+        ),
+      );
+      expect(
+        migrationSource,
+        contains('if found and v_existing.plain_code is not null'),
+      );
+      expect(
+        migrationSource,
+        contains('create or replace function public.get_active_couple_invite'),
+      );
+      expect(
+        migrationSource,
+        contains('only the active owner can view the invite'),
+      );
+      expect(
+        migrationSource,
+        contains('plain_code = null'),
+      );
+
+      final settingsSource = await File(
+        'lib/features/settings/settings_screen.dart',
+      ).readAsString();
+      expect(settingsSource, contains('get_active_couple_invite'));
+      expect(settingsSource, contains("_inviteLoadedSpaceId = coupleSpaceId"));
+      expect(
+        settingsSource,
+        contains("_inviteCode = (data['plain_code'] as String?) ?? code;"),
+      );
+    },
+  );
+
+  test(
     'AppController subscribes to relationship state Realtime changes',
     () async {
       final controllerSource = await File(

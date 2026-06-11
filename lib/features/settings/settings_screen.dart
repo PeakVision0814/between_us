@@ -598,6 +598,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   String? _inviteCode;
   DateTime? _inviteExpiresAt;
   bool _generatingInvite = false;
+  bool _loadingInvite = false;
+  String? _inviteLoadedSpaceId;
   List<_AnniversaryItem> _anniversaries = [];
   bool _loadingAnniversaries = false;
 
@@ -607,6 +609,7 @@ class _PartnerScreenState extends State<_PartnerScreen> {
     _inviteCode = widget.initialInviteCode;
     _inviteExpiresAt = widget.initialInviteExpiresAt;
     widget.controller.addListener(_onControllerChanged);
+    _loadActiveInvite();
     _loadAnniversaries();
   }
 
@@ -617,7 +620,57 @@ class _PartnerScreenState extends State<_PartnerScreen> {
   }
 
   void _onControllerChanged() {
+    _loadActiveInvite();
     _loadAnniversaries();
+  }
+
+  Future<void> _loadActiveInvite({bool force = false}) async {
+    if (_loadingInvite || widget.isPaired || !widget.controller.supabaseReady) {
+      return;
+    }
+
+    var coupleSpaceId = widget.controller.currentSpaceId;
+    if (coupleSpaceId == null) {
+      await widget.controller.refreshAllData();
+      coupleSpaceId = widget.controller.currentSpaceId;
+    }
+    if (coupleSpaceId == null) {
+      return;
+    }
+
+    if (!force && _inviteLoadedSpaceId == coupleSpaceId) {
+      return;
+    }
+
+    _loadingInvite = true;
+    try {
+      final response = await Supabase.instance.client.rpc(
+        'get_active_couple_invite',
+        params: {'p_couple_space_id': coupleSpaceId},
+      );
+
+      final data = switch (response) {
+        final List<dynamic> rows when rows.isNotEmpty =>
+          rows.first as Map<String, dynamic>,
+        final Map<String, dynamic> row => row,
+        _ => null,
+      };
+
+      if (!mounted) return;
+
+      setState(() {
+        _inviteLoadedSpaceId = coupleSpaceId;
+        _inviteCode = data?['plain_code'] as String?;
+        final expiresAtValue = data?['expires_at'] as String?;
+        _inviteExpiresAt = expiresAtValue == null
+            ? null
+            : DateTime.parse(expiresAtValue);
+      });
+    } catch (e) {
+      debugPrint('[Invite] load active invite failed: $e');
+    } finally {
+      _loadingInvite = false;
+    }
   }
 
   Future<void> _loadAnniversaries() async {
@@ -749,7 +802,8 @@ class _PartnerScreenState extends State<_PartnerScreen> {
         _ => throw StateError('Unexpected invite response: $response'),
       };
       setState(() {
-        _inviteCode = code;
+        _inviteLoadedSpaceId = coupleSpaceId;
+        _inviteCode = (data['plain_code'] as String?) ?? code;
         _inviteExpiresAt = DateTime.parse(data['expires_at'] as String);
       });
     } catch (e) {
