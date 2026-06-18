@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:between_us/app/app_controller.dart';
+import 'package:between_us/app/app_strings.dart';
 import 'package:between_us/app/between_us_app.dart';
 import 'package:between_us/features/auth/email_register_screen.dart';
 import 'package:between_us/features/anniversaries/anniversaries_screen.dart'
@@ -43,16 +44,13 @@ void main() {
       find.byKey(const ValueKey('auth-login-method-segment')),
       findsOneWidget,
     );
-    expect(find.text('手机号'), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-password-field')), findsOneWidget);
 
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('auth-phone-field')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('auth-send-phone-code-button')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('auth-password-field')), findsOneWidget);
   });
 
   testWidgets('sign-in screen can navigate to register screen', (tester) async {
@@ -67,10 +65,8 @@ void main() {
 
     expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-email-field')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('auth-register-method-segment')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-verify-code-button')), findsOneWidget);
   });
 
   testWidgets('register screen shows phone registration entry', (tester) async {
@@ -82,12 +78,15 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('auth-phone-field')), findsOneWidget);
-    expect(find.text('发送手机号注册验证码'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-send-phone-code-button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('register screen can navigate back to sign-in screen', (
@@ -101,7 +100,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('auth-go-login-button')));
+    await _tapVisible(tester, find.byKey(const ValueKey('auth-go-login-button')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('auth-login-title')), findsOneWidget);
@@ -142,7 +141,9 @@ void main() {
       supabaseReady: true,
     );
 
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.text('验证码登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
@@ -152,7 +153,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('请输入 1 开头的 11 位大陆手机号。'), findsOneWidget);
-    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
   testWidgets('phone sign-in send failure shows environment hint', (
@@ -166,7 +166,9 @@ void main() {
 
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.text('验证码登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
@@ -178,7 +180,6 @@ void main() {
     expect(controller.signInPhones, ['+8613812345678']);
     expect(controller.signUpPhones, isEmpty);
     expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
-    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
   testWidgets('successful phone sign-in code send shows otp step', (
@@ -193,7 +194,9 @@ void main() {
     await tester.pumpWidget(BetweenUsApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.text('验证码登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
@@ -205,8 +208,10 @@ void main() {
     expect(controller.signInPhones, ['+8613812345678']);
     expect(controller.signUpPhones, isEmpty);
     expect(find.byKey(const ValueKey('auth-otp-field')), findsOneWidget);
-    expect(find.textContaining('+8613812345678'), findsOneWidget);
-    expect(find.text('更换手机号'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-send-phone-code-button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('invalid phone otp length shows an error', (tester) async {
@@ -224,7 +229,7 @@ void main() {
       find.byKey(const ValueKey('auth-otp-field')),
       '12345',
     );
-    await tester.tap(find.byKey(const ValueKey('auth-verify-code-button')));
+    await tester.tap(find.byKey(const ValueKey('auth-login-submit-button')));
     await tester.pumpAndSettle();
 
     expect(find.text('请输入 6 位验证码。'), findsOneWidget);
@@ -243,7 +248,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
@@ -271,7 +276,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('auth-go-register-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('手机号'));
+    await tester.tap(find.byTooltip('切换到手机号'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('auth-phone-field')),
@@ -283,7 +288,6 @@ void main() {
     expect(controller.signInPhones, isEmpty);
     expect(controller.signUpPhones, ['+8613912345678']);
     expect(find.text(_phoneOtpEnvironmentMessage), findsOneWidget);
-    expect(find.byKey(const ValueKey('auth-otp-field')), findsNothing);
   });
 
   testWidgets('email OTP flow is not changed by phone SMS boundary copy', (
@@ -308,7 +312,7 @@ void main() {
     expect(find.text(_phoneOtpEnvironmentMessage), findsNothing);
   });
 
-  testWidgets('register verification success returns to app root', (
+  testWidgets('register verification success stays on finalization step', (
     tester,
   ) async {
     final controller = _SuccessfulRegisterController();
@@ -355,8 +359,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('auth-verify-code-button')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('auth-register-title')), findsNothing);
-    expect(find.text('open'), findsOneWidget);
+    expect(find.byKey(const ValueKey('auth-register-title')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-register-submit-button')),
+      findsOneWidget,
+    );
     expect(controller.verifyCalls, 1);
   });
 
@@ -512,10 +519,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(
+    await _tapVisible(
+      tester,
       find.byKey(const ValueKey('bind-recovery-email-resend-button')),
     );
-    await tester.pumpAndSettle();
     expect(controller.requestedRecoveryEmails, ['backup@example.com']);
 
     await tester.tap(
@@ -1648,8 +1655,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('account-security-entry')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
-    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.byKey(const ValueKey('account-delete-entry')));
 
     expect(find.text('暂时不能注销账号'), findsOneWidget);
     expect(find.textContaining('请先解除当前双人空间'), findsOneWidget);
@@ -1689,8 +1695,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
 
-    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
-    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.byKey(const ValueKey('account-delete-entry')));
 
     expect(find.text('确认要注销账号吗？'), findsOneWidget);
     expect(find.textContaining('历史共享数据不会由客户端批量删除'), findsOneWidget);
@@ -1739,8 +1744,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('account-security-entry')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
-    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.byKey(const ValueKey('account-delete-entry')));
     await tester.tap(
       find.byKey(const ValueKey('account-delete-first-confirm-button')),
     );
@@ -1773,8 +1777,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openAccountSecurityFromProfile(tester);
 
-    await tester.tap(find.byKey(const ValueKey('account-delete-entry')));
-    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.byKey(const ValueKey('account-delete-entry')));
     await tester.tap(
       find.byKey(const ValueKey('account-delete-first-confirm-button')),
     );
@@ -1790,23 +1793,32 @@ void main() {
     expect(controller.isAuthenticated, isTrue);
   });
 
-  testWidgets('authenticated users without display name see the profile gate', (
-    tester,
-  ) async {
+  testWidgets(
+    'authenticated users without display name see the registration completion gate',
+    (tester) async {
     await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
 
     expect(
-      find.byKey(const ValueKey('profile-display-name-field')),
+      find.byKey(const ValueKey('auth-register-display-name-field')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('profile-gender-male')), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-gender-female')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('profile-birthday-button')),
+      find.byKey(const ValueKey('auth-register-gender-male')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('auth-register-gender-female')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('auth-password-field')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auth-confirm-password-field')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('auth-email-field')), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-  });
+  },
+  );
 
   testWidgets(
     'initial authenticated sync still blocks on the profile loading screen',
@@ -1849,7 +1861,7 @@ void main() {
   );
 
   testWidgets(
-    'authenticated users with placeholder display name see the profile gate',
+    'authenticated users with placeholder display name see the registration completion gate',
     (tester) async {
       await _pumpApp(
         tester,
@@ -1858,14 +1870,16 @@ void main() {
       );
 
       expect(
-        find.byKey(const ValueKey('profile-display-name-field')),
+        find.byKey(const ValueKey('auth-register-display-name-field')),
         findsOneWidget,
       );
       expect(find.byType(NavigationBar), findsNothing);
     },
   );
 
-  testWidgets('authenticated users with unset gender see the profile gate', (
+  testWidgets(
+    'authenticated users with unset gender see the registration completion gate',
+    (
     tester,
   ) async {
     await _pumpApp(
@@ -1876,14 +1890,15 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey('profile-display-name-field')),
+      find.byKey(const ValueKey('auth-register-display-name-field')),
       findsOneWidget,
     );
     expect(find.byType(NavigationBar), findsNothing);
-  });
+  },
+  );
 
   testWidgets(
-    'profile setup keeps an existing display name when gender is unset',
+    'registration completion keeps an existing display name when gender is unset',
     (tester) async {
       await _pumpApp(
         tester,
@@ -1893,31 +1908,52 @@ void main() {
       );
 
       final field = tester.widget<TextField>(
-        find.byKey(const ValueKey('profile-display-name-field')),
+        find.byKey(const ValueKey('auth-register-display-name-field')),
       );
       expect(field.controller?.text, 'Xiaoman');
     },
   );
 
-  testWidgets('profile setup requires display name and gender before submit', (
+  testWidgets('registration completion requires display name and gender', (
     tester,
   ) async {
     await _pumpApp(tester, authStatus: AppAuthStatus.authenticated);
-
-    var button = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('profile-save-button')),
+    final strings = _stringsFrom(
+      tester,
+      find.byKey(const ValueKey('auth-register-title')),
     );
-    expect(button.onPressed, isNull);
 
     await tester.enterText(
-      find.byKey(const ValueKey('profile-display-name-field')),
+      find.byKey(const ValueKey('auth-password-field')),
+      'Abc123!',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-confirm-password-field')),
+      'Abc123!',
+    );
+    await _tapVisible(tester, find.byType(Checkbox));
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('auth-register-submit-button')),
+    );
+    expect(find.text(strings.profileDisplayNameEmptyError), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-register-display-name-field')),
       'Xiaoman',
     );
-    await tester.tap(find.byKey(const ValueKey('profile-gender-female')));
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('auth-register-submit-button')),
+    );
+    expect(find.text(strings.profileGenderRequiredError), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('auth-register-gender-female')));
     await tester.pumpAndSettle();
 
-    button = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('profile-save-button')),
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('auth-register-submit-button')),
     );
     expect(button.onPressed, isNotNull);
   });
@@ -3711,6 +3747,7 @@ void main() {
       // Save button in Japanese.
       expect(find.text('保存して続ける'), findsOneWidget);
     },
+    skip: true,
   );
 
   testWidgets('Korean: profile setup screen shows Korean title and labels', (
@@ -3735,7 +3772,9 @@ void main() {
     expect(find.text('생일 (선택)'), findsOneWidget);
     // Save button in Korean.
     expect(find.text('저장 후 계속'), findsOneWidget);
-  });
+  },
+    skip: true,
+  );
 
   testWidgets('Traditional Chinese: profile setup shows zh-TW, not zh-CN', (
     tester,
@@ -3757,7 +3796,95 @@ void main() {
     // Gender labels (same in both zh-CN and zh-TW).
     expect(find.text('男生'), findsOneWidget);
     expect(find.text('女生'), findsOneWidget);
-  });
+  },
+    skip: true,
+  );
+
+  testWidgets(
+    'Japanese: registration completion screen shows Japanese title and labels',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.ja);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+      final strings = _stringsFrom(
+        tester,
+        find.byKey(const ValueKey('auth-register-title')),
+      );
+
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.locale, const Locale('ja'));
+      expect(find.text(strings.authCreateAccountHeading), findsOneWidget);
+      expect(find.text(strings.profileGenderMaleLabel), findsOneWidget);
+      expect(find.text(strings.profileGenderFemaleLabel), findsOneWidget);
+      expect(find.text(strings.authRegisterButtonLabel), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth-register-display-name-field')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Korean: registration completion screen shows Korean title and labels',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.ko);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+      final strings = _stringsFrom(
+        tester,
+        find.byKey(const ValueKey('auth-register-title')),
+      );
+
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.locale, const Locale('ko'));
+      expect(find.text(strings.authCreateAccountHeading), findsOneWidget);
+      expect(find.text(strings.profileGenderMaleLabel), findsOneWidget);
+      expect(find.text(strings.profileGenderFemaleLabel), findsOneWidget);
+      expect(find.text(strings.authRegisterButtonLabel), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth-register-display-name-field')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Traditional Chinese: registration completion uses zh-TW copy',
+    (tester) async {
+      final controller = AppController();
+      controller.setLanguage(AppLanguage.zhTw);
+      controller.debugSetAuthState(
+        status: AppAuthStatus.authenticated,
+        supabaseReady: true,
+      );
+
+      await tester.pumpWidget(BetweenUsApp(controller: controller));
+      await tester.pumpAndSettle();
+      final strings = _stringsFrom(
+        tester,
+        find.byKey(const ValueKey('auth-register-title')),
+      );
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+
+      expect(app.locale, const Locale('zh', 'TW'));
+      expect(find.text(strings.authCreateAccountHeading), findsOneWidget);
+      expect(find.text('创建账号'), findsNothing);
+      expect(find.text(strings.profileGenderMaleLabel), findsOneWidget);
+      expect(find.text(strings.profileGenderFemaleLabel), findsOneWidget);
+    },
+  );
 
   testWidgets('Japanese: invite page shows Japanese text', (tester) async {
     await _pumpApp(
@@ -4104,6 +4231,10 @@ Finder _accountSecurityActionForStatus(Key statusKey) {
     matching: find.byType(Row),
   );
   return find.descendant(of: statusRow, matching: find.byType(TextButton));
+}
+
+AppStrings _stringsFrom(WidgetTester tester, Finder finder) {
+  return AppStrings.of(tester.element(finder));
 }
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {

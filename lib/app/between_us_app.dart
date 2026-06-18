@@ -7,6 +7,7 @@ import 'app_shell.dart';
 import 'app_strings.dart';
 import 'app_theme.dart';
 import '../features/auth/email_otp_sign_in_screen.dart';
+import '../features/auth/email_register_screen.dart';
 import '../features/auth/first_profile_setup_screen.dart';
 
 class BetweenUsApp extends StatelessWidget {
@@ -73,6 +74,8 @@ class BetweenUsApp extends StatelessWidget {
     return switch (controller.authStatus) {
       AppAuthStatus.authenticated when controller.profileCheckInProgress =>
         const _AuthLoadingScreen(),
+      AppAuthStatus.authenticated when controller.requiresRegistrationCompletion =>
+        const EmailRegisterScreen(finalizeOnly: true),
       AppAuthStatus.authenticated when controller.requiresProfileSetup =>
         const FirstProfileSetupScreen(),
       AppAuthStatus.authenticated => const AppShell(),

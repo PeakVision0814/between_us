@@ -59,7 +59,7 @@
 
 - `id uuid primary key`
 - `display_name text not null`
-- `gender text not null default 'unset'`（约束 check in ('male', 'female', 'unset')，注册时必填）
+- `gender text not null default 'unset'`（约束 check in ('male', 'female', 'unset')；`unset` 只用于兼容历史账号，新注册收尾时必须显式选择）
 - `birthday date null`（可选，用于生日提醒）
 - `avatar_url text null`
 - `timezone text not null`
@@ -67,6 +67,7 @@
 - `theme_preference text not null default 'system'`
 - `notification_preview_enabled boolean not null default false`
 - `cycle_sharing_enabled boolean not null default false`
+- `has_password boolean not null default false`
 - `created_at timestamptz not null`
 - `updated_at timestamptz not null`
 
@@ -79,6 +80,8 @@
 - 多语言扩展规划中，`preferred_locale` 的目标取值为 `zh-CN`、`zh-TW`、`en`、`ja`、`ko`；上线前允许新语言阶段性 fallback，但不能出现空字符串或无法恢复的偏好值
 - `theme_preference` 只影响该用户自己的主题
 - `cycle_sharing_enabled` 用于表达该用户是否愿意把经期相关内容共享给伴侣
+- `has_password` 用于表达当前账号是否已设置密码登录能力；新注册用户在验证码验证通过后，只有当密码、昵称、性别一起写入完成并把 `has_password` 置为 `true`，才算注册闭环完成
+- App 侧用 `has_password` 配合 `display_name` / `gender` 判断去向：`!has_password` 且昵称或性别未完成时，回到注册收尾页；`has_password == true` 但昵称或性别缺失时，进入历史资料补全页
 - `profiles` 不承载计划、随记、日历事件、空间状态等业务数据的主归属
 
 账号安全字段：

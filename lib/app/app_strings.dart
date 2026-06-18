@@ -309,6 +309,111 @@ class AppStrings {
     ko: '인증 중 문제가 발생했습니다. 다시 시도하세요.',
   );
 
+  String get authWelcomeBackTitle =>
+      _resolve(zhCn: '欢迎回来', zhTw: '歡迎回來', en: 'Welcome Back');
+  String get authWelcomeBackSubtitle =>
+      _resolve(zhCn: 'Welcome Back', zhTw: 'Welcome Back', en: 'Sign in to continue');
+  String get authCreateAccountHeading =>
+      _resolve(zhCn: '创建账号', zhTw: '建立帳號', en: 'Create Account');
+  String get authCreateAccountSubtitle =>
+      _resolve(zhCn: 'Create Account', zhTw: 'Create Account', en: 'Create your account');
+  String get authPasswordLoginTabLabel =>
+      _resolve(zhCn: '密码登录', zhTw: '密碼登入', en: 'Password');
+  String get authOtpLoginTabLabel =>
+      _resolve(zhCn: '验证码登录', zhTw: '驗證碼登入', en: 'Code');
+  String get authPasswordLabel =>
+      _resolve(zhCn: '密码', zhTw: '密碼', en: 'Password');
+  String get authEnterEmailHint =>
+      _resolve(zhCn: '请输入邮箱', zhTw: '請輸入電子郵件', en: 'Enter email');
+  String get authEnterPhoneHint =>
+      _resolve(zhCn: '请输入手机号', zhTw: '請輸入手機號', en: 'Enter phone number');
+  String get authPasswordHint =>
+      _resolve(zhCn: '请输入密码', zhTw: '請輸入密碼', en: 'Enter password');
+  String get authConfirmPasswordLabel =>
+      _resolve(zhCn: '确认密码', zhTw: '確認密碼', en: 'Confirm password');
+  String get authConfirmPasswordHint => _resolve(
+    zhCn: '请再次输入密码',
+    zhTw: '請再次輸入密碼',
+    en: 'Enter password again',
+  );
+  String get authSendCodeLabel =>
+      _resolve(zhCn: '发送验证码', zhTw: '發送驗證碼', en: 'Send code');
+  String get authVerifyCodeLabel =>
+      _resolve(zhCn: '验证验证码', zhTw: '驗證驗證碼', en: 'Verify code');
+  String authCountdownLabel(int seconds) =>
+      _resolve(zhCn: '${seconds}s', zhTw: '${seconds}s', en: '${seconds}s');
+  String get authCodeVerifiedLabel =>
+      _resolve(zhCn: '验证码验证通过', zhTw: '驗證碼驗證通過', en: 'Code verified');
+  String get authRegisterCompletionHint => _resolve(
+    zhCn: '验证码已验证，请设置密码并完成资料。',
+    zhTw: '驗證碼已驗證，請設定密碼並完成資料。',
+    en: 'Code verified. Set a password and finish your profile.',
+  );
+  String get authPasswordRequirementHint => _resolve(
+    zhCn: '6-12 位，必须同时包含字母、数字、特殊符号',
+    zhTw: '6-12 位，必須同時包含字母、數字、特殊符號',
+    en: '6-12 characters with letters, numbers, and symbols.',
+  );
+  String get authInvalidPasswordMessage => _resolve(
+    zhCn: '密码需为 6-12 位，且同时包含字母、数字、特殊符号。',
+    zhTw: '密碼需為 6-12 位，且同時包含字母、數字、特殊符號。',
+    en: 'Use 6-12 characters with letters, numbers, and symbols.',
+  );
+  String get authPasswordMismatchMessage => _resolve(
+    zhCn: '两次输入的密码不一致。',
+    zhTw: '兩次輸入的密碼不一致。',
+    en: 'The two passwords do not match.',
+  );
+  String get authAgreementRequiredMessage => _resolve(
+    zhCn: '请先勾选用户协议和隐私政策。',
+    zhTw: '請先勾選使用者協議和隱私政策。',
+    en: 'Agree to the terms and privacy policy first.',
+  );
+  String get authCodeVerificationRequiredMessage => _resolve(
+    zhCn: '请先完成验证码验证。',
+    zhTw: '請先完成驗證碼驗證。',
+    en: 'Verify the code first.',
+  );
+  String get authPasswordSignInFailedMessage => _resolve(
+    zhCn: '账号或密码错误，请重试。',
+    zhTw: '帳號或密碼錯誤，請重試。',
+    en: 'Incorrect account or password.',
+  );
+  String get authMissingVerifiedAccountMessage => _resolve(
+    zhCn: '请先完成邮箱或手机号验证。',
+    zhTw: '請先完成電子郵件或手機號驗證。',
+    en: 'Verify your email or phone first.',
+  );
+  String get authRegisterButtonLabel =>
+      _resolve(zhCn: '注册', zhTw: '註冊', en: 'Create account');
+  String get authAgreementPrefix =>
+      _resolve(zhCn: '我已阅读并同意', zhTw: '我已閱讀並同意', en: 'I have read and agree to');
+  String get authUserAgreementLabel =>
+      _resolve(zhCn: '《用户协议》', zhTw: '《使用者協議》', en: 'User Agreement');
+  String get authPrivacyPolicyLabel =>
+      _resolve(zhCn: '《隐私政策》', zhTw: '《隱私政策》', en: 'Privacy Policy');
+  String get authLinkUnavailableMessage => _resolve(
+    zhCn: '协议内容暂未提供。',
+    zhTw: '協議內容暫未提供。',
+    en: 'This link is not available yet.',
+  );
+  String get authRegisterSuccessMessage => _resolve(
+    zhCn: '账号创建完成，欢迎来到 Between Us。',
+    zhTw: '帳號建立完成，歡迎來到 Between Us。',
+    en: 'Your account is ready. Welcome to Between Us.',
+  );
+  String get authPasswordUpdatedMessage =>
+      _resolve(zhCn: '密码已更新', zhTw: '密碼已更新', en: 'Password updated');
+  String get authPasswordSetupFailedMessage => _resolve(
+    zhCn: '密码设置失败，请稍后重试。',
+    zhTw: '密碼設定失敗，請稍後重試。',
+    en: 'Failed to set the password. Please try again.',
+  );
+  String get authSwitchToEmailTooltip =>
+      _resolve(zhCn: '切换到邮箱', zhTw: '切換到電子郵件', en: 'Switch to email');
+  String get authSwitchToPhoneTooltip =>
+      _resolve(zhCn: '切换到手机号', zhTw: '切換到手機號', en: 'Switch to phone');
+
   String get profileEditLabel =>
       _resolve(zhCn: '编辑', zhTw: '編輯', en: 'Edit', ja: '編集', ko: '편집');
   String get profileCancelLabel =>
@@ -1373,6 +1478,35 @@ class AppStrings {
   );
   String get accountSecurityDeleteDialogOkLabel =>
       _resolve(zhCn: '知道了', zhTw: '知道了', en: 'OK');
+  String get accountSecurityPasswordTitle =>
+      _resolve(zhCn: '登录密码', zhTw: '登入密碼', en: 'Password');
+  String get accountSecurityPasswordUnsetValue =>
+      _resolve(zhCn: '未设置', zhTw: '未設定', en: 'Not set');
+  String get accountSecurityPasswordSetValue =>
+      _resolve(zhCn: '已设置', zhTw: '已設定', en: 'Set');
+  String get accountSecuritySetPasswordLabel =>
+      _resolve(zhCn: '设置密码', zhTw: '設定密碼', en: 'Set password');
+  String get accountSecurityChangePasswordLabel =>
+      _resolve(zhCn: '修改密码', zhTw: '修改密碼', en: 'Change password');
+  String get accountSecuritySetPasswordTitle =>
+      _resolve(zhCn: '设置密码', zhTw: '設定密碼', en: 'Set password');
+  String get accountSecurityChangePasswordTitle =>
+      _resolve(zhCn: '修改密码', zhTw: '修改密碼', en: 'Change password');
+  String get accountSecurityPasswordHint => _resolve(
+    zhCn: '密码要求：6-12 位，必须同时包含字母、数字、特殊符号。',
+    zhTw: '密碼要求：6-12 位，必須同時包含字母、數字、特殊符號。',
+    en: 'Use 6-12 characters with letters, numbers, and symbols.',
+  );
+  String get accountSecuritySavePasswordLabel =>
+      _resolve(zhCn: '保存密码', zhTw: '儲存密碼', en: 'Save password');
+  String get accountSecurityPasswordUpdatedMessage =>
+      _resolve(zhCn: '密码已更新', zhTw: '密碼已更新', en: 'Password updated');
+  String get accountSecurityPasswordUpdateFailedMessage => _resolve(
+    zhCn: '密码更新失败，请稍后重试。',
+    zhTw: '密碼更新失敗，請稍後重試。',
+    en: 'Failed to update password. Please try again.',
+  );
+
   String get cycleSharingTitle => _resolve(
     zhCn: '经期记录共享',
     zhTw: '經期記錄共享',

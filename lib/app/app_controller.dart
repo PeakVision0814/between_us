@@ -18,6 +18,9 @@ enum AppAuthStatus {
 }
 
 class AppController extends ChangeNotifier {
+  static final RegExp _passwordPattern = RegExp(
+    r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{6,12}$',
+  );
   static const String defaultDisplayNamePlaceholder = '新的用户';
   static const String genderUnset = 'unset';
   static const String genderMale = 'male';
@@ -26,6 +29,7 @@ class AppController extends ChangeNotifier {
   AppLanguage _language = AppLanguage.zhCn;
   AppThemePreference _themePreference = AppThemePreference.system;
   bool _notificationPreviewEnabled = false;
+  bool _hasPassword = false;
   bool _supabaseReady = false;
   String? _supabaseFailureReason;
   AppAuthStatus _authStatus = AppAuthStatus.initializing;
@@ -66,6 +70,7 @@ class AppController extends ChangeNotifier {
   AppLanguage get language => _language;
   AppThemePreference get themePreference => _themePreference;
   bool get notificationPreviewEnabled => _notificationPreviewEnabled;
+  bool get hasPassword => _hasPassword;
   bool get supabaseReady => _supabaseReady;
   String? get supabaseFailureReason => _supabaseFailureReason;
   AppAuthStatus get authStatus => _authStatus;
@@ -127,6 +132,13 @@ class AppController extends ChangeNotifier {
       _profileLoadedForCurrentSession &&
       (!_hasCompletedDisplayName(_displayName) ||
           !_hasCompletedGender(_gender));
+  bool get requiresRegistrationCompletion =>
+      isAuthenticated &&
+      !_profileCheckInProgress &&
+      _profileLoadedForCurrentSession &&
+      !_hasPassword &&
+      (!_hasCompletedDisplayName(_displayName) ||
+          !_hasCompletedGender(_gender));
 
   Locale get locale => _language.locale;
 
@@ -143,6 +155,10 @@ class AppController extends ChangeNotifier {
       return null;
     }
     return '+86$normalized';
+  }
+
+  static bool isValidPassword(String password) {
+    return _passwordPattern.hasMatch(password.trim());
   }
 
   Future<void> bootstrap() async {
@@ -301,6 +317,71 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> signInWithEmailPassword(String email, String password) {
+    return _signInWithPassword(
+      email: email.trim().toLowerCase(),
+      password: password,
+    );
+  }
+
+  Future<bool> signInWithPhonePassword(String phone, String password) {
+    return _signInWithPassword(
+      phone: normalizeMainlandChinaPhoneForAuth(phone),
+      password: password,
+    );
+  }
+
+  Future<bool> _signInWithPassword({
+    String? email,
+    String? phone,
+    required String password,
+  }) async {
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (email != null && !_looksLikeEmail(email)) {
+      _setAuthError('invalid_email');
+      return false;
+    }
+    if (email == null && (phone == null || phone.isEmpty)) {
+      _setAuthError('invalid_phone');
+      return false;
+    }
+    if (password.trim().isEmpty) {
+      _setAuthError('invalid_credentials');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        phone: phone,
+        password: password,
+      );
+      await _syncSession(
+        response.session ?? Supabase.instance.client.auth.currentSession,
+      );
+      return isAuthenticated;
+    } catch (error) {
+      debugPrint('[Auth] Password sign in failed: $error');
+      if (email != null && _isUserNotRegisteredError(error)) {
+        _authErrorCode = 'user_not_registered';
+      } else if (phone != null && _isUserNotRegisteredError(error)) {
+        _authErrorCode = 'phone_user_not_registered';
+      } else {
+        _authErrorCode = 'invalid_credentials';
+      }
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
   Future<bool> sendPhoneOtpForSignIn(String phone) async {
     return _sendPhoneOtp(phone: phone, shouldCreateUser: false);
   }
@@ -427,6 +508,126 @@ class AppController extends ChangeNotifier {
       debugPrint('[Auth] Verify phone OTP failed: $error');
       _authErrorCode = 'otp_verify_failed';
       return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<bool> completeVerifiedRegistration({
+    required String password,
+    required String displayName,
+    required String gender,
+  }) async {
+    final normalizedDisplayName = displayName.trim();
+    final normalizedGender = gender.trim();
+    if (!_supabaseReady) {
+      _setAuthError('initialize_failed');
+      return false;
+    }
+    if (!isAuthenticated) {
+      _setAuthError('missing_verified_account');
+      return false;
+    }
+    if (!isValidPassword(password)) {
+      _setAuthError('invalid_password');
+      return false;
+    }
+    if (!_isValidDisplayName(normalizedDisplayName)) {
+      _setAuthError('invalid_display_name');
+      return false;
+    }
+    if (!_isValidGender(normalizedGender)) {
+      _setAuthError('invalid_gender');
+      return false;
+    }
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      _setAuthError('missing_user');
+      return false;
+    }
+
+    _setAuthBusy(true);
+    _authErrorCode = null;
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'display_name': normalizedDisplayName,
+            'gender': normalizedGender,
+            'has_password': true,
+          })
+          .eq('id', userId);
+      _displayName = normalizedDisplayName;
+      _gender = normalizedGender;
+      _hasPassword = true;
+      _authErrorCode = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('[Auth] Complete registration failed: $error');
+      if (_isAuthSessionInvalid(error)) {
+        _authErrorCode = 'session_expired';
+        notifyListeners();
+        await _handleExpiredSession();
+      } else {
+        _authErrorCode = 'password_setup_failed';
+        notifyListeners();
+      }
+      return false;
+    } finally {
+      _setAuthBusy(false);
+    }
+  }
+
+  Future<String?> updatePassword({required String password}) async {
+    if (!_supabaseReady) {
+      return 'initialize_failed';
+    }
+    if (!isAuthenticated) {
+      return 'not_authenticated';
+    }
+    if (!isValidPassword(password)) {
+      return 'invalid_password';
+    }
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      return 'missing_user';
+    }
+
+    _setAuthBusy(true);
+    notifyListeners();
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      _hasPassword = true;
+      notifyListeners();
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'has_password': true})
+            .eq('id', userId);
+      } catch (error) {
+        debugPrint(
+          '[Auth] Persist has_password failed after password update: $error',
+        );
+      }
+      return null;
+    } catch (error) {
+      debugPrint('[Auth] Update password failed: $error');
+      if (_isAuthSessionInvalid(error)) {
+        await _handleExpiredSession();
+        return 'session_expired';
+      }
+      return 'password_update_failed';
     } finally {
       _setAuthBusy(false);
     }
@@ -1001,6 +1202,11 @@ class AppController extends ChangeNotifier {
         _notificationPreviewEnabled = notif;
         changed = true;
       }
+      final hasPassword = profile['has_password'] as bool? ?? false;
+      if (_hasPassword != hasPassword) {
+        _hasPassword = hasPassword;
+        changed = true;
+      }
       final recoveryEmail = profile['recovery_email'] as String?;
       if (_recoveryEmail != recoveryEmail) {
         _recoveryEmail = recoveryEmail;
@@ -1459,6 +1665,7 @@ class AppController extends ChangeNotifier {
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool hasPassword = false,
     bool cycleSharingEnabled = false,
     String? currentSpaceId,
     int memberCount = 0,
@@ -1470,6 +1677,7 @@ class AppController extends ChangeNotifier {
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _hasPassword = hasPassword;
     _cycleSharingEnabled = cycleSharingEnabled;
     _currentSpaceId = currentSpaceId;
     _memberCount = memberCount;
@@ -1536,6 +1744,7 @@ class AppController extends ChangeNotifier {
     _displayName = null;
     _gender = null;
     _birthday = null;
+    _hasPassword = false;
     _cycleSharingEnabled = false;
     _selfProfileId = null;
     _currentSpaceId = null;
@@ -1832,6 +2041,7 @@ class AppController extends ChangeNotifier {
     String? displayName,
     String? gender,
     DateTime? birthday,
+    bool hasPassword = false,
     bool cycleSharingEnabled = false,
     String? recoveryEmail,
     DateTime? recoveryEmailVerifiedAt,
@@ -1856,6 +2066,7 @@ class AppController extends ChangeNotifier {
     _displayName = displayName;
     _gender = gender;
     _birthday = birthday;
+    _hasPassword = hasPassword;
     _cycleSharingEnabled = cycleSharingEnabled;
     _recoveryEmail = recoveryEmail;
     _recoveryEmailVerifiedAt = recoveryEmailVerifiedAt;

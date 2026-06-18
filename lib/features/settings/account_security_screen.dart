@@ -25,11 +25,18 @@ class AccountSecurityScreen extends StatefulWidget {
 
 class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
   _BindingKind? _activeBinding;
+  bool _showPasswordPanel = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  String? _passwordError;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _recoveryEmailController =
       TextEditingController();
   final TextEditingController _codeController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   void dispose() {
@@ -37,6 +44,8 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     _emailController.dispose();
     _recoveryEmailController.dispose();
     _codeController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -96,6 +105,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     }
     setState(() {
       _activeBinding = kind;
+      _showPasswordPanel = false;
       _codeController.clear();
     });
   }
@@ -104,6 +114,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     controller.clearPendingBindingState();
     setState(() {
       _activeBinding = _BindingKind.recoveryEmail;
+      _showPasswordPanel = false;
       _codeController.clear();
     });
   }
@@ -112,6 +123,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     controller.clearRecoveryEmailPendingForChange();
     setState(() {
       _activeBinding = _BindingKind.recoveryEmail;
+      _showPasswordPanel = false;
       _recoveryEmailController.clear();
       _codeController.clear();
     });
@@ -125,6 +137,69 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
       _emailController.clear();
       _recoveryEmailController.clear();
       _codeController.clear();
+    });
+  }
+
+  void _startPasswordAction() {
+    setState(() {
+      _activeBinding = null;
+      _showPasswordPanel = true;
+      _passwordError = null;
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+      _obscurePassword = true;
+      _obscureConfirmPassword = true;
+    });
+  }
+
+  void _cancelPasswordAction() {
+    setState(() {
+      _showPasswordPanel = false;
+      _passwordError = null;
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+    });
+  }
+
+  Future<void> _savePassword(AppController controller, AppStrings strings) async {
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    if (!AppController.isValidPassword(password)) {
+      setState(() {
+        _passwordError = strings.authInvalidPasswordMessage;
+      });
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() {
+        _passwordError = strings.authPasswordMismatchMessage;
+      });
+      return;
+    }
+
+    setState(() {
+      _passwordError = null;
+    });
+    final errorCode = await controller.updatePassword(password: password);
+    if (!mounted) {
+      return;
+    }
+    if (errorCode == null) {
+      _cancelPasswordAction();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.accountSecurityPasswordUpdatedMessage)),
+      );
+      return;
+    }
+
+    setState(() {
+      _passwordError = switch (errorCode) {
+        'initialize_failed' => strings.authInitializeFailedMessage,
+        'not_authenticated' => strings.accountSecurityNotAuthenticatedMessage,
+        'invalid_password' => strings.authInvalidPasswordMessage,
+        'session_expired' => strings.profileSessionExpiredMessage,
+        _ => strings.accountSecurityPasswordUpdateFailedMessage,
+      };
     });
   }
 
@@ -336,6 +411,19 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                   ),
                   PageDivider(indent: 56),
                   _CredentialStatusItem(
+                    valueKey: const ValueKey('account-security-password-status'),
+                    icon: Icons.lock_outline_rounded,
+                    title: strings.accountSecurityPasswordTitle,
+                    value: controller.hasPassword
+                        ? strings.accountSecurityPasswordSetValue
+                        : strings.accountSecurityPasswordUnsetValue,
+                    actionLabel: controller.hasPassword
+                        ? strings.accountSecurityChangePasswordLabel
+                        : strings.accountSecuritySetPasswordLabel,
+                    onAction: _startPasswordAction,
+                  ),
+                  PageDivider(indent: 56),
+                  _CredentialStatusItem(
                     valueKey: const ValueKey(
                       'account-security-recovery-email-status',
                     ),
@@ -385,6 +473,132 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                 onVerify: () => _verifyBinding(controller),
                 onChangeRecoveryEmail: () => _changeRecoveryEmail(controller),
                 onCancel: () => _cancelBinding(controller),
+              ),
+            ],
+            if (_showPasswordPanel) ...[
+              const SizedBox(height: 16),
+              PageSurfaceCard(
+                key: const ValueKey('account-security-password-panel'),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      controller.hasPassword
+                          ? strings.accountSecurityChangePasswordTitle
+                          : strings.accountSecuritySetPasswordTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      strings.accountSecurityPasswordHint,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (_passwordError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _passwordError!,
+                        key: const ValueKey('account-security-password-error'),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    TextField(
+                      key: const ValueKey('account-security-password-field'),
+                      controller: _passwordController,
+                      enabled: !controller.authBusy,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: strings.authPasswordLabel,
+                        hintText: strings.authPasswordHint,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                        ),
+                      ),
+                      onChanged: (_) {
+                        setState(() {
+                          _passwordError = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      key: const ValueKey(
+                        'account-security-confirm-password-field',
+                      ),
+                      controller: _confirmPasswordController,
+                      enabled: !controller.authBusy,
+                      obscureText: _obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        labelText: strings.authConfirmPasswordLabel,
+                        hintText: strings.authConfirmPasswordHint,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                        ),
+                      ),
+                      onChanged: (_) {
+                        setState(() {
+                          _passwordError = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                controller.authBusy ? null : _cancelPasswordAction,
+                            child: Text(strings.profileCancelLabel),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            key: const ValueKey(
+                              'account-security-save-password-button',
+                            ),
+                            onPressed: controller.authBusy
+                                ? null
+                                : () => _savePassword(controller, strings),
+                            child: controller.authBusy
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(strings.accountSecuritySavePasswordLabel),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 28),
